@@ -30,3 +30,6 @@ extern const unsigned char logo_sms[];
 
 extern const unsigned char header_gw[];
 extern const unsigned char logo_gw[];
+
+extern const unsigned char header_msx[];
+extern const unsigned char logo_msx[];

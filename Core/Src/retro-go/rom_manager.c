@@ -18,6 +18,8 @@ retro_emulator_file_t *ACTIVE_FILE = NULL;
 #include "sg1000_roms.c"
 #include "pce_roms.c"
 #include "gw_roms.c"
+#include "msx_roms.c"
+#include "msx_bios.c"
 
 const rom_system_t *systems[] = {
     &nes_system,
@@ -28,6 +30,8 @@ const rom_system_t *systems[] = {
     &sg1000_system,
     &pce_system,
     &gw_system,
+    &msx_system,
+    &msx_bios,
 };
 
 const rom_manager_t rom_mgr = {
@@ -44,10 +48,44 @@ const rom_system_t *rom_manager_system(const rom_manager_t *mgr, char *name) {
     return NULL;
 }
 
+int rom_get_ext_count(rom_system_t *system, char *ext) {
+    int count = 0;
+    for(int i=0; i < system->roms_count; i++) {
+        if(strcmp(system->roms[i].ext, ext) == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+const retro_emulator_file_t *rom_get_ext_file_at_index(rom_system_t *system, char *ext, int index) {
+    int count = 0;
+    for(int i=0; i < system->roms_count; i++) {
+        if(strcmp(system->roms[i].ext, ext) == 0) {
+            if (count == index) {
+                return &system->roms[i];
+            }
+            count++;
+        }
+    }
+    return NULL;
+}
+
 void rom_manager_set_active_file(retro_emulator_file_t *file)
 {
     ACTIVE_FILE = file;
     ROM_DATA = file->address;
     ROM_EXT = file->ext;
     ROM_DATA_LENGTH = file->size;
+}
+
+const retro_emulator_file_t *rom_manager_get_file(rom_system_t *system, const char *name, const char *ext)
+{
+    for(int i=0; i < system->roms_count; i++) {
+        if((strcmp(system->roms[i].name, name) == 0) &&
+           (strcmp(system->roms[i].ext, ext) == 0)) {
+            return &system->roms[i];
+        }
+    }
+    return NULL;
 }

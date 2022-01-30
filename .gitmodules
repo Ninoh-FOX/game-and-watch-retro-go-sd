@@ -4,3 +4,6 @@
 [submodule "LCD-Game-Emulator"]
 	path = LCD-Game-Emulator
 	url = https://github.com/bzhxx/LCD-Game-Emulator.git
+[submodule "fMSX"]
+	path = fMSX
+	url = https://github.com/sylverb/fMSX.git

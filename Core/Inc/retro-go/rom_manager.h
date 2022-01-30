@@ -23,4 +23,6 @@ extern unsigned ROM_DATA_LENGTH;
 extern retro_emulator_file_t *ACTIVE_FILE;
 
 const rom_system_t *rom_manager_system(const rom_manager_t *mgr, char *name);
-void rom_manager_set_active_file(retro_emulator_file_t *file);
+int   rom_get_ext_count(rom_system_t *system, char *ext);
+void  rom_manager_set_active_file(retro_emulator_file_t *file);
+const retro_emulator_file_t *rom_manager_get_file(rom_system_t *system, const char *name, const char *ext);

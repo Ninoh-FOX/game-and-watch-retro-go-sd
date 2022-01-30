@@ -327,6 +327,27 @@ SECTIONS
   _OVERLAY_PCE_BSS_SIZE = SIZEOF(.overlay_pce_bss);
   _PCE_ROM_UNPACK_BUFFER_SIZE = __RAM_EMU_START__ + __RAM_EMU_LENGTH__ - _PCE_ROM_UNPACK_BUFFER;
 
+  .overlay_msx __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_msx_start__ = .;
+    build/msx/*.o (.data. data* .text .text* .rodata .rodata*)
+    . = ALIGN(4);
+    _OVERLAY_MSX_LOAD_END = .;
+  } AT> EXTFLASH
+  _OVERLAY_MSX_LOAD_START = LOADADDR(.overlay_msx);
+  _OVERLAY_MSX_SIZE = SIZEOF(.overlay_msx);
+  .overlay_msx_bss _OVERLAY_MSX_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_MSX_BSS_START = .;
+    build/msx/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/msx/*.o (COMMON)
+    __ram_emu_msx_end__ = .;
+    _OVERLAY_MSX_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_MSX_BSS_END) < __RAM_EMU_END__, "Error: MSX BSS overflow");
+  }
+  _OVERLAY_MSX_BSS_SIZE = SIZEOF(.overlay_msx_bss);
+
   .overlay_gw __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_gw_start__ = .;

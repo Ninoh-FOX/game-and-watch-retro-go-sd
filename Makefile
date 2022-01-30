@@ -133,6 +133,25 @@ retro-go-stm32/huexpress-go/components/huexpress/engine/hard_pce.c \
 Core/Src/porting/pce/sound_pce.c \
 Core/Src/porting/pce/main_pce.c
 
+MSX_C_SOURCES = \
+fMSX/fMSX/V9938.c \
+fMSX/fMSX/Patch.c \
+fMSX/EmuLib/SCC.c \
+fMSX/EmuLib/AY8910.c \
+fMSX/EmuLib/FDIDisk.c \
+fMSX/EmuLib/I8255.c \
+fMSX/EmuLib/Image.c \
+fMSX/EmuLib/SHA1.c \
+fMSX/EmuLib/SoundMSX.c \
+fMSX/EmuLib/WD1793.c \
+fMSX/EmuLib/YM2413MSX.c \
+fMSX/Z80/Debug.c \
+fMSX/Z80/Z80MSX.c \
+Core/Src/porting/msx/main_msx.c \
+Core/Src/porting/msx/core_msx.c \
+Core/Src/porting/msx/video_msx.c
+
+
 GW_C_SOURCES = \
 LCD-Game-Emulator/src/cpus/sm500op.c \
 LCD-Game-Emulator/src/cpus/sm510op.c \
@@ -162,14 +181,18 @@ C_INCLUDES +=  \
 -Iretro-go-stm32/huexpress-go/components/huexpress/engine \
 -ILCD-Game-Emulator/src \
 -ILCD-Game-Emulator/src/cpus \
--ILCD-Game-Emulator/src/gw_sys
+-ILCD-Game-Emulator/src/gw_sys \
+-IfMSX/fMSX \
+-IfMSX/Z80 \
+-IfMSX/EMULib
+
 
 include Makefile.common
 
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_gw $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)

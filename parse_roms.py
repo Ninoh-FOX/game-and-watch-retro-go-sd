@@ -59,6 +59,7 @@ SAVE_SIZES = {
     "col": 60 * 1024,
     "sg": 60 * 1024,
     "pce": 76 * 1024,
+    "msx": 260 * 1024,
     "gw": 4 * 1024,
 }
 
@@ -319,7 +320,7 @@ class ROMParser:
                 ]
             )
             region = "REGION_PAL" if is_pal else "REGION_NTSC"
-            if args.save:
+            if args.save and save_prefix:
                 body += ROM_ENTRY_TEMPLATE.format(
                     name=rom.name,
                     size=rom.size,
@@ -334,7 +335,7 @@ class ROMParser:
                     name=rom.name,
                     size=rom.size,
                     rom_entry=rom.symbol,
-                    save_entry=save_prefix + str(i),
+                    save_entry=str(i),
                     region=region,
                     extension=rom.ext,
                     system=system,
@@ -503,7 +504,7 @@ class ROMParser:
         variable_name: str,
         folder: str,
         extensions: List[str],
-        save_prefix: str,
+        save_prefix: str = None,
         compress: str = None,
         compress_gb_speed: bool = False,
     ) -> int:
@@ -570,7 +571,7 @@ class ROMParser:
                 total_rom_size += rom.size
 
                 f.write(self.generate_object_file(rom))
-                if args.save:
+                if args.save and save_prefix:
                     f.write(self.generate_save_entry(save_prefix + str(i), save_size))
 
             rom_entries = self.generate_rom_entries(
@@ -694,6 +695,28 @@ class ROMParser:
         total_save_size += save_size
         total_rom_size += rom_size
         build_config += "#define ENABLE_EMULATOR_PCE\n" if rom_size > 0 else ""
+
+        save_size, rom_size = self.generate_system(
+            "Core/Src/retro-go/msx_roms.c",
+            "MSX",
+            "msx_system",
+            "msx",
+            ["rom","fdi"],
+            "SAVE_MSX_",
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        #bios
+        save_size, rom_size = self.generate_system(
+            "Core/Src/retro-go/msx_bios.c",
+            "MSX_BIOS",
+            "msx_bios",
+            "msx_bios",
+            ["rom","sha"],
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        build_config += "#define ENABLE_EMULATOR_MSX\n" if rom_size > 0 else ""
 
         save_size, rom_size = self.generate_system(
             "Core/Src/retro-go/gw_roms.c",
