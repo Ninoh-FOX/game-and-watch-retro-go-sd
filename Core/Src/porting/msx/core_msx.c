@@ -55,7 +55,7 @@ int  VRAMPages   = 2;              /* Number of VRAM pages   */
 byte ExitNow     = 0;              /* 1 = Exit the emulator  */
 
 /** Main hardware: CPU, RAM, VRAM, mappers *******************/
-Z80 CPU;                           /* Z80 CPU state and regs */
+Z80 MSXCPU;                           /* Z80 CPU state and regs */
 
 byte *VRAM,*VPAGE;                 /* Video RAM              */
 
@@ -411,7 +411,7 @@ int msx_start(int NewMode,int NewRAMPages,int NewVRAMPages, unsigned char *SaveS
 
   /* Start execution of the code */
   if(Verbose) printf("RUNNING ROM CODE...\n");
-  A=RunZ80(&CPU);
+  A=RunZ80(&MSXCPU);
 
   /* Exiting emulation... */
   if(Verbose) printf("EXITED at PC = %04Xh.\n",A);
@@ -599,8 +599,8 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
   /* Set CPU timings */
   VPeriod        = (VIDEO(MSX_PAL)? VPERIOD_PAL:VPERIOD_NTSC)/6;
   HPeriod        = HPERIOD/6;
-  CPU.IPeriod    = CPU_H240;
-  CPU.IAutoReset = 0;
+  MSXCPU.IPeriod    = CPU_H240;
+  MSXCPU.IAutoReset = 0;
 
   /* Numbers of RAM/VRAM pages should be power of 2 */
   for(J=1;J<NewRAMPages;J<<=1);
@@ -720,7 +720,7 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
   if(MODEL(MSX_MSX2P)) VDPStatus[1]|=0x04;
 
   /* Reset CPU */
-  ResetZ80(&CPU);
+  ResetZ80(&MSXCPU);
 
   /* Done */
   return(Mode);
@@ -1481,8 +1481,8 @@ void SSlot(register byte V)
 word SetIRQ(register byte IRQ)
 {
   if(IRQ&0x80) IRQPending&=IRQ; else IRQPending|=IRQ;
-  CPU.IRequest=IRQPending? INT_IRQ:INT_NONE;
-  return(CPU.IRequest);
+  MSXCPU.IRequest=IRQPending? INT_IRQ:INT_NONE;
+  return(MSXCPU.IRequest);
 }
 
 /** SetScreen() **********************************************/

@@ -137,15 +137,15 @@ Core/Src/porting/pce/main_pce.c
 MSX_C_SOURCES = \
 fMSX/fMSX/V9938.c \
 fMSX/fMSX/Patch.c \
-fMSX/EmuLib/SCC.c \
-fMSX/EmuLib/AY8910.c \
-fMSX/EmuLib/FDIDisk.c \
-fMSX/EmuLib/I8255.c \
-fMSX/EmuLib/Image.c \
-fMSX/EmuLib/SHA1.c \
-fMSX/EmuLib/SoundMSX.c \
-fMSX/EmuLib/WD1793.c \
-fMSX/EmuLib/YM2413MSX.c \
+fMSX/EMULib/SCC.c \
+fMSX/EMULib/AY8910.c \
+fMSX/EMULib/FDIDisk.c \
+fMSX/EMULib/I8255.c \
+fMSX/EMULib/Image.c \
+fMSX/EMULib/SHA1.c \
+fMSX/EMULib/SoundMSX.c \
+fMSX/EMULib/WD1793.c \
+fMSX/EMULib/YM2413MSX.c \
 fMSX/Z80/Debug.c \
 fMSX/Z80/Z80MSX.c \
 Core/Src/porting/msx/main_msx.c \

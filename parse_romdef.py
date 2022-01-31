@@ -91,6 +91,9 @@ class ROMParser:
         json_file = script_path / "roms" / "gw.json"
         self.parse_one(json_file, "gw",["gw"])
 
+        json_file = script_path / "roms" / "msx.json"
+        self.parse_one(json_file, "msx",["rom","fdi"])
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Define ROMs name & pulish to the build environment")
 

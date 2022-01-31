@@ -772,6 +772,8 @@ class ROMParser:
         romdef.setdefault('sg', {})
         romdef.setdefault('pce', {})
         romdef.setdefault('gw', {})
+        romdef.setdefault('msx', {})
+        romdef.setdefault('msx_bios', {})        
 
         save_size, rom_size, img_size = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
