@@ -27,7 +27,7 @@
 
 #define MSX_AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / 60)
 #define AUDIO_BUFFER_LENGTH_DMA_MSX (2 * MSX_AUDIO_BUFFER_LENGTH)
-static int32_t msxAudioBuffer[MSX_AUDIO_BUFFER_LENGTH];
+static sample msxAudioBuffer[MSX_AUDIO_BUFFER_LENGTH];
 static int16_t msxAudioBufferOffset;
 static unsigned char msx_joystick_state = 0;
 static odroid_gamepad_state_t previous_joystick_state;
@@ -50,11 +50,11 @@ static bool msx_system_SaveState(char *pathName)
 void PlayAllSound(int uSec)
 {
       /* @@@ Twice the argument to avoid skipping */
-      RenderAndPlayAudio(uSec*AUDIO_SAMPLE_RATE/1000000);
+      RenderAndPlayAudio(2*uSec*AUDIO_SAMPLE_RATE/1000000);
 }
 
 unsigned int GetFreeAudio(void) {
-  return MSX_AUDIO_BUFFER_LENGTH;
+  return MSX_AUDIO_BUFFER_LENGTH*2;
 }
 
 unsigned int WriteAudio(sample *Data,unsigned int Length) {
@@ -70,7 +70,7 @@ unsigned int WriteAudio(sample *Data,unsigned int Length) {
         }
         msxAudioBufferOffset++;
         // Local buffer is full, send to DMA
-        if (msxAudioBufferOffset == MSX_AUDIO_BUFFER_LENGTH) {
+        if ((2 * msxAudioBufferOffset) == MSX_AUDIO_BUFFER_LENGTH) {
                 size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
                 msxAudioBufferOffset = 0;
                 memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH);
@@ -89,7 +89,7 @@ void TrashAudio(void)
 unsigned int InitAudio(unsigned int Rate,unsigned int Latency) {
       // Init Sound
       msxAudioBufferOffset = 0;
-      memset(msxAudioBuffer, 0, MSX_AUDIO_BUFFER_LENGTH*sizeof(int16_t));
+      memset(msxAudioBuffer, 0, MSX_AUDIO_BUFFER_LENGTH*sizeof(sample));
       memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
       HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
 
