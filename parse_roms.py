@@ -286,9 +286,9 @@ class ROM:
         self.path = filepath
         self.filename = filepath
         # Remove compression extension from the name in case it ends with that
-        if filepath.suffix in COMPRESSIONS:
+        if filepath.suffix in COMPRESSIONS or filepath.suffix == '.fdi':
             self.filename = filepath.with_suffix("").stem
-        else:
+        else :
             self.filename = filepath.stem
         romdefs.setdefault(self.filename, {})
         romdef = romdefs[self.filename]
@@ -605,6 +605,14 @@ class ROMParser:
 
             output_file.write_bytes(output_data)
 
+    def _convert_dsk(self, variable_name, dsk):
+        """This will convert dsk image to fdi."""
+        if not (dsk.publish):
+            return
+
+        if "msx_system" in variable_name:  # MSX
+            subprocess.check_output("python3 tools/dsk2fdi.py \""+str(dsk.path)+"\"", shell=True)
+
     def generate_system(
         self,
         file: str,
@@ -639,15 +647,38 @@ class ROMParser:
                 return []
 
             roms = []
+#            print("find_compressed_roms romdefs =",romdefs)
             for e in extensions:
                 roms += self.find_roms(system_name, folder, e + "." + compress, romdefs)
             return roms
+
+        def find_fdi_disks():
+            disks = self.find_roms(system_name, folder, "dsk.fdi", romdefs)
+            return disks
 
         def contains_rom_by_name(rom, roms):
             for r in roms:
                 if r.name == rom.name:
                     return True
             return False
+
+        fdi_disks = find_fdi_disks()
+        disks_raw = [r for r in roms_raw if not contains_rom_by_name(r, fdi_disks)]
+        disks_raw = [r for r in disks_raw if r.ext == "dsk"]
+        if disks_raw:
+            pbar = tqdm(disks_raw) if tqdm else disks_raw
+            for r in pbar:
+                if tqdm:
+                    pbar.set_description(f"Converting: {system_name} / {r.name}")
+                self._convert_dsk(
+                    variable_name,
+                    r)
+            # Re-generate the fdi disks list
+            fdi_disks = find_fdi_disks()
+        #remove .dsk from list
+        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
+        #add .fdi to list
+        roms_raw.extend(fdi_disks)
 
         roms_compressed = find_compressed_roms()
 
@@ -781,7 +812,7 @@ class ROMParser:
         romdef.setdefault('pce', {})
         romdef.setdefault('gw', {})
         romdef.setdefault('msx', {})
-        romdef.setdefault('msx_bios', {})        
+        romdef.setdefault('msx_bios', {})
 
         save_size, rom_size, img_size = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
@@ -905,7 +936,7 @@ class ROMParser:
             "MSX",
             "msx_system",
             "msx",
-            ["rom","fdi"],
+            ["rom","dsk"],
             "SAVE_MSX_",
             romdef["msx"]
         )
