@@ -27,8 +27,11 @@
 
 #define MSX_AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / 60)
 #define AUDIO_BUFFER_LENGTH_DMA_MSX (2 * MSX_AUDIO_BUFFER_LENGTH)
-static sample msxAudioBuffer[MSX_AUDIO_BUFFER_LENGTH];
+static sample msxAudioBuffer[2*MSX_AUDIO_BUFFER_LENGTH];
 static int16_t msxAudioBufferOffset;
+static bool msx_audio_init = false;
+
+
 static unsigned char msx_joystick_state = 0;
 static odroid_gamepad_state_t previous_joystick_state;
 
@@ -49,12 +52,12 @@ static bool msx_system_SaveState(char *pathName)
 /*************************************************************/
 void PlayAllSound(int uSec)
 {
-      /* @@@ Twice the argument to avoid skipping */
-      RenderAndPlayAudio(2*uSec*AUDIO_SAMPLE_RATE/1000000);
+      /* +1 to avoid skipping */
+      RenderAndPlayAudio(uSec*AUDIO_SAMPLE_RATE/1000000+1);
 }
 
 unsigned int GetFreeAudio(void) {
-  return MSX_AUDIO_BUFFER_LENGTH*2;
+  return MSX_AUDIO_BUFFER_LENGTH-msxAudioBufferOffset/2;
 }
 
 unsigned int WriteAudio(sample *Data,unsigned int Length) {
@@ -69,12 +72,6 @@ unsigned int WriteAudio(sample *Data,unsigned int Length) {
                 msxAudioBuffer[msxAudioBufferOffset] = (sample * factor) >> 8;
         }
         msxAudioBufferOffset++;
-        // Local buffer is full, send to DMA
-        if ((2 * msxAudioBufferOffset) == MSX_AUDIO_BUFFER_LENGTH) {
-                size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
-                msxAudioBufferOffset = 0;
-                memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH);
-        }
     }
     return Length;
 }
@@ -148,19 +145,18 @@ static bool update_msx_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t 
         selected_msx_index = selected_msx_index < max_index ? selected_msx_index + 1 : 0;
   }
 
-  printf("selected_msx_index = %d\n",selected_msx_index);
-      switch (selected_msx_index) {
-            case 0: // MSX1;
-                  strcpy(option->value, "MSX1");
-                  break;
-            case 1: // MSX2;
-                  strcpy(option->value, "MSX2");
-                  break;
-            case 2: // MSX2+;
-                  strcpy(option->value, "MSX2+");
-                  break;
-      }
-      
+  switch (selected_msx_index) {
+    case 0: // MSX1;
+            strcpy(option->value, "MSX1");
+            break;
+    case 1: // MSX2;
+            strcpy(option->value, "MSX2");
+            break;
+    case 2: // MSX2+;
+            strcpy(option->value, "MSX2+");
+            break;
+  }
+
   if (event == ODROID_DIALOG_ENTER) {
         switch (selected_msx_index) {
               case 0: // MSX1;
@@ -271,18 +267,10 @@ static bool update_keyboard_cb(odroid_dialog_choice_t *option, odroid_dialog_eve
 /*************************************************************/
 unsigned int Joystick(void)
 {
-/*    char disk_name[128];
-    char key_name[6];
-    char msx_name[6];*/
     odroid_gamepad_state_t joystick;
+
     odroid_input_read_gamepad(&joystick);
-/*    odroid_dialog_choice_t options[] = {
-            {100, "Change Disk", disk_name, 1, &update_disk_cb},
-            {100, "Select MSX", msx_name, 1, &update_msx_cb},
-            {100, "Press Key", key_name, 1, &update_keyboard_cb},
-            ODROID_DIALOG_CHOICE_LAST
-    };
-    common_emu_input_loop(&joystick, options);*/
+
     if ((joystick.values[ODROID_INPUT_LEFT]) && !previous_joystick_state.values[ODROID_INPUT_LEFT]) {
         KBD_SET(KBD_LEFT);
     } else if (!(joystick.values[ODROID_INPUT_LEFT]) && previous_joystick_state.values[ODROID_INPUT_LEFT]) {
@@ -375,6 +363,21 @@ void RefreshScreen(void) {
     common_emu_input_loop(&joystick, options);
 
     if (drawFrame) {
+        if (!msx_audio_init) {
+            // To make sure we have filled DMA with fresh sample before starting playing
+            msx_audio_init=true;
+            size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
+            memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH*2);
+            msxAudioBufferOffset = 0;
+        } else {
+            size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
+            memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH*2);
+            msxAudioBufferOffset = 0;
+            HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
+        }
+
+        // remove used samples if needed
+        common_ingame_overlay();
         lcd_swap();
     }
     if(!common_emu_state.skip_frames) {
@@ -391,6 +394,9 @@ void RefreshScreen(void) {
 /* Main */
 void app_main_msx(uint8_t load_state, uint8_t start_paused)
 {
+    int SndSwitch;             /* Mask of enabled sound channels */
+    int SndVolume;             /* Master volume for audio        */
+
     unsigned char *savestate_address = NULL;
     if (start_paused) {
         common_emu_state.pause_after_frames = 2;
@@ -411,6 +417,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
     /* Init Sound */
     InitSound(AUDIO_SAMPLE_RATE,1000/60);
+    SndSwitch=(1<<MAXCHANNELS)-1;
+    SndVolume=64;
+    SetChannels(SndVolume,SndSwitch);
 
     msx_start(MSX_MSX2P|MSX_NTSC|MSX_MSXDOS2|MSX_GUESSA|MSX_GUESSB,
               RAMPages,VRAMPages,savestate_address);
