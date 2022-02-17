@@ -627,7 +627,6 @@ class ROMParser:
         compress: str = None,
         compress_gb_speed: bool = False,
     ) -> int:
-        print("generate_system compress=",compress)
         import json;
         script_path = Path(__file__).parent
         json_file = script_path / "roms" / str(folder + ".json")
@@ -939,7 +938,7 @@ class ROMParser:
             "MSX",
             "msx_system",
             "msx",
-            ["rom","dsk"],
+            ["rom","mx1","mx2","dsk"],
             "SAVE_MSX_",
             romdef["msx"],
             args.compress
