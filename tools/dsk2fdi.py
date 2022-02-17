@@ -179,7 +179,7 @@ print("Opening "+sys.argv[1])
 dskFile = open(sys.argv[1], 'rb')
 fdiArray = analyzeMsxDsk(dskFile,sys.argv[1],compress)
 if len(fdiArray) > 0 :
-    outFile = sys.argv[1].replace(".dsk",".dsk.fdi")
+    outFile = sys.argv[1]+".fdi"
     print("File is MSX dsk file, saving "+outFile)
     newfile=open(outFile,'wb')
     newfile.write(fdiArray)
@@ -190,7 +190,7 @@ if len(fdiArray) > 0 :
 else :
     fdiArray = analyzeRawDsk(dskFile,sys.argv[1])
     if len(fdiArray) > 0 :
-        outFile = sys.argv[1].replace(".dsk",".dsk.fdi")
+        outFile = sys.argv[1]+".fdi"
         print("File is RAW dsk file, saving "+outFile)
         newfile=open(outFile,'wb')
         newfile.write(fdiArray)
