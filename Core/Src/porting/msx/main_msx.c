@@ -34,6 +34,8 @@ static bool msx_audio_init = false;
 
 static unsigned char msx_joystick_state = 0;
 static odroid_gamepad_state_t previous_joystick_state;
+static int button_a_key_index = 5; /* KBD_SPACE index */
+static int button_b_key_index = 43; /* n key index */
 
 static bool msx_system_LoadState(char *pathName)
 {
@@ -56,6 +58,7 @@ void PlayAllSound(int uSec)
       RenderAndPlayAudio(uSec*AUDIO_SAMPLE_RATE/1000000+1);
 }
 
+/* Returns the number of samples we can fill in the audio buffer */
 unsigned int GetFreeAudio(void) {
   return MSX_AUDIO_BUFFER_LENGTH-msxAudioBufferOffset/2;
 }
@@ -185,16 +188,7 @@ struct msx_key_info msx_keyboard[] = {
     {KBD_F3,"F3"},
     {KBD_F4,"F4"},
     {KBD_F5,"F5"},
-    {KBD_NUMPAD0,"0"},
-    {KBD_NUMPAD1,"1"},
-    {KBD_NUMPAD2,"2"},
-    {KBD_NUMPAD3,"3"},
-    {KBD_NUMPAD4,"4"},
-    {KBD_NUMPAD5,"5"},
-    {KBD_NUMPAD6,"6"},
-    {KBD_NUMPAD7,"7"},
-    {KBD_NUMPAD8,"8"},
-    {KBD_NUMPAD9,"9"},
+    {KBD_SPACE,"Space"},
     {KBD_SHIFT,"Shift"},
     {KBD_CONTROL,"Control"},
     {KBD_GRAPH,"Graph"},
@@ -209,6 +203,16 @@ struct msx_key_info msx_keyboard[] = {
     {KBD_COUNTRY,"Country"},
     {KBD_STOP,"Stop"},
     {KBD_ESCAPE,"Esc"},
+    {KBD_NUMPAD0,"0"},
+    {KBD_NUMPAD1,"1"},
+    {KBD_NUMPAD2,"2"},
+    {KBD_NUMPAD3,"3"},
+    {KBD_NUMPAD4,"4"},
+    {KBD_NUMPAD5,"5"},
+    {KBD_NUMPAD6,"6"},
+    {KBD_NUMPAD7,"7"},
+    {KBD_NUMPAD8,"8"},
+    {KBD_NUMPAD9,"9"},
     {97,"a"},
     {98,"b"},
     {99,"c"},
@@ -261,6 +265,36 @@ static bool update_keyboard_cb(odroid_dialog_choice_t *option, odroid_dialog_eve
     return event == ODROID_DIALOG_ENTER;
 }
 
+static bool update_a_button_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    int max_index = sizeof(msx_keyboard)/sizeof(msx_keyboard[0])-1;
+
+    if (event == ODROID_DIALOG_PREV) {
+        button_a_key_index = button_a_key_index > 0 ? button_a_key_index - 1 : max_index;
+    }
+    if (event == ODROID_DIALOG_NEXT) {
+        button_a_key_index = button_a_key_index < max_index ? button_a_key_index + 1 : 0;
+    }
+
+    strcpy(option->value, msx_keyboard[button_a_key_index].name);
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static bool update_b_button_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    int max_index = sizeof(msx_keyboard)/sizeof(msx_keyboard[0])-1;
+
+    if (event == ODROID_DIALOG_PREV) {
+        button_b_key_index = button_b_key_index > 0 ? button_b_key_index - 1 : max_index;
+    }
+    if (event == ODROID_DIALOG_NEXT) {
+        button_b_key_index = button_b_key_index < max_index ? button_b_key_index + 1 : 0;
+    }
+
+    strcpy(option->value, msx_keyboard[button_b_key_index].name);
+    return event == ODROID_DIALOG_ENTER;
+}
+
 /** Joystick() ***********************************************/
 /** Query positions of two joystick connected to ports 0/1. **/
 /** Returns 0.0.B2.A2.R2.L2.D2.U2.0.0.B1.A1.R1.L1.D1.U1.    **/
@@ -292,14 +326,14 @@ unsigned int Joystick(void)
         KBD_RES(KBD_DOWN);
     }
     if ((joystick.values[ODROID_INPUT_A]) && !previous_joystick_state.values[ODROID_INPUT_A]) {
-        KBD_SET(KBD_SPACE);
+        KBD_SET(msx_keyboard[button_a_key_index].key_id);
     } else if (!(joystick.values[ODROID_INPUT_A]) && previous_joystick_state.values[ODROID_INPUT_A]) {
-        KBD_RES(KBD_SPACE);
+        KBD_RES(msx_keyboard[button_a_key_index].key_id);
     }
     if ((joystick.values[ODROID_INPUT_B]) && !previous_joystick_state.values[ODROID_INPUT_B]) {
-        KBD_SET('n');
+        KBD_SET(msx_keyboard[button_b_key_index].key_id);
     } else if (!(joystick.values[ODROID_INPUT_B]) && previous_joystick_state.values[ODROID_INPUT_B]) {
-        KBD_RES('n');
+        KBD_RES(msx_keyboard[button_b_key_index].key_id);
     }
     if ((joystick.values[ODROID_INPUT_START]) && !previous_joystick_state.values[ODROID_INPUT_START]) {
         KBD_SET(KBD_F5);
@@ -339,14 +373,67 @@ void Keyboard(void)
   /* Everything is done in Joystick() */
 }
 
+/*struct odroid_dialog_choice {
+    int  id;
+    const char *label;
+    char *value;
+    int  enabled;
+    bool (*update_cb)(odroid_dialog_choice_t *, odroid_dialog_event_t, uint32_t repeat);
+};*/
+
+static void createOptionMenu(odroid_dialog_choice_t *options) {
+    char disk_name[128];
+    char msx_name[6];
+    char key_name[6];
+    char a_button_name[6];
+    char b_button_name[6];
+    int index=0;
+    if (strcmp(ROM_EXT,"fdi") == 0) {
+        options[index].id = 100;
+        options[index].label = "Change Dsk";
+        options[index].value = disk_name;
+        options[index].enabled = 1;
+        options[index].update_cb = &update_disk_cb;
+        index++;
+    }
+    options[index].id = 100;
+    options[index].label = "Select MSX";
+    options[index].value = msx_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_msx_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "A Button";
+    options[index].value = a_button_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_a_button_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "B Button";
+    options[index].value = b_button_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_b_button_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "Press Key";
+    options[index].value = key_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_keyboard_cb;
+    index++;
+    options[index].id = 0x0F0F0F0F;
+    options[index].label = "LAST";
+    options[index].value = "LAST";
+    options[index].enabled = 0xFFFF;
+    options[index].update_cb = NULL;
+}
+
 /** RefreshScreen() ******************************************/
 /** Refresh screen. This function is called in the end of   **/
 /** refresh cycle to show the entire screen.                **/
 /*************************************************************/
 void RefreshScreen(void) {
-    char disk_name[128];
-    char msx_name[6];
-    char key_name[6];
+    odroid_dialog_choice_t options[10];
+
     bool drawFrame = common_emu_frame_loop();
 
     wdog_refresh();
@@ -354,12 +441,7 @@ void RefreshScreen(void) {
     odroid_gamepad_state_t joystick;
     odroid_input_read_gamepad(&joystick);
 
-    odroid_dialog_choice_t options[] = {
-        {100, "Change Dsk", disk_name, 1, &update_disk_cb},
-        {100, "Select MSX", msx_name, 1, &update_msx_cb},
-        {100, "Press Key", key_name, 1, &update_keyboard_cb},
-        ODROID_DIALOG_CHOICE_LAST
-    };
+    createOptionMenu(options);
     common_emu_input_loop(&joystick, options);
 
     if (drawFrame) {
