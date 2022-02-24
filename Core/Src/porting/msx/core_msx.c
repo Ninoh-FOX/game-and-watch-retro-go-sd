@@ -376,7 +376,9 @@ int msx_start(int NewMode,int NewRAMPages,int NewVRAMPages, unsigned char *SaveS
   if((J<MAXSLOTS)&&LoadGNWCartName("FMPAC","rom",J,MAP_FMPAC,true)) ++J;
 
   /* Try loading game if it's a rom */
-  if (strcmp(ACTIVE_FILE->ext,"rom") == 0) {
+  if ((strcmp(ACTIVE_FILE->ext,"rom") == 0) ||
+      (strcmp(ACTIVE_FILE->ext,"mx1") == 0) ||
+      (strcmp(ACTIVE_FILE->ext,"mx2") == 0)) {
     /* Try loading Konami GameMaster 2 cartridge */
     // Todo : allow user to choose to load or not
     for(;(J<MAXSLOTS)&&ROMData[J];++J);
