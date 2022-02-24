@@ -16,6 +16,8 @@
 #include "common.h"
 #include "rom_manager.h"
 #include "gw_linker.h"
+#include "gw_flash.h"
+#include "gw_lcd.h"
 
 #include "MSX.h"
 #include "SoundMSX.h"
@@ -30,6 +32,7 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "main_msx.h"
 #include "core_msx.h"
 
 #define PRINTOK           if(Verbose) puts("OK")
@@ -55,7 +58,7 @@ int  VRAMPages   = 2;              /* Number of VRAM pages   */
 byte ExitNow     = 0;              /* 1 = Exit the emulator  */
 
 /** Main hardware: CPU, RAM, VRAM, mappers *******************/
-Z80 MSXCPU;                           /* Z80 CPU state and regs */
+Z80 MSXCPU;                        /* Z80 CPU state and regs */
 
 byte *VRAM,*VPAGE;                 /* Video RAM              */
 
@@ -396,6 +399,11 @@ int msx_start(int NewMode,int NewRAMPages,int NewVRAMPages, unsigned char *SaveS
     FDD[0].Verbose=Verbose&0x04;
     if(msx_change_disk(0,ACTIVE_FILE->name,(const char *)(ACTIVE_FILE->address)))
     if(Verbose) printf("Inserting %s into drive %c\n",DSKName[0],0+'A');
+  }
+
+  // Load State if needed
+  if (SaveState) {
+    LoadMsxStateFlash(SaveState);
   }
 
   /* Done with initialization */
@@ -1126,7 +1134,7 @@ void MapROM(register word A,register byte V)
   byte I,J,PS,SS,*P;
 
 /* @@@ For debugging purposes
-printf("(%04Xh) = %02Xh at PC=%04Xh\n",A,V,CPU.PC.W);
+printf("(%04Xh) = %02Xh at PC=%04Xh\n",A,V,MSXCPU.PC.W);
 */
 
   J  = A>>14;           /* 16kB page number 0-3  */
@@ -2161,9 +2169,7 @@ byte LoadFNT(const char *FileName)
 /*************************************************************/
 byte *LoadFlashROM(const char *Name,const char *Ext,int Size,byte *Buf)
 {
-//  FILE *F;
   byte *P = NULL;
-  int J;
   retro_emulator_file_t *rom_file;
   const rom_system_t *msx_bios = rom_manager_system(&rom_mgr, "MSX_BIOS");
 
@@ -2400,4 +2406,269 @@ int LoadGNWCartName(const char *FileName,const char *Ext,int Slot,int Type, bool
 
   /* Done loading cartridge */
   return(Pages);
+}
+
+#define SaveSTRUCT(Name) \
+  if(Size+sizeof(Name)>MaxSize) return(0); \
+  else { SaveFlashSaveData((unsigned char *)(save_address+Size),(unsigned char *)&(Name),sizeof(Name)); Size+=sizeof(Name); }
+
+#define SaveARRAY(Name) \
+  if(Size+sizeof(Name)>MaxSize) return(0); \
+  else { SaveFlashSaveData((unsigned char *)(save_address+Size),(unsigned char *)(Name),sizeof(Name)); Size+=sizeof(Name); }
+
+#define SaveDATA(Name,DataSize) \
+  if(Size+(DataSize)>MaxSize) return(0); \
+else { SaveFlashSaveData((unsigned char *)(save_address+Size),(unsigned char *)(Name),(DataSize)); Size+=(DataSize); }
+
+#define LoadSTRUCT(Name) \
+  if(Size+sizeof(Name)>MaxSize) return(0); \
+  else { memcpy(&(Name),(void *)(Buf+Size),sizeof(Name));Size+=sizeof(Name); }
+
+#define SkipSTRUCT(Name) \
+  if(Size+sizeof(Name)>MaxSize) return(0); \
+  else Size+=sizeof(Name)
+
+#define LoadARRAY(Name) \
+  if(Size+sizeof(Name)>MaxSize) return(0); \
+  else { memcpy((Name),(void *)(Buf+Size),sizeof(Name));Size+=sizeof(Name); }
+
+#define LoadDATA(Name,DataSize) \
+  if(Size+(DataSize)>MaxSize) return(0); \
+  else { memcpy((Name),(void *)(Buf+Size),(DataSize));Size+=(DataSize); }
+
+#define SkipDATA(DataSize) \
+  if(Size+(DataSize)>MaxSize) return(0); \
+  else Size+=(DataSize)
+
+#define WORK_BLOCK_SIZE (4096)
+static int flashBlockOffset = 0;
+static bool isLastFlashWrite = 0;
+
+// This function fills 4kB blocks and writes them in flash when full
+static void SaveFlashSaveData(unsigned char *dest, unsigned char *src, int size) {
+  int blockNumber = 0;
+  for (int i = 0; i<size;i++) {
+    emulator_framebuffer[flashBlockOffset] = src[i];
+    flashBlockOffset++;
+    if ((flashBlockOffset == WORK_BLOCK_SIZE) || (isLastFlashWrite && (i == size-1))) {
+      // Write block in flash
+      int intDest = (int)dest+blockNumber*WORK_BLOCK_SIZE;
+      intDest = intDest & ~(WORK_BLOCK_SIZE-1);
+      unsigned char *newDest = (unsigned char *)intDest;
+      OSPI_DisableMemoryMappedMode();
+      OSPI_Program((uint32_t)newDest,(const uint8_t *)emulator_framebuffer,WORK_BLOCK_SIZE);
+      OSPI_EnableMemoryMappedMode();
+      flashBlockOffset = 0;
+      blockNumber++;
+    }
+  }
+}
+
+/** SaveMsxStateFlash() **************************************/
+/** Save emulation state into flash.                        **/
+/*************************************************************/
+int SaveMsxStateFlash(unsigned char *address, int MaxSize)
+{
+  unsigned int State[256],Size;
+  static byte Header[16] = "STE\032\003\0\0\0\0\0\0\0\0\0\0\0";
+  unsigned int I,J,K;
+
+  // Convert mem mapped pointer to flash address
+  uint32_t save_address = address - &__EXTFLASH_BASE__;
+
+  /* No data written yet */
+  Size = 0;
+  flashBlockOffset = 0;
+  isLastFlashWrite = 0;
+
+  // Erase flash memory
+  store_erase(address, MaxSize);
+
+  /* Prepare the header */
+  J=StateID();
+  Header[5] = RAMPages;
+  Header[6] = VRAMPages;
+  Header[7] = J&0x00FF;
+  Header[8] = J>>8;
+
+  /* Fill out hardware state */
+  J=0;
+  memset(State,0,sizeof(State));
+  State[J++] = VDPData;
+  State[J++] = PLatch;
+  State[J++] = ALatch;
+  State[J++] = VAddr;
+  State[J++] = VKey;
+  State[J++] = PKey;
+  State[J++] = IRQPending;
+  State[J++] = ScanLine;
+  State[J++] = RTCReg;
+  State[J++] = RTCMode;
+  State[J++] = KanLetter;
+  State[J++] = KanCount;
+  State[J++] = IOReg;
+  State[J++] = PSLReg;
+  State[J++] = FMPACKey;
+  State[J++] = msx_button_a_key_index;
+  State[J++] = msx_button_b_key_index;
+
+  /* Memory setup */
+  for(I=0;I<4;++I)
+  {
+    State[J++] = SSLReg[I];
+    State[J++] = PSL[I];
+    State[J++] = SSL[I];
+    State[J++] = EnWrite[I];
+    State[J++] = RAMMapper[I];
+  }
+
+  /* Cartridge setup */
+  for(I=0;I<MAXSLOTS;++I)
+  {
+    State[J++] = ROMType[I];
+    for(K=0;K<4;++K) State[J++]=ROMMapper[I][K];
+  }
+
+  /* Write out data structures */
+  SaveDATA(Header,16);
+  SaveSTRUCT(MSXCPU);
+  SaveSTRUCT(PPI);
+  SaveSTRUCT(VDP);
+  SaveARRAY(VDPStatus);
+  SaveARRAY(Palette);
+  SaveSTRUCT(PSG);
+  SaveSTRUCT(OPLL);
+  SaveSTRUCT(SCChip);
+  SaveARRAY(State);
+  SaveDATA(RAMData,RAMPages*0x4000);
+  isLastFlashWrite = 1;
+  SaveDATA(VRAM,VRAMPages*0x4000);
+
+  /* Return amount of data written */
+  return(Size);
+}
+
+/** LoadMsxStateFlash() **************************************/
+/** Load emulation state from flash.                        **/
+/*************************************************************/
+int LoadMsxStateFlash(unsigned char *Buf)
+{
+  static byte Header[16];
+  int State[256],J,I,K;
+  unsigned int Size = 0;
+  int MaxSize = 512*1024;
+
+  /* Read and check the header */
+  LoadDATA(Header,16);
+
+  if(memcmp(Header,"STE\032\003",5))
+  {
+    return(-1);
+  }
+  if(Header[7]+Header[8]*256!=StateID())
+  {
+    return(-2);
+  }
+  if((Header[5]!=(RAMPages&0xFF))||(Header[6]!=(VRAMPages&0xFF)))
+  {
+    return(-3);
+  }
+
+  /* Load hardware state */
+  LoadSTRUCT(MSXCPU);
+  LoadSTRUCT(PPI);
+  LoadSTRUCT(VDP);
+  LoadARRAY(VDPStatus);
+  LoadARRAY(Palette);
+  LoadSTRUCT(PSG);
+  LoadSTRUCT(OPLL);
+  LoadSTRUCT(SCChip);
+  LoadARRAY(State);
+  LoadDATA(RAMData,RAMPages*0x4000);
+  LoadDATA(VRAM,VRAMPages*0x4000);
+
+  /* Parse hardware state */
+  J=0;
+  VDPData    = State[J++];
+  PLatch     = State[J++];
+  ALatch     = State[J++];
+  VAddr      = State[J++];
+  VKey       = State[J++];
+  PKey       = State[J++];
+  IRQPending = State[J++];
+  ScanLine   = State[J++];
+  RTCReg     = State[J++];
+  RTCMode    = State[J++];
+  KanLetter  = State[J++];
+  KanCount   = State[J++];
+  IOReg      = State[J++];
+  PSLReg     = State[J++];
+  FMPACKey   = State[J++];
+  msx_button_a_key_index = State[J++];
+  msx_button_b_key_index = State[J++];
+
+  /* Memory setup */
+  for(I=0;I<4;++I)
+  {
+    SSLReg[I]       = State[J++];
+    PSL[I]          = State[J++];
+    SSL[I]          = State[J++];
+    EnWrite[I]      = State[J++];
+    RAMMapper[I]    = State[J++];
+  }
+
+  /* Cartridge setup */
+  for(I=0;I<MAXSLOTS;++I)
+  {
+    ROMType[I] = State[J++];
+    for(K=0;K<4;++K) {
+      ROMMapper[I][K]=State[J++];
+    }
+  }
+
+  /* Set RAM mapper pages */
+  if(RAMMask)
+  for(I=0;I<4;++I)
+  {
+    RAMMapper[I]       &= RAMMask;
+    MemMap[3][2][I*2]   = RAMData+RAMMapper[I]*0x4000;
+    MemMap[3][2][I*2+1] = MemMap[3][2][I*2]+0x2000;
+  }
+
+  /* Set ROM mapper pages */
+  for(I=0;I<MAXSLOTS;++I)
+  if(ROMData[I]&&ROMMask[I])
+    SetMegaROM(I,ROMMapper[I][0],ROMMapper[I][1],ROMMapper[I][2],ROMMapper[I][3]);
+
+  /* Set main address space pages */
+  for(I=0;I<4;++I)
+  {
+    RAM[2*I]   = MemMap[PSL[I]][SSL[I]][2*I];
+    RAM[2*I+1] = MemMap[PSL[I]][SSL[I]][2*I+1];
+  }
+
+  /* Set palette */
+  for(I=0;I<16;++I)
+  SetColor(I,(Palette[I]>>16)&0xFF,(Palette[I]>>8)&0xFF,Palette[I]&0xFF);
+
+  /* Set screen mode and VRAM table addresses */
+  SetScreen();
+
+  /* Set some other variables */
+  VPAGE    = VRAM+((int)VDP[14]<<14);
+  FGColor  = VDP[7]>>4;
+  BGColor  = VDP[7]&0x0F;
+  XFGColor = FGColor;
+  XBGColor = BGColor;
+
+  /* All sound channels could have been changed */
+  PSG.Changed     = (1<<AY8910_CHANNELS)-1;
+  SCChip.Changed  = (1<<SCC_CHANNELS)-1;
+  SCChip.WChanged = (1<<SCC_CHANNELS)-1;
+  OPLL.Changed    = (1<<YM2413_CHANNELS)-1;
+  OPLL.PChanged   = (1<<YM2413_CHANNELS)-1;
+  OPLL.DChanged   = (1<<YM2413_CHANNELS)-1;
+
+  /* Return amount of data read */
+  return(Size);
 }

@@ -34,19 +34,21 @@ static bool msx_audio_init = false;
 
 static unsigned char msx_joystick_state = 0;
 static odroid_gamepad_state_t previous_joystick_state;
-static int button_a_key_index = 5; /* KBD_SPACE index */
-static int button_b_key_index = 43; /* n key index */
+int msx_button_a_key_index = 5; /* KBD_SPACE index */
+int msx_button_b_key_index = 43; /* n key index */
 
 static bool msx_system_LoadState(char *pathName)
 {
-      printf("Loading state not implemented...\n");
-      return true;
+    int size = LoadMsxStateFlash(ACTIVE_FILE->save_address);
+    printf("LoadState %d",size);
+    return true;
 }
 
 static bool msx_system_SaveState(char *pathName)
 {
-      printf("Saving state not implemented...\n");
-      return true;
+    int size = SaveMsxStateFlash(ACTIVE_FILE->save_address, ACTIVE_FILE->save_size);
+    printf("SaveState %d",size);
+    return true;
 }
 
 /** PlayAllSound() *******************************************/
@@ -270,13 +272,13 @@ static bool update_a_button_cb(odroid_dialog_choice_t *option, odroid_dialog_eve
     int max_index = sizeof(msx_keyboard)/sizeof(msx_keyboard[0])-1;
 
     if (event == ODROID_DIALOG_PREV) {
-        button_a_key_index = button_a_key_index > 0 ? button_a_key_index - 1 : max_index;
+        msx_button_a_key_index = msx_button_a_key_index > 0 ? msx_button_a_key_index - 1 : max_index;
     }
     if (event == ODROID_DIALOG_NEXT) {
-        button_a_key_index = button_a_key_index < max_index ? button_a_key_index + 1 : 0;
+        msx_button_a_key_index = msx_button_a_key_index < max_index ? msx_button_a_key_index + 1 : 0;
     }
 
-    strcpy(option->value, msx_keyboard[button_a_key_index].name);
+    strcpy(option->value, msx_keyboard[msx_button_a_key_index].name);
     return event == ODROID_DIALOG_ENTER;
 }
 
@@ -285,13 +287,13 @@ static bool update_b_button_cb(odroid_dialog_choice_t *option, odroid_dialog_eve
     int max_index = sizeof(msx_keyboard)/sizeof(msx_keyboard[0])-1;
 
     if (event == ODROID_DIALOG_PREV) {
-        button_b_key_index = button_b_key_index > 0 ? button_b_key_index - 1 : max_index;
+        msx_button_b_key_index = msx_button_b_key_index > 0 ? msx_button_b_key_index - 1 : max_index;
     }
     if (event == ODROID_DIALOG_NEXT) {
-        button_b_key_index = button_b_key_index < max_index ? button_b_key_index + 1 : 0;
+        msx_button_b_key_index = msx_button_b_key_index < max_index ? msx_button_b_key_index + 1 : 0;
     }
 
-    strcpy(option->value, msx_keyboard[button_b_key_index].name);
+    strcpy(option->value, msx_keyboard[msx_button_b_key_index].name);
     return event == ODROID_DIALOG_ENTER;
 }
 
@@ -326,14 +328,14 @@ unsigned int Joystick(void)
         KBD_RES(KBD_DOWN);
     }
     if ((joystick.values[ODROID_INPUT_A]) && !previous_joystick_state.values[ODROID_INPUT_A]) {
-        KBD_SET(msx_keyboard[button_a_key_index].key_id);
+        KBD_SET(msx_keyboard[msx_button_a_key_index].key_id);
     } else if (!(joystick.values[ODROID_INPUT_A]) && previous_joystick_state.values[ODROID_INPUT_A]) {
-        KBD_RES(msx_keyboard[button_a_key_index].key_id);
+        KBD_RES(msx_keyboard[msx_button_a_key_index].key_id);
     }
     if ((joystick.values[ODROID_INPUT_B]) && !previous_joystick_state.values[ODROID_INPUT_B]) {
-        KBD_SET(msx_keyboard[button_b_key_index].key_id);
+        KBD_SET(msx_keyboard[msx_button_b_key_index].key_id);
     } else if (!(joystick.values[ODROID_INPUT_B]) && previous_joystick_state.values[ODROID_INPUT_B]) {
-        KBD_RES(msx_keyboard[button_b_key_index].key_id);
+        KBD_RES(msx_keyboard[msx_button_b_key_index].key_id);
     }
     if ((joystick.values[ODROID_INPUT_START]) && !previous_joystick_state.values[ODROID_INPUT_START]) {
         KBD_SET(KBD_F5);
@@ -362,6 +364,7 @@ unsigned int Joystick(void)
     }
 
     memcpy(&previous_joystick_state,&joystick,sizeof(odroid_gamepad_state_t));
+
     return(msx_joystick_state);
 }
 
@@ -372,14 +375,6 @@ void Keyboard(void)
 {
   /* Everything is done in Joystick() */
 }
-
-/*struct odroid_dialog_choice {
-    int  id;
-    const char *label;
-    char *value;
-    int  enabled;
-    bool (*update_cb)(odroid_dialog_choice_t *, odroid_dialog_event_t, uint32_t repeat);
-};*/
 
 static void createOptionMenu(odroid_dialog_choice_t *options) {
     char disk_name[128];
@@ -503,6 +498,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     SndVolume=64;
     SetChannels(SndVolume,SndSwitch);
 
+    if (load_state) {
+        savestate_address = (unsigned char *)ACTIVE_FILE->save_address;
+    }
     msx_start(MSX_MSX2P|MSX_NTSC|MSX_MSXDOS2|MSX_GUESSA|MSX_GUESSB,
               RAMPages,VRAMPages,savestate_address);
 }
