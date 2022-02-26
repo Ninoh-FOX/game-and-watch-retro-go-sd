@@ -945,10 +945,10 @@ void gui_draw_coverflow_h(tab_t *tab) //------------
                 for (int x = 0; x < p_width1; x++)
                 {
                     dst_img[(y + p1_top) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 * 2 + cover_width + 19 + x] =
-                        get_darken_pixel(pCover_Buffer[(y * 8 / 5) * cover_width + ((r_width2 - p_width2) + x) * 8 / 5], 30 + x * 30 / p_width1);
+                        get_darken_pixel(pCover_Buffer[(y * 8 / 5) * cover_width + ((r_width1 - p_width1) + x) * 8 / 5], 30 + x * 30 / p_width1);
                     if (y > (p_height1 - 12))
                         dst_img[(p1_top + p_height1 + 2 + p_height1 - y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 * 2 + cover_width + 19 + x] =
-                            get_darken_pixel_d(pCover_Buffer[(y * 8 / 5) * cover_width + ((r_width2 - p_width2) + x) * 8 / 5],curr_colors->bg_c, 30 * (12 - p_height1 + y) * 12 * (30 + x * 30 / p_width1) / 10000);
+                            get_darken_pixel_d(pCover_Buffer[(y * 8 / 5) * cover_width + ((r_width1 - p_width1) + x) * 8 / 5],curr_colors->bg_c, 30 * (12 - p_height1 + y) * 12 * (30 + x * 30 / p_width1) / 10000);
                 };
         };
     };
