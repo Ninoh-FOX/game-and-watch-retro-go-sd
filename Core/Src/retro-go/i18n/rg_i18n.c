@@ -27,6 +27,9 @@
 #if !defined (INCLUDED_PT_PT)
 #define INCLUDED_PT_PT 1
 #endif
+#if !defined (INCLUDED_FR_FR)
+#define INCLUDED_FR_FR 1
+#endif
 
 #if !defined (BIG_BANK)
 #define BIG_BANK 1
@@ -67,6 +70,7 @@
 #include "rg_i18n_en_us.c"
 #include "rg_i18n_es_es.c"
 #include "rg_i18n_pt_pt.c"
+#include "rg_i18n_fr_fr.c"
 #include "rg_i18n_zh_cn.c"
 #include "rg_i18n_zh_tw.c"
 #include "rg_i18n_ko_kr.c"
@@ -176,7 +180,7 @@ char *curr_font = font_un_01;
 
 const int gui_font_count = FONT_COUNT;
 
-const lang_t *gui_lang[7] = {
+const lang_t *gui_lang[8] = {
     &lang_en_us,
 #if INCLUDED_ES_ES == 1
     &lang_es_es,
@@ -188,6 +192,11 @@ const lang_t *gui_lang[7] = {
 #else
     NULL,
 #endif
+#if INCLUDED_FR_FR == 1
+    &lang_fr_fr,
+#else
+    NULL,
+#endif    
 #if INCLUDED_ZH_CN == 1
     &lang_zh_cn,
 #else
