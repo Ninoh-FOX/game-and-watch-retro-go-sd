@@ -22,7 +22,7 @@ const lang_t lang_fr_fr LANG_DATA = {
     .extra_font = NULL,
     .s_LangUI = "Langue UI",
     .s_LangTitle = "Langue des Titres",
-    .s_LangName = "Français",
+    .s_LangName = "French",
 
     // Core\Src\porting\gb\main_gb.c =======================================
     .s_Palette = "Palette",
@@ -115,7 +115,7 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Author_ = "\t\t+",
     .s_UI_Mod = "UI Mod",
     .s_Lang = "Français",
-    .s_LangAuthor = "Par défaut",
+    .s_LangAuthor = "Narkoa",
     .s_Debug_menu = "Menu Debug",
     .s_Reset_settings = "Restaurer les paramètres",
     //.s_Close                   = "Fermer",
