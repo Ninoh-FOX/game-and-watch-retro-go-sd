@@ -446,8 +446,17 @@ class ROMParser:
 
         imgs = []
         imgs.append(str(rom.img_path.with_suffix(".png")))
+        imgs.append(str(rom.img_path.with_suffix(".PNG")))
+        imgs.append(str(rom.img_path.with_suffix(".Png")))
         imgs.append(str(rom.img_path.with_suffix(".jpg")))
+        imgs.append(str(rom.img_path.with_suffix(".JPG")))
+        imgs.append(str(rom.img_path.with_suffix(".Jpg")))
+        imgs.append(str(rom.img_path.with_suffix(".jpeg")))
+        imgs.append(str(rom.img_path.with_suffix(".JPEG")))
+        imgs.append(str(rom.img_path.with_suffix(".Jpeg")))
         imgs.append(str(rom.img_path.with_suffix(".bmp")))
+        imgs.append(str(rom.img_path.with_suffix(".BMP")))
+        imgs.append(str(rom.img_path.with_suffix(".Bmp")))
 
         for img in imgs:
             if Path(img).exists():
