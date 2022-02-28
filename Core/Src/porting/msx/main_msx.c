@@ -35,7 +35,7 @@ static bool msx_audio_init = false;
 static unsigned char msx_joystick_state = 0;
 static odroid_gamepad_state_t previous_joystick_state;
 int msx_button_a_key_index = 5; /* KBD_SPACE index */
-int msx_button_b_key_index = 43; /* n key index */
+int msx_button_b_key_index = 53; /* n key index */
 
 /* strings for options */
 static char disk_name[128];
@@ -134,11 +134,7 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
             msx_change_disk(0,disk_file->name);
         }
     }
-    if (disk_count > 0) {
-        strcpy(option->value, disk_file->name);
-    } else {
-        strcpy(option->value, "No disk");
-    }
+    strcpy(option->value, disk_file->name);
     return event == ODROID_DIALOG_ENTER;
 }
 
@@ -212,6 +208,16 @@ struct msx_key_info msx_keyboard[] = {
     {KBD_COUNTRY,"Country"},
     {KBD_STOP,"Stop"},
     {KBD_ESCAPE,"Esc"},
+    {33,"1/!"},
+    {64,"2/@"},
+    {35,"3/#"},
+    {36,"4/$"},
+    {37,"5/%"},
+    {94,"6/^"},
+    {38,"7/&"},
+    {42,"8/*"},
+    {40,"9/("},
+    {41,"0/)"},
     {KBD_NUMPAD0,"0"},
     {KBD_NUMPAD1,"1"},
     {KBD_NUMPAD2,"2"},
@@ -350,9 +356,19 @@ unsigned int Joystick(void)
         KBD_RES(KBD_F5);
     }
     if ((joystick.values[ODROID_INPUT_SELECT]) && !previous_joystick_state.values[ODROID_INPUT_SELECT]) {
-        KBD_SET(KBD_ENTER);
+        KBD_SET(KBD_F4);
     } else if (!(joystick.values[ODROID_INPUT_SELECT]) && previous_joystick_state.values[ODROID_INPUT_SELECT]) {
-        KBD_RES(KBD_ENTER);
+        KBD_RES(KBD_F4);
+    }
+    if ((joystick.values[ODROID_INPUT_X]) && !previous_joystick_state.values[ODROID_INPUT_X]) {
+        KBD_SET(KBD_F3);
+    } else if (!(joystick.values[ODROID_INPUT_X]) && previous_joystick_state.values[ODROID_INPUT_X]) {
+        KBD_RES(KBD_F3);
+    }
+    if ((joystick.values[ODROID_INPUT_Y]) && !previous_joystick_state.values[ODROID_INPUT_Y]) {
+        KBD_SET(KBD_F2);
+    } else if (!(joystick.values[ODROID_INPUT_Y]) && previous_joystick_state.values[ODROID_INPUT_Y]) {
+        KBD_RES(KBD_F2);
     }
 
     // Handle keyboard emulation
