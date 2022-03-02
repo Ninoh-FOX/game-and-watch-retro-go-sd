@@ -27,9 +27,7 @@
 
 #define MSX_AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / 60)
 #define AUDIO_BUFFER_LENGTH_DMA_MSX (2 * MSX_AUDIO_BUFFER_LENGTH)
-static sample msxAudioBuffer[2*MSX_AUDIO_BUFFER_LENGTH];
 static int16_t msxAudioBufferOffset;
-static bool msx_audio_init = false;
 
 
 static unsigned char msx_joystick_state = 0;
@@ -63,13 +61,13 @@ static bool msx_system_SaveState(char *pathName)
 /*************************************************************/
 void PlayAllSound(int uSec)
 {
-      /* +1 to avoid skipping */
-      RenderAndPlayAudio(uSec*AUDIO_SAMPLE_RATE/1000000+1);
+      /* x2 to avoid skipping */
+      RenderAndPlayAudio(2*uSec*AUDIO_SAMPLE_RATE/1000000);
 }
 
 /* Returns the number of samples we can fill in the audio buffer */
 unsigned int GetFreeAudio(void) {
-  return MSX_AUDIO_BUFFER_LENGTH-msxAudioBufferOffset/2;
+  return MSX_AUDIO_BUFFER_LENGTH-msxAudioBufferOffset;
 }
 
 unsigned int WriteAudio(sample *Data,unsigned int Length) {
@@ -79,9 +77,9 @@ unsigned int WriteAudio(sample *Data,unsigned int Length) {
     for (int i = 0; i < Length; i++) {
         int32_t sample = Data[i];
         if (audio_mute || volume == ODROID_AUDIO_VOLUME_MIN) {
-                msxAudioBuffer[msxAudioBufferOffset] = 0;
+                audiobuffer_emulator[msxAudioBufferOffset] = 0;
         } else {
-                msxAudioBuffer[msxAudioBufferOffset] = (sample * factor) >> 8;
+                audiobuffer_emulator[msxAudioBufferOffset] = (sample * factor) >> 8;
         }
         msxAudioBufferOffset++;
     }
@@ -98,7 +96,7 @@ void TrashAudio(void)
 unsigned int InitAudio(unsigned int Rate,unsigned int Latency) {
       // Init Sound
       msxAudioBufferOffset = 0;
-      memset(msxAudioBuffer, 0, MSX_AUDIO_BUFFER_LENGTH*sizeof(sample));
+      memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
       memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
       HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
 
@@ -392,14 +390,6 @@ unsigned int Joystick(void)
     return(msx_joystick_state);
 }
 
-/** Keyboard() ***********************************************/
-/** Modify keyboard matrix.                                 **/
-/*************************************************************/
-void Keyboard(void)
-{
-  /* Everything is done in Joystick() */
-}
-
 static void createOptionMenu(odroid_dialog_choice_t *options) {
     int index=0;
     if (strcmp(ROM_EXT,MSX_DISK_EXTENSION) == 0) {
@@ -459,20 +449,10 @@ void RefreshScreen(void) {
     common_emu_input_loop(&joystick, options);
 
     if (drawFrame) {
-        if (!msx_audio_init) {
-            // To make sure we have filled DMA with fresh sample before starting playing
-            msx_audio_init=true;
-            size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
-            memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH*2);
-            msxAudioBufferOffset = 0;
-        } else {
-            size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
-            memcpy(&audiobuffer_dma[offset],msxAudioBuffer,MSX_AUDIO_BUFFER_LENGTH*2);
-            msxAudioBufferOffset = 0;
-            HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
-        }
+        size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
+        memcpy(&audiobuffer_dma[offset],audiobuffer_emulator,MSX_AUDIO_BUFFER_LENGTH*sizeof(sample));
+        msxAudioBufferOffset = 0;
 
-        // remove used samples if needed
         common_ingame_overlay();
         lcd_swap();
     }

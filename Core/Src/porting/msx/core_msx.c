@@ -1854,11 +1854,8 @@ word LoopZ80(Z80 *R)
     /* Count MIDI ticks */
     MIDITicks(1000*VPeriod/CPU_CLOCK);
 
-    /* Check joystick */
+    /* Check joystick & Keyboard */
     JoyState=Joystick();
-
-    /* Check keyboard */
-    Keyboard();
 
     /* Exit emulation if requested */
     if(ExitNow) return(INT_QUIT);
@@ -1980,32 +1977,6 @@ word StateID(void)
     for(J=0;J<0x4000;++J) ID+=MemMap[3][1][2][J];
 
   return(ID);
-}
-
-/** MakeFileName() *******************************************/
-/** Make a copy of the file name, replacing the extension.  **/
-/** Returns allocated new name or 0 on failure.             **/
-/*************************************************************/
-char *MakeFileName(const char *Name,const char *Ext)
-{
-  char *Result,*P1,*P2,*P3;
-
-  Result = malloc(strlen(Name)+strlen(Ext)+1);
-  if(!Result) return(0);
-  strcpy(Result,Name);
-
-  /* Locate where extension and filename actually start */
-  P1 = strrchr(Result,'.');
-  P2 = strrchr(Result,'/');
-  P3 = strrchr(Result,'\\');
-  P2 = P3 && (P3>P2)? P3:P2;
-  P3 = strrchr(Result,':');
-  P2 = P3 && (P3>P2)? P3:P2;
-
-  if(P1 && (!P2 || (P1>P2))) strcpy(P1,Ext);
-  else strcat(Result,Ext);
-
-  return(Result);
 }
 
 /** msx_change_disk() ****************************************/
