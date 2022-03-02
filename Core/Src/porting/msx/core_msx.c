@@ -50,7 +50,6 @@
 /** User-defined parameters for fMSX *************************/
 int  Mode        = MSX_MSX2P|MSX_NTSC|MSX_MSXDOS2|MSX_GUESSA|MSX_GUESSB;
 byte Verbose     = 0x01;           /* Debug msgs ON/OFF      */
-byte UPeriod     = 100;            /* % of frames to draw    */
 int  VPeriod     = CPU_VPERIOD;    /* CPU cycles per VBlank  */
 int  HPeriod     = CPU_HPERIOD;    /* CPU cycles per HBlank  */
 int  RAMPages    = 4;              /* Number of RAM pages    */
@@ -339,9 +338,6 @@ int msx_start(int NewMode,int NewRAMPages,int NewVRAMPages, unsigned char *SaveS
 //    memset(SRAMData[J],0,0x4000);
   }
 
-  /* UPeriod has to be in 1%..100% range */
-  UPeriod=UPeriod<1? 1:UPeriod>100? 100:UPeriod;
-
   /* Initialize 16kB for the empty space (scratch RAM) */
   memset(EmptyRAM,NORAM,0x4000);
 
@@ -434,16 +430,11 @@ int msx_start(int NewMode,int NewRAMPages,int NewVRAMPages, unsigned char *SaveS
 /*************************************************************/
 void TrashMSX(void)
 {
-  int J;
-
   /* Shut down sound logging */
   TrashMIDI();
 
   /* Eject disks, free disk buffers */
   Reset1793(&FDC,FDD,WD1793_EJECT);
-
-  /* Free all remaining allocated memory */
-  FreeAllMemory();
 }
 
 /** reset_msx() **********************************************/
@@ -486,7 +477,7 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
     {
       case MSX_MSX1:
         if(Verbose) printf("  Opening MSX.ROM...\n");
-        P1=LoadFlashROM("MSX","rom",0x8000,&Bios1);
+        P1=LoadFlashROM("MSX","rom",0x8000,Bios1);
         PRINTRESULT(P1);
         if(!P1) NewMode=(NewMode&~MSX_MODEL)|(Mode&MSX_MODEL);
         else
@@ -502,10 +493,10 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
 
       case MSX_MSX2:
         if(Verbose) printf("  Opening MSX2.ROM...\n");
-        P1=LoadFlashROM("MSX2","rom",0x8000,&Bios1);
+        P1=LoadFlashROM("MSX2","rom",0x8000,Bios1);
         PRINTRESULT(P1);
         if(Verbose) printf("  Opening MSX2EXT.ROM...\n");
-        P2=LoadFlashROM("MSX2EXT","rom",0x4000,&Bios2);
+        P2=LoadFlashROM("MSX2EXT","rom",0x4000,Bios2);
         PRINTRESULT(P2);
         if(!P1||!P2) 
         {
@@ -524,10 +515,10 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
 
       case MSX_MSX2P:
         if(Verbose) printf("  Opening MSX2P.ROM...\n");
-        P1=LoadFlashROM("MSX2P","rom",0x8000,&Bios1);
+        P1=LoadFlashROM("MSX2P","rom",0x8000,Bios1);
         PRINTRESULT(P1);
         if(Verbose) printf("  Opening MSX2PEXT.ROM...\n");
-        P2=LoadFlashROM("MSX2PEXT","rom",0x4000,&Bios2);
+        P2=LoadFlashROM("MSX2PEXT","rom",0x4000,Bios2);
         PRINTRESULT(P2);
         if(!P1||!P2) 
         {
@@ -572,7 +563,7 @@ int reset_msx(int NewMode,int NewRAMPages,int NewVRAMPages)
   {
     /* Try loading DiskROM */
     if(Verbose) printf("  Opening DISK.ROM...\n");
-    P1=LoadFlashROM("DISK","rom",0x4000,&DiskRom);
+    P1=LoadFlashROM("DISK","rom",0x4000,DiskRom);
     PRINTRESULT(P1);
 
     /* If failed loading DiskROM, ignore the new PATCHBDOS bit */
@@ -899,7 +890,7 @@ case 0xA2: /* PSG input port */
   /* PSG[14] returns joystick data */
   if(PSG.Latch==14)
   {
-    int DX,DY,L,J;
+    int L,J;
 
     /* Number of a joystick port */
     Port = (PSG.R[15]&0x40)>>6;
@@ -1707,7 +1698,6 @@ word LoopZ80(Z80 *R)
 {
   static byte BFlag=0;
   static byte BCount=0;
-  static int  UCount=0;
   static byte ACount=0;
   static byte Drawing=0;
   register int J;
@@ -1734,8 +1724,7 @@ word LoopZ80(Z80 *R)
       VDPStatus[2]&=0xBF;
 
       /* Refresh display */
-      if(UCount>=100) { UCount-=100;RefreshScreen(); }
-      UCount+=UPeriod;
+      RefreshScreen();
 
       /* Blinking for TEXT80 */
       if(BCount) BCount--;
@@ -1825,7 +1814,7 @@ word LoopZ80(Z80 *R)
   LoopVDP();
 
   /* Refresh scanline, possibly with the overscan */
-  if((UCount>=100)&&Drawing&&(ScanLine<256))
+  if(Drawing&&(ScanLine<256))
   {
     if(!ModeYJK||(ScrMode<7)||(ScrMode>8))
       (RefreshLine[ScrMode])(ScanLine);
@@ -2026,8 +2015,7 @@ char *MakeFileName(const char *Name,const char *Ext)
 /*************************************************************/
 byte msx_change_disk(byte N,const char *FileName)
 {
-  int NeedState;
-  byte *P;
+  const uint8_t *P;
   const retro_emulator_file_t *disk_file;
   const rom_system_t *msx_system;
 
@@ -2048,7 +2036,7 @@ byte msx_change_disk(byte N,const char *FileName)
     /* Update pointer to data */
     P = disk_file->address;
     if(Verbose) printf("Found %s.%s:\n",disk_file->name,disk_file->ext);
-    LoadFDIFlash(&FDD[N],FileName,disk_file->address,disk_file->size,FMT_AUTO);
+    LoadFDIFlash(&FDD[N],FileName,(char *)disk_file->address,disk_file->size,FMT_AUTO);
     strcpy(currentDiskName,FileName);
     return 1;
   } else {
@@ -2063,17 +2051,16 @@ byte msx_change_disk(byte N,const char *FileName)
 /*************************************************************/
 int GuessROM(const byte *Buf,int Size)
 {
-  int J,I,K,Result,ROMCount[MAXMAPPERS];
+  int J,I,Result,ROMCount[MAXMAPPERS];
   char S[256];
-  rom_system_t *rom_system;
   retro_emulator_file_t *sha1_file;
 
   /* No result yet */
   Result = -1;
 
   /* Try opening file with SHA1 sums */
-  rom_system = rom_manager_system(&rom_mgr, "MSX_BIOS");
-  sha1_file = rom_manager_get_file(rom_system,"CARTS","sha");
+  const rom_system_t *rom_system = rom_manager_system(&rom_mgr, "MSX_BIOS");
+  sha1_file = (retro_emulator_file_t *)rom_manager_get_file(rom_system,"CARTS","sha");
   if ((Result<0) && sha1_file != NULL)
   {
     char S1[41],S2[41];
@@ -2089,7 +2076,7 @@ int GuessROM(const byte *Buf,int Size)
       while((offset<sha1_file->size)&&(readed != 0))
       {
         wdog_refresh();
-        readed = sscanf(sha1_file->address+offset,"%50[^\n]",S);
+        readed = sscanf((const char *)(sha1_file->address+offset),"%50[^\n]",S);
         offset += strlen(S)+1;
         if((sscanf(S,"%40s %d",S2,&J)==2) && !strcmp(S1,S2))
         { Result=J;break; }
@@ -2181,7 +2168,7 @@ byte *LoadFlashROM(const char *Name,const char *Ext,int Size,byte *Buf)
   /* Need address and size */
   if(!Buf||!Size) return(0);
 
-  rom_file = rom_manager_get_file(msx_bios,Name,Ext);
+  rom_file = (retro_emulator_file_t *)rom_manager_get_file(msx_bios,Name,Ext);
   if (rom_file != NULL) {
     /* Copy data */
     memcpy(Buf,rom_file->address,Size);
@@ -2203,7 +2190,7 @@ int LoadGNWCartName(const char *FileName,const char *Ext,int Slot,int Type, bool
   int C1,C2,Len,Pages,ROM64,BASIC;
   byte *P,PS,SS;
   const retro_emulator_file_t *rom_file;
-  rom_system_t *msx_system;
+  const rom_system_t *msx_system;
 
   /* Slot number must be valid */
   if((Slot<0)||(Slot>=MAXSLOTS)) return(0);

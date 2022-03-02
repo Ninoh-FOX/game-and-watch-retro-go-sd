@@ -34,4 +34,4 @@ int   rom_get_ext_count(const rom_system_t *system, char *ext);
 const retro_emulator_file_t *rom_get_ext_file_at_index(const rom_system_t *system, char *ext, int index);
 int rom_get_index_for_file_ext(const rom_system_t *system, retro_emulator_file_t *file);
 void  rom_manager_set_active_file(retro_emulator_file_t *file);
-const retro_emulator_file_t *rom_manager_get_file(rom_system_t *system, const char *name, const char *ext);
+const retro_emulator_file_t *rom_manager_get_file(const rom_system_t *system, const char *name, const char *ext);

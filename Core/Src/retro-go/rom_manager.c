@@ -92,7 +92,7 @@ void rom_manager_set_active_file(retro_emulator_file_t *file)
     ROM_DATA_LENGTH = file->size;
 }
 
-const retro_emulator_file_t *rom_manager_get_file(rom_system_t *system, const char *name, const char *ext)
+const retro_emulator_file_t *rom_manager_get_file(const rom_system_t *system, const char *name, const char *ext)
 {
     for(int i=0; i < system->roms_count; i++) {
         if((strcmp(system->roms[i].name, name) == 0) &&
