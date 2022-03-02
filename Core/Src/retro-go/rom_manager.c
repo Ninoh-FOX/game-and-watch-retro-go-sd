@@ -48,7 +48,7 @@ const rom_system_t *rom_manager_system(const rom_manager_t *mgr, char *name) {
     return NULL;
 }
 
-int rom_get_ext_count(rom_system_t *system, char *ext) {
+int rom_get_ext_count(const rom_system_t *system, char *ext) {
     int count = 0;
     for(int i=0; i < system->roms_count; i++) {
         if(strcmp(system->roms[i].ext, ext) == 0) {
@@ -58,7 +58,7 @@ int rom_get_ext_count(rom_system_t *system, char *ext) {
     return count;
 }
 
-const retro_emulator_file_t *rom_get_ext_file_at_index(rom_system_t *system, char *ext, int index) {
+const retro_emulator_file_t *rom_get_ext_file_at_index(const rom_system_t *system, char *ext, int index) {
     int count = 0;
     for(int i=0; i < system->roms_count; i++) {
         if(strcmp(system->roms[i].ext, ext) == 0) {
@@ -69,6 +69,19 @@ const retro_emulator_file_t *rom_get_ext_file_at_index(rom_system_t *system, cha
         }
     }
     return NULL;
+}
+
+int rom_get_index_for_file_ext(const rom_system_t *system, retro_emulator_file_t *file) {
+    int index = 0;
+    for(int i=0; i < system->roms_count; i++) {
+        if(strcmp(system->roms[i].ext, file->ext) == 0) {
+            if (strcmp(system->roms[i].name, file->name) == 0) {
+                return index;
+            }
+            index++;
+        }
+    }
+    return 0;
 }
 
 void rom_manager_set_active_file(retro_emulator_file_t *file)

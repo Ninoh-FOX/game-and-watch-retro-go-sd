@@ -46,14 +46,14 @@ static char b_button_name[6];
 
 static bool msx_system_LoadState(char *pathName)
 {
-    int size = LoadMsxStateFlash(ACTIVE_FILE->save_address);
+    int size = LoadMsxStateFlash((unsigned char *)ACTIVE_FILE->save_address);
     printf("LoadState %d",size);
     return true;
 }
 
 static bool msx_system_SaveState(char *pathName)
 {
-    int size = SaveMsxStateFlash(ACTIVE_FILE->save_address, ACTIVE_FILE->save_size);
+    int size = SaveMsxStateFlash((unsigned char *)ACTIVE_FILE->save_address, ACTIVE_FILE->save_size);
     printf("SaveState %d",size);
     return true;
 }
@@ -113,7 +113,7 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
     int disk_count = 0;
     int max_index = 0;
     retro_emulator_file_t *disk_file = NULL;
-    rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+    const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
     disk_count = rom_get_ext_count(msx_system,MSX_DISK_EXTENSION);
     if (disk_count > 0) {
         max_index = disk_count - 1;
@@ -128,7 +128,7 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
         selected_disk_index = selected_disk_index < max_index ? selected_disk_index + 1 : 0;
     }
 
-    disk_file = rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
+    disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
     if (event == ODROID_DIALOG_ENTER) {
         if (disk_count > 0) {
             msx_change_disk(0,disk_file->name);
@@ -515,6 +515,12 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     SndSwitch=(1<<MAXCHANNELS)-1;
     SndVolume=64;
     SetChannels(SndVolume,SndSwitch);
+
+    /* If disk game, set correct disk index */
+    if(strcmp(ACTIVE_FILE->ext, MSX_DISK_EXTENSION) == 0) {
+        const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+        selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
+    }
 
     if (load_state) {
         savestate_address = (unsigned char *)ACTIVE_FILE->save_address;
