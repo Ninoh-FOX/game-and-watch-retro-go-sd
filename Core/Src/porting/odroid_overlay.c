@@ -276,16 +276,19 @@ void odroid_overlay_draw_battery(int x_pos, int y_pos)
     case ODROID_BATTERY_CHARGE_STATE_BATTERY_MISSING:
     case ODROID_BATTERY_CHARGE_STATE_CHARGING:
         odroid_overlay_draw_fill_rect(x_pos + 2, y_pos + 2, width_fill, 6, (battery_state == ODROID_BATTERY_CHARGE_STATE_BATTERY_MISSING) ? 0x00 : 0x07E0);
-        for (int y=0; y<10; y++)
+        if ((get_elapsed_time() % 1000) < 300)
         {
-            for (int x=0; x<8; x++) 
+            for (int y = 0; y < 10; y++)
             {
-                if (IMG_C[y] & (0x80 >> x))
+                for (int x = 0; x < 8; x++)
                 {
-                    dest[(y_pos + y) * ODROID_SCREEN_WIDTH + x_pos + 5 + x] = 0x0FFFF;
-                }
-                else if (IMG_C_OUT[y] & (0x80 >> x))
-                    dest[(y_pos + y) * ODROID_SCREEN_WIDTH + x_pos + 5 + x] = color_empty;
+                    if (IMG_C[y] & (0x80 >> x))
+                    {
+                        dest[(y_pos + y) * ODROID_SCREEN_WIDTH + x_pos + 5 + x] = 0x0FFFF;
+                    }
+                    else if (IMG_C_OUT[y] & (0x80 >> x))
+                        dest[(y_pos + y) * ODROID_SCREEN_WIDTH + x_pos + 5 + x] = color_empty;
+                };
             };
         };
         //

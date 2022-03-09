@@ -374,7 +374,7 @@ void gui_draw_status(tab_t *tab)
     odroid_overlay_draw_logo(8, 16, (retro_logo_image *)(&logo_rgw), curr_colors->sel_c);
 
     uint16_t percentage = odroid_input_read_battery().percentage;
-    if ((percentage > 20) || ((get_elapsed_time() % 600) < 400))
+    if ((percentage > 20) || ((get_elapsed_time() % 1000) < 800))
         odroid_overlay_draw_battery(ODROID_SCREEN_WIDTH - 28, 17);
     odroid_overlay_clock(ODROID_SCREEN_WIDTH - 74, 17);
 }
