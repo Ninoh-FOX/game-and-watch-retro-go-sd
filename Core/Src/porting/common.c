@@ -526,7 +526,7 @@ void common_ingame_overlay(void) {
 
     uint16_t percentage = odroid_input_read_battery().percentage;
     if (percentage <= 15) {
-        if ((get_elapsed_time() % 1000) < 400)
+        if ((get_elapsed_time() % 600) < 200)
             odroid_overlay_draw_battery(150, 90); 
     }
     
