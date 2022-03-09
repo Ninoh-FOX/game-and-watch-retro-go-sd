@@ -247,16 +247,16 @@ void odroid_overlay_draw_battery(int x_pos, int y_pos)
     };
     const unsigned char IMG_C[] = {
         // width8, height:10
+        0x00, //  ________
         0x04, //  _____#__
-        0x0c, //  ____##__
+        0x08, //  ____#___
         0x18, //  ___##___
-        0x38, //  __###___
-        0x7e, //  _######_
-        0x7e, //  _######_
-        0x1c, //  ___###__
+        0x3e, //  __#####_
+        0x7c, //  _#####__
         0x18, //  ___##___
-        0x30, //  __##____
+        0x10, //  ___#____
         0x20, //  __#_____
+        0x00, //  ________
     };
 
     if (percentage < 20) color_fill = C_RED;
