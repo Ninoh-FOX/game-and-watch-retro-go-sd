@@ -276,7 +276,7 @@ void odroid_overlay_draw_battery(int x_pos, int y_pos)
     case ODROID_BATTERY_CHARGE_STATE_BATTERY_MISSING:
     case ODROID_BATTERY_CHARGE_STATE_CHARGING:
         odroid_overlay_draw_fill_rect(x_pos + 2, y_pos + 2, width_fill, 6, (battery_state == ODROID_BATTERY_CHARGE_STATE_BATTERY_MISSING) ? 0x00 : 0x07E0);
-        if ((get_elapsed_time() % 1000) < 300)
+        if ((get_elapsed_time() % 1000) < 800)
         {
             for (int y = 0; y < 10; y++)
             {
