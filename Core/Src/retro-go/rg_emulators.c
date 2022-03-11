@@ -389,7 +389,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
     odroid_dialog_choice_t game_genie_row = {4, curr_lang->s_Game_Genie_Codes, "", 1, NULL};
     odroid_dialog_choice_t game_genie_choice = last; 
-    if (CHOSEN_FILE->game_genie_count == 0) {
+    if (CHOSEN_FILE->game_genie_count != 0) {
         game_genie_choice = game_genie_row;
     }
 
@@ -411,7 +411,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     };
 #if GAME_GENIE == 1
     if (CHOSEN_FILE->game_genie_count == 0)
-        choices[4] = game_genie_choice;
+        choices[4] = last;
 #endif
 
     //Del Some item
