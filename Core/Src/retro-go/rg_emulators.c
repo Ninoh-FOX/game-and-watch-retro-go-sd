@@ -389,9 +389,10 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
     odroid_dialog_choice_t game_genie_row = {4, curr_lang->s_Game_Genie_Codes, "", 1, NULL};
     odroid_dialog_choice_t game_genie_choice = last; 
-    if (strcmp(file->system->system_name, "Nintendo Entertainment System") == 0) {
+    if (CHOSEN_FILE->game_genie_count == 0) {
         game_genie_choice = game_genie_row;
     }
+
 #endif
 
     odroid_dialog_choice_t choices[] = {
@@ -408,6 +409,11 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 
         ODROID_DIALOG_CHOICE_LAST
     };
+#if GAME_GENIE == 1
+    if (game_genie_choice == last)
+        choices[4] = game_genie_choice;
+#endif
+
     //Del Some item
     if (file->save_address == 0)
     {
@@ -440,7 +446,8 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     }
     else if (sel == 4) {
 #if GAME_GENIE == 1
-        show_game_genie_dialog();
+        if (CHOSEN_FILE->game_genie_count != 0)
+            show_game_genie_dialog();
         force_redraw = true;
 #endif
     }
