@@ -410,7 +410,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         ODROID_DIALOG_CHOICE_LAST
     };
 #if GAME_GENIE == 1
-    if (game_genie_choice == last)
+    if if (CHOSEN_FILE->game_genie_count == 0)
         choices[4] = game_genie_choice;
 #endif
 
