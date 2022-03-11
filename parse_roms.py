@@ -44,15 +44,6 @@ ROM_ENTRY_TEMPLATE = """\t{{
 #endif
 \t}},"""
 
-ROM_ENTRY_TEMPLATE_NO_SAVE = """\t{{
-\t\t.name = "{name}",
-\t\t.ext = "{extension}",
-\t\t.address = {rom_entry},
-\t\t.size = {size},
-\t\t.system = &{system},
-\t\t.region = {region},
-\t}},"""
-
 SYSTEM_PROTO_TEMPLATE = """
 #if !defined (COVERFLOW)
   #define COVERFLOW 0
