@@ -958,7 +958,7 @@ class ROMParser:
             "gg",
             ["gg"],
             "SAVE_GG_",
-            romdef["gg"]
+            romdef["gg"],
             None,
             current_id,
         )
@@ -974,7 +974,7 @@ class ROMParser:
             "col",
             ["col"],
             "SAVE_COL_",
-            romdef["col"]
+            romdef["col"],
             None,
             current_id,
         )
@@ -990,7 +990,7 @@ class ROMParser:
             "sg",
             ["sg"],
             "SAVE_SG1000_",
-            romdef["sg"]
+            romdef["sg"],
             None,
             current_id,
         )
@@ -1024,7 +1024,7 @@ class ROMParser:
             "gw",
             ["gw"],
             "SAVE_GW_",
-            romdef["gw"]
+            romdef["gw"],
             None,
             current_id,
         )
