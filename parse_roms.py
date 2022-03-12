@@ -362,7 +362,7 @@ class ROM:
 
     def get_game_genie_codes(self):
         # Get game genie code file path
-        gg_path = Path(self.path.parent, self.name + ".ggcodes")
+        gg_path = Path(self.path.parent, self.filename + ".ggcodes")
 
         if not os.path.exists(gg_path):
             return []
