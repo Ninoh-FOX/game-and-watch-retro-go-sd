@@ -81,6 +81,7 @@ Supported emulators:
   - [Backing up and restoring save state files](#backing-up-and-restoring-save-state-files)
   - [Screenshots](#screenshots)
   - [Game Genie](#game-genie)
+    - [Game Genie on PCE System](#game-genie-on-pce-system)
   - [Upgrading the flash](#upgrading-the-flash)
   - [Advanced Flash Examples](#advanced-flash-examples)
     - [Custom Firmware (CFW)](#custom-firmware-cfw)
@@ -249,7 +250,9 @@ GOZSXX, Invincibility
 ```
 When you re-flash, you can enable / disable each of your codes in the game selection screen.
 
-### Game Genie on PCE
+A collection of codes can be found here: [https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes](https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes).
+
+### Game Genie on PCE System
 
 Now you can define rom patch for PCE Roms. You can found patch info from [Here](https://krikzz.com/forum/index.php?topic=1004.0).
 
@@ -276,8 +279,6 @@ Then you can edit pce.json file after run `make romdef`. here is the patch defin
         ]
     },
 ```
-
-A collection of codes can be found here: [https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes](https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes).
 
 ## Upgrading the flash
 
