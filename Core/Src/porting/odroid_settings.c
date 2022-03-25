@@ -41,11 +41,11 @@ typedef struct app_config {
 } app_config_t;
 
 #if GAME_GENIE == 1
-#if MAX_GAME_GENIE_CODES != 16
-#error MAX_GAME_GENIE_CODES is assumed to be 16. Changing this value requires adjusting the type of active_game_genie_codes below
+#if MAX_GAME_GENIE_CODES != 32
+#error MAX_GAME_GENIE_CODES is assumed to be 32. Changing this value requires adjusting the type of active_game_genie_codes below
 #endif
 typedef struct rom_config {
-    uint16_t active_game_genie_codes; // A bit array for which game genie codes in retro_emulator_file_t.game_genie_codes are active for this rom
+    uint32_t active_game_genie_codes; // A bit array for which game genie codes in retro_emulator_file_t.game_genie_codes are active for this rom
 } rom_config_t;
 #endif
 
@@ -559,7 +559,7 @@ bool odroid_settings_ActiveGameGenieCodes_is_enabled(uint32_t rom_id, int code_i
         return false;
     }
 
-    uint16_t active_game_genie_codes = persistent_config_ram.rom[rom_id].active_game_genie_codes;
+    uint32_t active_game_genie_codes = persistent_config_ram.rom[rom_id].active_game_genie_codes;
     return ((active_game_genie_codes >> code_index) & 0x1) == 1;
 }
 

@@ -350,7 +350,7 @@ static bool show_game_genie_dialog()
 
     // +1 for the terminator sentinel
     odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->game_genie_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
-    char svalues[16][10];
+    char svalues[MAX_GAME_GENIE_CODES][10];
     for(int i=0; i<CHOSEN_FILE->game_genie_count; i++) 
     {
         const char *label = CHOSEN_FILE->game_genie_descs[i];
@@ -463,6 +463,14 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 {
     printf("Retro-Go: Starting game: %s\n", file->name);
     rom_manager_set_active_file(file);
+
+#if GAME_GENIE == 1
+    if (file->game_genie_count > 0){
+        CHOSEN_FILE = file;
+        show_game_genie_dialog();
+        CHOSEN_FILE = NULL;
+    }
+#endif
 
     // odroid_settings_StartAction_set(load_state ? ODROID_START_ACTION_RESUME : ODROID_START_ACTION_NEWGAME);
     // odroid_settings_RomFilePath_set(path);

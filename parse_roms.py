@@ -21,7 +21,7 @@ const uint32_t {name}_count = {rom_count};
 """
 
 # Note: this value is not easily changed as it's assumed in some memory optimizations
-MAX_GAME_GENIE_CODES = 16
+MAX_GAME_GENIE_CODES = 32
 
 ROM_ENTRY_TEMPLATE = """\t{{
 #if GAME_GENIE == 1
@@ -322,14 +322,14 @@ class ROM:
         else:
             self.filename = filepath.stem
         romdefs.setdefault(self.filename, {})
-        romdef = romdefs[self.filename]
-        romdef.setdefault('name', self.filename)
-        romdef.setdefault('publish', '1')
-        romdef.setdefault('enable_save', '0')
-        self.publish = (romdef['publish'] == '1')
-        self.enable_save = (romdef['enable_save'] == '1') or args.save
-        self.name = romdef['name']
-        print("Found rom " + self.filename +" will display name as: " + romdef['name'])
+        self.romdef = romdefs[self.filename]
+        self.romdef.setdefault('name', self.filename)
+        self.romdef.setdefault('publish', '1')
+        self.romdef.setdefault('enable_save', '0')
+        self.publish = (self.romdef['publish'] == '1')
+        self.enable_save = (self.romdef['enable_save'] == '1') or args.save
+        self.name = self.romdef['name']
+        print("Found rom " + self.filename +" will display name as: " + self.romdef['name'])
         if not (self.publish):
             print("& will not Publish !")
         obj_name = "".join([i if i.isalnum() else "_" for i in self.path.name])
@@ -360,12 +360,35 @@ class ROM:
     def read(self):
         return self.path.read_bytes()
 
+    def get_rom_patchs(self):
+        #get rompatchs define
+        codes_and_descs = []
+        self.romdef.setdefault('patchs', [])
+        self.romdef["patchs"]
+        for pItem in self.romdef["patchs"]:
+            #for ads in 
+            pItems = pItem["items"]
+            adrs = ""
+            xCount = 0
+            for k in pItems:
+                adr = k.replace("x","0")
+                adr = adr.replace("X","0")
+                adr = "000000" + adr
+                val = pItems[k].replace("x","0")
+                val = val.replace("X","0")
+                val = "00" + val
+                adrs = adrs + "\\x" + adr[-6:-4] + "\\x" +  adr[-4:-2] + "\\x" +  adr[-2:] + "\\x" + val[-2:]
+                xCount += 1
+            adrs = "\\x%x" % (xCount) + adrs
+            codes_and_descs.append((adrs, pItem["name"][:40]))
+        return codes_and_descs
+
     def get_game_genie_codes(self):
         # Get game genie code file path
         gg_path = Path(self.path.parent, self.filename + ".ggcodes")
 
         if not os.path.exists(gg_path):
-            return []
+            return self.get_rom_patchs()
 
         codes_and_descs = []
         for line in gg_path.read_text().splitlines():
@@ -391,7 +414,7 @@ class ROM:
 
             # Shorten description
             if desc is not None:
-                desc = desc[:25]
+                desc = desc[:40]
                 desc = desc.replace('\\', r'\\\\')
                 desc = desc.replace('"', r'\"')
                 desc = desc.strip()
@@ -1010,7 +1033,7 @@ class ROMParser:
             ["pce"],
             "SAVE_PCE_",
             romdef["pce"],
-            None,
+            "GG_PCE_",
             current_id,
             args.compress,
         )

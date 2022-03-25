@@ -249,6 +249,34 @@ GOZSXX, Invincibility
 ```
 When you re-flash, you can enable / disable each of your codes in the game selection screen.
 
+### Game Genie on PCE
+
+Now you can define rom patch for PCE Roms. You can found patch info from [Here](https://krikzz.com/forum/index.php?topic=1004.0).
+
+Then you can edit pce.json file after run `make romdef`. here is the patch define examples: 
+```
+    "1943 Kai (J)": {
+        "enable_save": "0",
+        "name": "1943 Kai (J)",
+        "publish": "1",
+        "patchs": [
+            {
+                "name": "Infinite Energy",
+                "items": {
+                    "0x1822F":"0xBD",
+                    "0x188FC":"0xBD"
+                }
+            },
+            {
+                "name": "Infinite Life",
+                "items": {
+                    "0x18330":"0xBD"
+                }
+            }
+        ]
+    },
+```
+
 A collection of codes can be found here: [https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes](https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes).
 
 ## Upgrading the flash

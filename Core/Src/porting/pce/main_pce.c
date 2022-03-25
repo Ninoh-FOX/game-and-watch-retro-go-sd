@@ -219,6 +219,96 @@ static bool LoadStateStm(char *pathName) {
     return true;
 }
 
+static void
+pce_rom_full_patch()
+{
+    for (int i = 0; i < PCE.rp_count; i++)
+    {
+        uint8_t p_count = PCE.patchs[i][0];
+        for (int j = 0; j < p_count; j++)
+        {
+            uint32_t addr = PCE.patchs[i][1 + j * 4] * 0x10000 + PCE.patchs[i][2 + j * 4] * 0x100 + PCE.patchs[i][3 + j * 4];
+            //uint8_t val = PCE.patchs[i][4 + j * 4];
+            uint8_t val = PCE.ROM[addr];
+            PCE.ROM[addr] = PCE.patchs[i][4 + j * 4];
+            printf("Patched: %p from val: %2x To: %2x", (unsigned char *)addr, val, PCE.patchs[i][4 + j * 4]);
+        }
+    }
+}
+
+
+static void
+pce_rom_patch()
+{
+    unsigned char *dest = (unsigned char *)&_PCE_ROM_UNPACK_BUFFER;
+    uint32_t available_size = (uint32_t)&_PCE_ROM_UNPACK_BUFFER_SIZE;
+
+    uint8_t *DynMEM[16]; //max 16*16=256k;  single bank is 8k but here must two bank batch move
+    uint8_t DynCount = 0;
+    uint8_t CurIdx = 0;
+    uint16_t MaxCount =  available_size / 0x4000;
+    MaxCount = (MaxCount > 16) ? 16 : MaxCount;
+
+    for (int i = 0; i < PCE.rp_count; i++)
+    {
+        uint8_t p_count = PCE.patchs[i][0];
+        //printf("Patchs: %d\n", p_count);
+
+        for (int j = 0; j < p_count; j++)
+        {
+            uint32_t addr = PCE.patchs[i][1 + j * 4] * 0x10000 + PCE.patchs[i][2 + j * 4] * 0x100 + PCE.patchs[i][3 + j * 4];
+            uint32_t s_addr = (addr - (PCE.ROM_DATA - PCE.ROM)) / 0x4000 * 0x4000;
+            uint32_t x_addr = (addr - (PCE.ROM_DATA - PCE.ROM)) & 0x3fff;
+            //found here moved?
+            CurIdx = 0xFF;
+            for (int k=0; k<DynCount && k<MaxCount; k++)
+            {
+                if (DynMEM[k] == (unsigned char *)s_addr) 
+                {
+                    CurIdx = k;
+                    break;
+                } 
+            }
+
+            if (CurIdx == 0xFF) 
+            {
+                //New Item;
+                DynCount += 1;
+                if (DynCount > MaxCount)
+                    return;
+                DynMEM[DynCount - 1] = (unsigned char *)s_addr;
+                //Set Index and copy data;
+                CurIdx = DynCount - 1;
+                uint8_t *d_addr = dest + CurIdx * 0x4000;
+
+                for (int k=0; k<0x4000; k++)
+                    dest[CurIdx * 0x4000 + k] = PCE.ROM_DATA[s_addr + k];
+                //memcpy(d_addr, PCE.ROM_DATA + s_addr, 0x2000);
+                //Change all MemoryMapR to New addr;
+                //printf("Moved memory from %p to %p Index %2x \n", PCE.ROM_DATA + s_addr, d_addr, CurIdx);
+                for (int k = 0; k < 0x80; k++) 
+                {
+                    if (PCE.MemoryMapR[k] == (PCE.ROM_DATA + s_addr))
+                    {
+                        PCE.MemoryMapR[k] = d_addr;
+                        //printf("Update Bank: %d from address: %p To: %p \n", k, PCE.ROM_DATA + s_addr, d_addr);
+                    }
+                    else if (PCE.MemoryMapR[k] == (PCE.ROM_DATA + s_addr + 0x2000))
+                    {
+                        PCE.MemoryMapR[k] = d_addr + 0x2000;
+                        //printf("Update Bank: %d from address: %p To: %p \n", k, PCE.ROM_DATA + s_addr + 0x2000, d_addr + 0x2000);
+                    }
+                }
+            }
+            //rom patch;
+            //uint8_t val = PCE.patchs[i][4 + j * 4];
+            uint8_t val = dest[CurIdx * 0x4000 + x_addr];
+            dest[CurIdx * 0x4000 + x_addr] = PCE.patchs[i][4 + j * 4];
+            printf("Patched: %p from val: %2x To: %2x \n", (unsigned char *)addr, val, PCE.patchs[i][4 + j * 4]);
+        }
+    }
+}
+
 size_t
 pce_osd_getromdata(unsigned char **data)
 {
@@ -369,6 +459,14 @@ void LoadCartPCE() {
     // Mapper for roms >= 1.5MB (SF2, homebrews)
     if (PCE.ROM_SIZE >= 192)
         PCE.MemoryMapW[0x00] = PCE.IOAREA;
+
+    //pce_rom_patch
+    //printf("Rom: %p %p \n", PCE.ROM, _PCE_ROM_UNPACK_BUFFER);
+    if (PCE.ROM != _PCE_ROM_UNPACK_BUFFER)
+        pce_rom_patch();
+    else
+        pce_rom_full_patch();
+        
 }
 
 void ResetPCE(bool hard) {
@@ -519,6 +617,27 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused) {
 
     // Init PCE Core
     pce_init();
+
+#if GAME_GENIE == 1
+    int game_genie_count = 0;
+    const char **active_game_genie_codes = NULL;
+    for(int i=0; i<MAX_GAME_GENIE_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
+        if (odroid_settings_ActiveGameGenieCodes_is_enabled(ACTIVE_FILE->id, i)) {
+            game_genie_count++;
+        }
+    }
+
+    active_game_genie_codes = rg_alloc(game_genie_count * sizeof(char**), MEM_ANY);
+    for(int i=0, j=0; i<MAX_GAME_GENIE_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
+        if (odroid_settings_ActiveGameGenieCodes_is_enabled(ACTIVE_FILE->id, i)) {
+            active_game_genie_codes[j] = ACTIVE_FILE->game_genie_codes[i];
+            j++;
+        }
+    }
+    PCE.patchs = (char **)active_game_genie_codes;
+    PCE.rp_count = game_genie_count;
+#endif
+
     LoadCartPCE();
     ResetPCE(false);
     printf("PCE Core initialized\n");
@@ -563,4 +682,7 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused) {
         PCE.MaxCycles -= Cycles;
         Cycles = 0;
     }
+#if GAME_GENIE == 1
+    rg_free(active_game_genie_codes); // No need to clean up the objects in the array as they're allocated in read only space
+#endif
 }
