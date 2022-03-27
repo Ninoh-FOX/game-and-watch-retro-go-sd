@@ -246,7 +246,7 @@ const lang_t *gui_lang[9] = {
 
 lang_t *curr_lang = &lang_en_us;
 lang_t *curr_romlang = &lang_en_us;
-const int gui_lang_count = 8;
+const int gui_lang_count = 9;
 
 int i18n_get_text_height()
 {

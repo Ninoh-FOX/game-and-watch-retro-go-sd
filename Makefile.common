@@ -99,6 +99,7 @@ CODEPAGE ?= 1252
 ES_ES ?= 1
 PT_PT ?= 1
 FR_FR ?= 1
+IT_IT ?= 1
 ZH_CN ?= 0
 ZH_TW ?= 0
 KO_KR ?= 0
@@ -128,6 +129,9 @@ else ifeq ($(CODEPAGE), 12522)
 else ifeq ($(CODEPAGE), 12523)
 	FR_FR = 1
 	SCODEPAGE = "iso-8859-1"
+else ifeq ($(CODEPAGE), 12524)
+	IT_IT = 1
+	SCODEPAGE = "iso-8859-1"
 else
     SCODEPAGE = "iso-8859-1"
 endif
@@ -147,6 +151,8 @@ else ifeq ($(UICODEPAGE), 12522)
 	PT_PT = 1
 else ifeq ($(UICODEPAGE), 12523)
 	FR_FR = 1
+else ifeq ($(UICODEPAGE), 12524)
+	IT_IT = 1
 endif
 
 ROMINFOCODE ?= $(SCODEPAGE)
@@ -333,6 +339,7 @@ C_DEFS +=  \
 -DINCLUDED_ES_ES=$(ES_ES) \
 -DINCLUDED_PT_PT=$(PT_PT) \
 -DINCLUDED_FR_FR=$(FR_FR) \
+-DINCLUDED_IT_IT=$(IT_IT) \
 -DINCLUDED_ZH_CN=$(ZH_CN) \
 -DINCLUDED_ZH_TW=$(ZH_TW) \
 -DINCLUDED_KO_KR=$(KO_KR) \
@@ -732,8 +739,8 @@ help:
 	@echo "                        949 as Korean; 12521 as Spanish; 12522 as Portuguese; "
 	@echo "  UICODEPAGE          - Sets ui display language.(default=CODEPAGE=1252 as English)"
 	@echo "  ROMINFOCODE         - Sets encoding of parse rom name, default = ascii"
-	@echo "  ES_ES,PT_PT,FR_FR   "
-	@echo "  ZH_CN,ZH_TW,        "
+	@echo "  ES_ES,PT_PT,FR_FR,  "
+	@echo "  IT_IT,ZH_CN,ZH_TW,  "
 	@echo "  KO_KR,JA_JP         - Set to 1 to include or exclude some other language"
 	@echo "  FONT                - Only persist one font and set the font number. "
 	@echo "                        Font effect see: Core\\Inc\\retro-go\\fonts\\font_un_xx.h"
@@ -766,6 +773,7 @@ help:
 	@echo "  ES_ES=$(ES_ES)"
 	@echo "  PT_PT=$(PT_PT)"
 	@echo "  FR_FR=$(FR_FR)"
+	@echo "  IT_IT=$(IT_IT)"
 	@echo "  ZH_CN=$(ZH_CN)"
 	@echo "  ZH_TW=$(ZH_TW)"
 	@echo "  KO_KR=$(KO_KR)"

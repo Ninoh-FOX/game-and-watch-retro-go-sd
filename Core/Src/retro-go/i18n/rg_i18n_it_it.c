@@ -32,7 +32,7 @@ const lang_t lang_it_it LANG_DATA = {
     .extra_font = NULL,
     .s_LangUI = "Lingua UI",
     .s_LangTitle = "Lingua dei Titoli",
-    .s_LangName = "Italiano",
+    .s_LangName = "Italian",
 
     // Core\Src\porting\gb\main_gb.c =======================================
     .s_Palette = "Palette",
