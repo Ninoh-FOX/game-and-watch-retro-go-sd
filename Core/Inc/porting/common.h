@@ -29,7 +29,7 @@ extern uint32_t audio_mute;
 
 
 extern int16_t pendingSamples;
-extern int16_t audiobuffer_emulator[AUDIO_BUFFER_LENGTH] __attribute__((section (".audio")));
+extern int16_t audiobuffer_emulator[AUDIO_BUFFER_LENGTH * 2] __attribute__((section (".audio")));
 extern int16_t audiobuffer_dma[AUDIO_BUFFER_LENGTH * 2] __attribute__((section (".audio")));
 
 extern const uint8_t volume_tbl[ODROID_AUDIO_VOLUME_MAX + 1];

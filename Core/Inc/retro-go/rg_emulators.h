@@ -32,6 +32,7 @@ typedef struct {
     //size_t crc_offset;
     //uint32_t checksum;
     //bool missing_cover;
+    uint16_t mapper;
     rom_region_t region;
     const rom_system_t *system;
 } retro_emulator_file_t;

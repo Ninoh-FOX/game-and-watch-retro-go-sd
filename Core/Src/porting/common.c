@@ -27,7 +27,7 @@ uint32_t audio_mute;
 
 
 int16_t pendingSamples = 0;
-int16_t audiobuffer_emulator[AUDIO_BUFFER_LENGTH] __attribute__((section (".audio")));
+int16_t audiobuffer_emulator[AUDIO_BUFFER_LENGTH * 2] __attribute__((section (".audio")));
 int16_t audiobuffer_dma[AUDIO_BUFFER_LENGTH * 2] __attribute__((section (".audio")));
 
 dma_transfer_state_t dma_state;

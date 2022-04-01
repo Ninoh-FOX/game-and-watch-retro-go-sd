@@ -43,7 +43,6 @@ static Properties* properties;
 extern BoardInfo boardInfo;
 static Mixer* mixer;
 static Video* video;
-static char msx_cartmapper[10];
 
 static odroid_gamepad_state_t previous_joystick_state;
 int msx_button_a_key_index = 5; /* EC_SPACE index */
@@ -66,10 +65,10 @@ static int double_width;
 #define FPS_NTSC  60
 #define FPS_PAL   50
 
-#define MSX_FREQ FPS_NTSC
+#define FPS_MSX FPS_PAL
 
-#define AUDIO_MSX_SAMPLE_RATE 44100
-#define MSX_AUDIO_BUFFER_LENGTH (AUDIO_MSX_SAMPLE_RATE / MSX_FREQ)
+#define AUDIO_MSX_SAMPLE_RATE 22050
+#define MSX_AUDIO_BUFFER_LENGTH (AUDIO_MSX_SAMPLE_RATE / FPS_MSX)
 #define AUDIO_BUFFER_LENGTH_DMA_MSX (2 * MSX_AUDIO_BUFFER_LENGTH)
 static int16_t msxAudioBufferOffset;
 
@@ -479,9 +478,6 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     int i;
     odroid_dialog_choice_t options[10];
     char game_name[80];
-    bool load_fmpac = 0;
-    bool load_disk = 0;
-    bool load_scci = 1;
 
     createOptionMenu(options);
 
@@ -492,7 +488,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     } else {
         common_emu_state.pause_after_frames = 0;
     }
-    common_emu_state.frame_time_10us = (uint16_t)(100000 / FPS_NTSC + 0.5f);
+    common_emu_state.frame_time_10us = (uint16_t)(100000 / FPS_MSX + 0.5f);
 
     odroid_system_init(APPID_MSX, AUDIO_MSX_SAMPLE_RATE);
     odroid_system_emu_init(&msx_system_LoadState, &msx_system_SaveState, NULL);
@@ -503,8 +499,8 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
     properties = propCreate(1, EMU_LANG_ENGLISH, P_KBD_EUROPEAN, P_EMU_SYNCNONE, "");
     properties->sound.stereo = 0;
-    properties->emulation.speed = FPS_NTSC;
-    properties->emulation.vdpSyncMode = P_VDP_SYNC60HZ;
+    properties->emulation.speed = FPS_MSX;
+    properties->emulation.vdpSyncMode = P_VDP_SYNCAUTO;
     properties->emulation.enableFdcTiming = 0;
     properties->emulation.noSpriteLimits = 0;
     properties->video.fullscreen.width = 320;
@@ -515,14 +511,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     // This will be changed dynamicly if the game use MSX-MUSIC
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].enable = 1;
     properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].enable = 1;
-    properties->sound.mixerChannel[MIXER_CHANNEL_PCM].enable = 0;
-    properties->sound.mixerChannel[MIXER_CHANNEL_IO].enable = 0;
-
     properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].pan = 0;
-    properties->sound.mixerChannel[MIXER_CHANNEL_PCM].pan = 0;
-    properties->sound.mixerChannel[MIXER_CHANNEL_IO].pan = 0;
 
     mixer = mixerCreate();
 
@@ -548,14 +539,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
         insertDiskette(properties, 0, game_name, NULL, -1);
         // We load SCC-I cartridge for disk games requiring it
-        if (load_scci) {
-            insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
-        } else {
-            load_fmpac = true;
-        }
-        load_disk = true;
+        insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
     } else {
-        insertCartridge(properties, 0, game_name, NULL, ROM_KONAMI5, -1);
+        insertCartridge(properties, 0, game_name, NULL, ACTIVE_FILE->mapper, -1);
     }
 
     boardSetFdcTimingEnable(0/*properties->emulation.enableFdcTiming*/);
@@ -590,6 +576,14 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     msxMachine.cart[1].subslot = 0;
 
     i=0;
+
+    msxMachine.slotInfo[i].slot = 3;
+    msxMachine.slotInfo[i].subslot = 0;
+    msxMachine.slotInfo[i].startPage = 0;
+    msxMachine.slotInfo[i].pageCount = 16; // 128kB of RAM
+    msxMachine.slotInfo[i].romType = RAM_MAPPER;
+    strcpy(msxMachine.slotInfo[i].name, "");
+    i++;
 
     msxMachine.slotInfo[i].slot = 0;
     msxMachine.slotInfo[i].subslot = 0;
@@ -631,14 +625,6 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     strcpy(msxMachine.slotInfo[i].name, "MSX2PMUS.rom");
     i++;
 
-    msxMachine.slotInfo[i].slot = 3;
-    msxMachine.slotInfo[i].subslot = 0;
-    msxMachine.slotInfo[i].startPage = 0;
-    msxMachine.slotInfo[i].pageCount = 16; // 128kB of RAM
-    msxMachine.slotInfo[i].romType = RAM_MAPPER;
-    strcpy(msxMachine.slotInfo[i].name, "");
-    i++;
-
     msxMachine.slotInfoCount = i;
 
     memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
@@ -667,25 +653,23 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
         ((R800*)boardInfo.cpuRef)->terminate = 0;
         boardInfo.run(boardInfo.cpuRef);
         if (drawFrame) {
-            size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
-            if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH) {
-#ifdef DEBUG_AUDIO
-                printf("DMA copy offset %d\n",msxAudioBufferOffset);
-#endif
-                memcpy(&audiobuffer_dma[offset],audiobuffer_emulator,MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
-                msxAudioBufferOffset = 0;
-//                msxAudioBufferOffset -= MSX_AUDIO_BUFFER_LENGTH;
-                // Move second buffer to first location
-//                memcpy(audiobuffer_emulator,&audiobuffer_emulator[MSX_AUDIO_BUFFER_LENGTH],MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
-            } else {
-#ifdef DEBUG_AUDIO
-                printf("DMA underrun %d\n",underrun++);
-#endif
-            }
-
             common_ingame_overlay();
             lcd_swap();
-//            memset(lcd_get_active_buffer,0xFF,GW_LCD_WIDTH * GW_LCD_HEIGHT * sizeof(uint16_t));
+        }
+        size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
+        if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH) {
+#ifdef DEBUG_AUDIO
+            printf("DMA copy offset %d\n",msxAudioBufferOffset);
+#endif
+            memcpy(&audiobuffer_dma[offset],audiobuffer_emulator,MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
+//            msxAudioBufferOffset = 0;
+            msxAudioBufferOffset -= MSX_AUDIO_BUFFER_LENGTH;
+            // Move second buffer to first location
+            memcpy(audiobuffer_emulator,&audiobuffer_emulator[MSX_AUDIO_BUFFER_LENGTH],MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
+        } else {
+#ifdef DEBUG_AUDIO
+            printf("DMA underrun %d\n",underrun++);
+#endif
         }
         if(!common_emu_state.skip_frames) {
             dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
@@ -699,17 +683,45 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     }
 }
 
+static int8_t currentVolume = -1;
+const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
+    0,
+    6,
+    12,
+    19,
+    25,
+    35,
+    46,
+    60,
+    80,
+    100,
+};
+
 static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
 {
     uint8_t volume = odroid_audio_volume_get();
     int32_t factor = volume_tbl[volume];
     int32_t sample;
+    if (volume != currentVolume) {
+        if (volume == 0) {
+            mixerSetEnable(mixer,0);
+        } else {
+            mixerSetEnable(mixer,1);
+            mixerSetMasterVolume(mixer,volume_table[volume]);
+        }
+        currentVolume = volume;
+    }
+    if (msxAudioBufferOffset <= MSX_AUDIO_BUFFER_LENGTH) {
+        memcpy(&audiobuffer_emulator[msxAudioBufferOffset],buffer,count*sizeof(Int16));
+        msxAudioBufferOffset+=MSX_AUDIO_BUFFER_LENGTH;
+    }
 #ifdef DEBUG_AUDIO
     printf("soundWrite offset %d count %d\n",msxAudioBufferOffset,count);
 #endif
+#if 0
     for (int i = 0; i < count; i++) {
         sample = buffer[i];
-        if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH)//MSX_AUDIO_BUFFER_LENGTH*2)
+        if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH*2)
         {
 #ifdef DEBUG_AUDIO
             printf("DMA overrun %d (count %d i %d)\n",overrun++, count, i);
@@ -723,6 +735,7 @@ static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
         }
         msxAudioBufferOffset++;
     }
+#endif
     return 0;
 }
 

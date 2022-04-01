@@ -4,6 +4,7 @@ import os
 import shutil
 import struct
 import subprocess
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
@@ -33,6 +34,7 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.save_size = {save_size},
 \t\t.system = &{system},
 \t\t.region = {region},
+\t\t.mapper = {mapper},
 \t}},"""
 
 SYSTEM_PROTO_TEMPLATE = """
@@ -338,6 +340,10 @@ class ROM:
         return self.path.stat().st_size
 
     @property
+    def mapper(self):
+        return int(subprocess.check_output([sys.executable, "./tools/findblueMsxMapper.py", "roms/msx_bios/msxromdb.xml", str(self.path)]))
+
+    @property
     def img_size(self):
         try:
             return self.img_path.stat().st_size
@@ -359,6 +365,8 @@ class ROMParser:
         rom_files = list(roms_folder.iterdir())
         rom_files = [r for r in rom_files if r.name.lower().endswith(extension)]
         rom_files.sort()
+        if system_name == "MSX":# and extension == "rom" :
+            print("--------- system name ="+system_name+" extension = "+extension)
 
         found_roms = [ROM(system_name, rom_file, ext, romdefs) for rom_file in rom_files]
 
@@ -398,6 +406,7 @@ class ROMParser:
                 region=region,
                 extension=rom.ext,
                 system=system,
+                mapper=rom.mapper,
             )
             body += "\n"
             pubcount += 1
@@ -653,8 +662,8 @@ class ROMParser:
                 roms += self.find_roms(system_name, folder, e + "." + compress, romdefs)
             return roms
 
-        def find_fdi_disks():
-            disks = self.find_roms(system_name, folder, "dsk.fdi", romdefs)
+        def find_disks():
+            disks = self.find_roms(system_name, folder, "dsk", romdefs)
             # If a disk name ends with _no_save then it means that we shouldn't
             # allocate save space for this disk (to use with multi disks games
             # as they only need to get a save for the first disk)
@@ -671,7 +680,7 @@ class ROMParser:
                     return True
             return False
 
-        fdi_disks = find_fdi_disks()
+        fdi_disks = find_disks()
         disks_raw = [r for r in roms_raw if not contains_rom_by_name(r, fdi_disks)]
         disks_raw = [r for r in disks_raw if r.ext == "dsk"]
 #        if disks_raw:
@@ -684,7 +693,7 @@ class ROMParser:
 #                    r,
 #                    compress)
             # Re-generate the fdi disks list
-#            fdi_disks = find_fdi_disks()
+#            fdi_disks = find_disks()
         #remove .dsk from list
 #        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
         #add .fdi to list

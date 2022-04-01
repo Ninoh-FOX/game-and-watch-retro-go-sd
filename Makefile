@@ -189,7 +189,6 @@ $(CORE_MSX)/Src/IoDevice/TC8566AF.c \
 $(CORE_MSX)/Src/IoDevice/WD2793.c \
 $(CORE_MSX)/Src/SoundChips/AudioMixer.c \
 $(CORE_MSX)/Src/SoundChips/AY8910.c \
-$(CORE_MSX)/Src/SoundChips/DAC.c \
 $(CORE_MSX)/Src/SoundChips/SCC.c \
 $(CORE_MSX)/Src/SoundChips/MsxPsg.c \
 $(CORE_MSX)/Src/SoundChips/YM2413_msx.c \
