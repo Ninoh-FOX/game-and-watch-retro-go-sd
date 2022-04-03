@@ -256,30 +256,29 @@ A collection of codes can be found here: [https://github.com/martaaay/game-and-w
 ### Game Genie on PCE System
 
 Now you can define rom patch for PCE Roms. You can found patch info from [Here](https://krikzz.com/forum/index.php?topic=1004.0).
+To add PCE rom patcher, create a file ending in .pceplus in the same directory as your rom with the same name as your rom. For instance, for 
+"roms/pce/1943 Kai (J).pce" make a file called "roms/pce/1943 Kai (J).pceplus".
+A collection of codes file can be found [here](https://github.com/olderzeus/game-genie-codes-nes/tree/master/pceplus).
 
-Then you can edit pce.json file after run `make romdef`. here is the patch define examples: 
+Each line of pceplus is defined as: 
 ```
-    "1943 Kai (J)": {
-        "enable_save": "0",
-        "name": "1943 Kai (J)",
-        "publish": "1",
-        "patchs": [
-            {
-                "name": "Infinite Energy",
-                "items": {
-                    "0x1822F":"0xBD",
-                    "0x188FC":"0xBD"
-                }
-            },
-            {
-                "name": "Infinite Life",
-                "items": {
-                    "0x18330":"0xBD"
-                }
-            }
-        ]
-    },
+01822fbd,018330bd,0188fcbd,	Hacked Version
+[patchcommand],[...], patch desc 
+
 ```
+
+Each patch command is a hex string defined as: 
+```
+01822fbd 
+_
+|how much byte to patched
+ _____
+   |patch start address, subtract pce rom header size if had.
+      __...
+       |bytes data to patched from start address
+
+```
+
 
 ## Upgrading the flash
 

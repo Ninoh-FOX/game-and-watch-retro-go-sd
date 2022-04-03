@@ -361,26 +361,51 @@ class ROM:
         return self.path.read_bytes()
 
     def get_rom_patchs(self):
-        #get rompatchs define
+        #get pce rompatchs files
+        pceplus = Path(self.path.parent, self.filename + ".pceplus")
+
+        if not os.path.exists(pceplus):
+            return []
+
         codes_and_descs = []
-        self.romdef.setdefault('patchs', [])
-        self.romdef["patchs"]
-        for pItem in self.romdef["patchs"]:
-            #for ads in 
-            pItems = pItem["items"]
-            adrs = ""
-            xCount = 0
-            for k in pItems:
-                adr = k.replace("x","0")
-                adr = adr.replace("X","0")
-                adr = "000000" + adr
-                val = pItems[k].replace("x","0")
-                val = val.replace("X","0")
-                val = "00" + val
-                adrs = adrs + "\\x" + adr[-6:-4] + "\\x" +  adr[-4:-2] + "\\x" +  adr[-2:] + "\\x" + val[-2:]
-                xCount += 1
-            adrs = "\\x%x" % (xCount) + adrs
-            codes_and_descs.append((adrs, pItem["name"][:40]))
+        for line in pceplus.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                continue
+            parts = line.split(',')
+            cmd_count = 0
+            cmd_str = ""
+            for i in range(len(parts) - 1):
+                part = parts[i].strip()
+                #get cmd byte count
+                x_str = part[0:2]
+                x = (int(x_str, 16) >> 4) + 1
+                one_cmd = ""
+                for y in range(3):
+                    one_cmd = one_cmd + "\\x" + part[y * 2: y * 2 + 2] 
+                for y in range(x):
+                    one_cmd = one_cmd + "\\x" + part[y * 2 + 6: y * 2 + 8]
+                #got one cmd
+                cmd_count += 1
+                cmd_str = cmd_str + one_cmd
+            cmd_str = "\\x%x" % (cmd_count) + cmd_str
+            desc = parts[len(parts) - 1]
+            if desc is not None:
+                desc = desc[:40]
+                desc = desc.replace('\\', r'\\\\')
+                desc = desc.replace('"', r'\"')
+                desc = desc.strip()
+
+            codes_and_descs.append((cmd_str, desc))
+
+        if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+            print(
+                f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} Game Genie codes. Truncating..."
+            )
+            codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+
         return codes_and_descs
 
     def get_game_genie_codes(self):

@@ -225,13 +225,19 @@ pce_rom_full_patch()
     for (int i = 0; i < PCE.rp_count; i++)
     {
         uint8_t p_count = PCE.patchs[i][0];
+        uint8_t p_start = 1;
         for (int j = 0; j < p_count; j++)
         {
-            uint32_t addr = PCE.patchs[i][1 + j * 4] * 0x10000 + PCE.patchs[i][2 + j * 4] * 0x100 + PCE.patchs[i][3 + j * 4];
-            //uint8_t val = PCE.patchs[i][4 + j * 4];
-            uint8_t val = PCE.ROM[addr];
-            PCE.ROM[addr] = PCE.patchs[i][4 + j * 4];
-            printf("Patched: %p from val: %2x To: %2x", (unsigned char *)addr, val, PCE.patchs[i][4 + j * 4]);
+            uint32_t addr = (PCE.patchs[i][p_start] & 0xf) * 0x10000 + PCE.patchs[i][p_start + 1] * 0x100 + PCE.patchs[i][p_start + 2];
+            uint8_t count = (PCE.patchs[i][p_start] >> 4) + 1;
+            for (int x = 0; x < count; x++)
+            {
+                // all address are seek from rom_data
+                //uint8_t val = PCE.ROM_DATA[addr + x];
+                PCE.ROM_DATA[addr + x] = PCE.patchs[i][p_start + 3 + x];
+                //printf("Patched at RAM: %p from val: %2x To: %2x \n", (unsigned char *)(addr + x), val, PCE.patchs[i][p_start + 3 + x]);
+            }
+            p_start = p_start + count + 3; 
         }
     }
 }
@@ -252,13 +258,12 @@ pce_rom_patch()
     for (int i = 0; i < PCE.rp_count; i++)
     {
         uint8_t p_count = PCE.patchs[i][0];
-        //printf("Patchs: %d\n", p_count);
-
+        uint8_t p_start = 1;
         for (int j = 0; j < p_count; j++)
         {
-            uint32_t addr = PCE.patchs[i][1 + j * 4] * 0x10000 + PCE.patchs[i][2 + j * 4] * 0x100 + PCE.patchs[i][3 + j * 4];
-            uint32_t s_addr = (addr - (PCE.ROM_DATA - PCE.ROM)) / 0x4000 * 0x4000;
-            uint32_t x_addr = (addr - (PCE.ROM_DATA - PCE.ROM)) & 0x3fff;
+            uint32_t addr = (PCE.patchs[i][p_start] & 0xf) * 0x10000 + PCE.patchs[i][p_start + 1] * 0x100 + PCE.patchs[i][p_start + 2];
+            uint32_t s_addr = addr / 0x4000 * 0x4000;
+            uint32_t x_addr = addr & 0x3fff;
             //found here moved?
             CurIdx = 0xFF;
             for (int k=0; k<DynCount && k<MaxCount; k++)
@@ -283,28 +288,29 @@ pce_rom_patch()
 
                 for (int k=0; k<0x4000; k++)
                     dest[CurIdx * 0x4000 + k] = PCE.ROM_DATA[s_addr + k];
-                //memcpy(d_addr, PCE.ROM_DATA + s_addr, 0x2000);
-                //Change all MemoryMapR to New addr;
-                //printf("Moved memory from %p to %p Index %2x \n", PCE.ROM_DATA + s_addr, d_addr, CurIdx);
+
                 for (int k = 0; k < 0x80; k++) 
                 {
                     if (PCE.MemoryMapR[k] == (PCE.ROM_DATA + s_addr))
                     {
                         PCE.MemoryMapR[k] = d_addr;
-                        //printf("Update Bank: %d from address: %p To: %p \n", k, PCE.ROM_DATA + s_addr, d_addr);
                     }
                     else if (PCE.MemoryMapR[k] == (PCE.ROM_DATA + s_addr + 0x2000))
                     {
                         PCE.MemoryMapR[k] = d_addr + 0x2000;
-                        //printf("Update Bank: %d from address: %p To: %p \n", k, PCE.ROM_DATA + s_addr + 0x2000, d_addr + 0x2000);
                     }
                 }
             }
-            //rom patch;
-            //uint8_t val = PCE.patchs[i][4 + j * 4];
-            uint8_t val = dest[CurIdx * 0x4000 + x_addr];
-            dest[CurIdx * 0x4000 + x_addr] = PCE.patchs[i][4 + j * 4];
-            printf("Patched: %p from val: %2x To: %2x \n", (unsigned char *)addr, val, PCE.patchs[i][4 + j * 4]);
+
+            uint8_t count = (PCE.patchs[i][p_start] >> 4) + 1;
+            for (int x = 0; x < count; x++)
+            {
+                // all address are seek from rom_data
+                //uint8_t val = dest[CurIdx * 0x4000 + x_addr + x];
+                dest[CurIdx * 0x4000 + x_addr + x] = PCE.patchs[i][p_start + 3 + x];
+                //printf("Patched %p at RAM: %p from val: %2x To: %2x \n", (unsigned char *)(addr + x), &(dest[CurIdx * 0x4000 + x_addr + x]), val, PCE.patchs[i][p_start + 3 + x]);
+            }
+            p_start = p_start + count + 3; 
         }
     }
 }
@@ -461,8 +467,10 @@ void LoadCartPCE() {
         PCE.MemoryMapW[0x00] = PCE.IOAREA;
 
     //pce_rom_patch
-    //printf("Rom: %p %p \n", PCE.ROM, _PCE_ROM_UNPACK_BUFFER);
-    if (PCE.ROM != _PCE_ROM_UNPACK_BUFFER)
+    unsigned char *dest = (unsigned char *)&_PCE_ROM_UNPACK_BUFFER;
+    printf("Rom: %p %p \n", PCE.ROM, dest);
+
+    if (PCE.ROM != dest)
         pce_rom_patch();
     else
         pce_rom_full_patch();
