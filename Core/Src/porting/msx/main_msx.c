@@ -55,6 +55,22 @@ static char key_name[6];
 static char a_button_name[6];
 static char b_button_name[6];
 
+/* Volume management */
+static int8_t currentVolume = -1;
+static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
+    0,
+    6,
+    12,
+    19,
+    25,
+    35,
+    46,
+    60,
+    80,
+    100,
+};
+
+/* Framebuffer management */
 static unsigned image_buffer_base_width;
 static unsigned image_buffer_current_width;
 static unsigned image_buffer_height;
@@ -71,6 +87,12 @@ static int double_width;
 #define MSX_AUDIO_BUFFER_LENGTH (AUDIO_MSX_SAMPLE_RATE / FPS_MSX)
 #define AUDIO_BUFFER_LENGTH_DMA_MSX (2 * MSX_AUDIO_BUFFER_LENGTH)
 static int16_t msxAudioBufferOffset;
+
+// Default is MSX2+
+int selected_msx_index = 2;
+static Machine msxMachine;
+
+static void setPropertiesMsx(Machine *machine, int msxType);
 
 static bool msx_system_LoadState(char *pathName)
 {
@@ -189,47 +211,39 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
     return event == ODROID_DIALOG_ENTER;
 }
 
-// Default is MSX2+
-int selected_msx_index = 2;
-
 static bool update_msx_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
-  int max_index = 2;
+    int max_index = 2;
 
-  if (event == ODROID_DIALOG_PREV) {
+    if (event == ODROID_DIALOG_PREV) {
         selected_msx_index = selected_msx_index > 0 ? selected_msx_index - 1 : max_index;
-  }
-  if (event == ODROID_DIALOG_NEXT) {
+    }
+    if (event == ODROID_DIALOG_NEXT) {
         selected_msx_index = selected_msx_index < max_index ? selected_msx_index + 1 : 0;
-  }
+    }
 
-  switch (selected_msx_index) {
-    case 0: // MSX1;
+    switch (selected_msx_index) {
+        case 0: // MSX1;
             strcpy(option->value, "MSX1");
             break;
-    case 1: // MSX2;
+        case 1: // MSX2;
             strcpy(option->value, "MSX2");
             break;
-    case 2: // MSX2+;
+        case 2: // MSX2+;
             strcpy(option->value, "MSX2+");
             break;
-  }
+    }
 
-  if (event == ODROID_DIALOG_ENTER) {
-        switch (selected_msx_index) {
-              case 0: // MSX1;
-//                    mode = (mode & ~(MSX_MODEL)) | MSX_MSX1;
-                    break;
-              case 1: // MSX2;
-//                    mode = (mode & ~(MSX_MODEL)) | MSX_MSX2;
-                    break;
-              case 2: // MSX2+;
-//                    mode = (mode & ~(MSX_MODEL)) | MSX_MSX2P;
-                    break;
-        }
-//        msx_start(mode,RAMPages,VRAMPages,NULL);
-  }
-   return event == ODROID_DIALOG_ENTER;
+    if (event == ODROID_DIALOG_ENTER) {
+        machineDestroy(&msxMachine);
+        setPropertiesMsx(&msxMachine,selected_msx_index);
+
+        memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
+        memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
+
+        emulatorStartMachine(NULL, &msxMachine);
+    }
+    return event == ODROID_DIALOG_ENTER;
 }
 
 struct msx_key_info {
@@ -470,9 +484,178 @@ static void createOptionMenu(odroid_dialog_choice_t *options) {
     options[index].update_cb = NULL;
 }
 
-static int underrun = 0;
-static int overrun = 0;
-static Machine msxMachine;
+static void setPropertiesMsx(Machine *machine, int msxType) {
+    int i = 0;
+
+    switch(msxType) {
+        case 0: // MSX1
+            machine->board.type = BOARD_MSX;
+            machine->video.vdpVersion = VDP_TMS9929A;
+            machine->video.vramSize = 16 * 1024;
+            machine->cmos.enable = 0;
+
+            machine->slot[0].subslotted = 0;
+            machine->slot[1].subslotted = 0;
+            machine->slot[2].subslotted = 0;
+            machine->slot[3].subslotted = 1;
+            machine->cart[0].slot = 1;
+            machine->cart[0].subslot = 0;
+            machine->cart[1].slot = 2;
+            machine->cart[1].subslot = 0;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 8; // 64kB of RAM
+            machine->slotInfo[i].romType = RAM_NORMAL;
+            strcpy(machine->slotInfo[i].name, "");
+            i++;
+
+            machine->slotInfo[i].slot = 0;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_CASPATCH;
+            strcpy(machine->slotInfo[i].name, "MSX.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 1;
+            machine->slotInfo[i].startPage = 2;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_TC8566AF;
+            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+            i++;
+
+            machine->slotInfoCount = i;
+            break;
+
+        case 1: // MSX2
+            machine->board.type = BOARD_MSX_S3527;
+            machine->video.vdpVersion = VDP_V9938;
+            machine->video.vramSize = 128 * 1024;
+            machine->cmos.enable = 1;
+
+            machine->slot[0].subslotted = 0;
+            machine->slot[1].subslotted = 0;
+            machine->slot[2].subslotted = 1;
+            machine->slot[3].subslotted = 1;
+            machine->cart[0].slot = 1;
+            machine->cart[0].subslot = 0;
+            machine->cart[1].slot = 2;
+            machine->cart[1].subslot = 0;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 2;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 16; // 128kB of RAM
+            machine->slotInfo[i].romType = RAM_MAPPER;
+            strcpy(machine->slotInfo[i].name, "");
+            i++;
+
+            machine->slotInfo[i].slot = 0;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_CASPATCH;
+            strcpy(machine->slotInfo[i].name, "MSX2.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 1;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 2;
+            machine->slotInfo[i].romType = ROM_NORMAL;
+            strcpy(machine->slotInfo[i].name, "MSX2EXT.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 1;
+            machine->slotInfo[i].startPage = 2;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_TC8566AF;
+            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 2;
+            machine->slotInfo[i].pageCount = 2;
+            machine->slotInfo[i].romType = ROM_MSXMUSIC; // FMPAC
+            strcpy(machine->slotInfo[i].name, "MSX2PMUS.rom");
+            i++;
+
+            machine->slotInfoCount = i;
+            break;
+
+        case 2: // MSX2+
+            machine->board.type = BOARD_MSX_T9769B;
+            machine->video.vdpVersion = VDP_V9958;
+            machine->video.vramSize = 128 * 1024;
+            machine->cmos.enable = 1;
+
+            machine->slot[0].subslotted = 1;
+            machine->slot[1].subslotted = 0;
+            machine->slot[2].subslotted = 1;
+            machine->slot[3].subslotted = 1;
+            machine->cart[0].slot = 1;
+            machine->cart[0].subslot = 0;
+            machine->cart[1].slot = 2;
+            machine->cart[1].subslot = 0;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 16; // 128kB of RAM
+            machine->slotInfo[i].romType = RAM_MAPPER;
+            strcpy(machine->slotInfo[i].name, "");
+            i++;
+
+            machine->slotInfo[i].slot = 0;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 0;
+            machine->slotInfo[i].romType = ROM_F4INVERTED;
+            strcpy(machine->slotInfo[i].name, "");
+            i++;
+
+            machine->slotInfo[i].slot = 0;
+            machine->slotInfo[i].subslot = 0;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_CASPATCH;
+            strcpy(machine->slotInfo[i].name, "MSX2P.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 1;
+            machine->slotInfo[i].startPage = 0;
+            machine->slotInfo[i].pageCount = 2;
+            machine->slotInfo[i].romType = ROM_NORMAL;
+            strcpy(machine->slotInfo[i].name, "MSX2PEXT.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 3;
+            machine->slotInfo[i].subslot = 2;
+            machine->slotInfo[i].startPage = 2;
+            machine->slotInfo[i].pageCount = 4;
+            machine->slotInfo[i].romType = ROM_TC8566AF;
+            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+            i++;
+
+            machine->slotInfo[i].slot = 0;
+            machine->slotInfo[i].subslot = 2;
+            machine->slotInfo[i].startPage = 2;
+            machine->slotInfo[i].pageCount = 2;
+            machine->slotInfo[i].romType = ROM_MSXMUSIC; // FMPAC
+            strcpy(machine->slotInfo[i].name, "MSX2PMUS.rom");
+            i++;
+
+            machine->slotInfoCount = i;
+            break;
+    }
+}
+
 void app_main_msx(uint8_t load_state, uint8_t start_paused)
 {
     int i;
@@ -550,10 +733,6 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     boardSetMoonsoundEnable(0/*properties->sound.chip.enableMoonsound*/);
     boardSetVideoAutodetect(1/*properties->video.detectActiveMonitor*/);
 
-    msxMachine.board.type = BOARD_MSX_T9769B;
-    msxMachine.video.vdpVersion = VDP_V9958;
-    msxMachine.video.vramSize = 128 * 1024;
-    msxMachine.cmos.enable = 1;
     msxMachine.cpu.freqZ80 = 3579545;
     msxMachine.cpu.freqR800 = 7159090;
     msxMachine.fdc.count = 1;
@@ -566,75 +745,10 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     msxMachine.cpu.hasR800 = 0;
     msxMachine.fdc.enabled = 0;
 
-    msxMachine.slot[0].subslotted = 1;
-    msxMachine.slot[1].subslotted = 0;
-    msxMachine.slot[2].subslotted = 1;
-    msxMachine.slot[3].subslotted = 1;
-    msxMachine.cart[0].slot = 1;
-    msxMachine.cart[0].subslot = 0;
-    msxMachine.cart[1].slot = 2;
-    msxMachine.cart[1].subslot = 0;
-
-    i=0;
-
-    msxMachine.slotInfo[i].slot = 3;
-    msxMachine.slotInfo[i].subslot = 0;
-    msxMachine.slotInfo[i].startPage = 0;
-    msxMachine.slotInfo[i].pageCount = 16; // 128kB of RAM
-    msxMachine.slotInfo[i].romType = RAM_MAPPER;
-    strcpy(msxMachine.slotInfo[i].name, "");
-    i++;
-
-    msxMachine.slotInfo[i].slot = 0;
-    msxMachine.slotInfo[i].subslot = 0;
-    msxMachine.slotInfo[i].startPage = 0;
-    msxMachine.slotInfo[i].pageCount = 0;
-    msxMachine.slotInfo[i].romType = ROM_F4INVERTED;
-    strcpy(msxMachine.slotInfo[i].name, "");
-    i++;
-
-    msxMachine.slotInfo[i].slot = 0;
-    msxMachine.slotInfo[i].subslot = 0;
-    msxMachine.slotInfo[i].startPage = 0;
-    msxMachine.slotInfo[i].pageCount = 4;
-    msxMachine.slotInfo[i].romType = ROM_CASPATCH;
-    strcpy(msxMachine.slotInfo[i].name, "MSX2P.rom");
-    i++;
-
-    msxMachine.slotInfo[i].slot = 3;
-    msxMachine.slotInfo[i].subslot = 1;
-    msxMachine.slotInfo[i].startPage = 0;
-    msxMachine.slotInfo[i].pageCount = 2;
-    msxMachine.slotInfo[i].romType = ROM_NORMAL;
-    strcpy(msxMachine.slotInfo[i].name, "MSX2PEXT.rom");
-    i++;
-
-    msxMachine.slotInfo[i].slot = 3;
-    msxMachine.slotInfo[i].subslot = 2;
-    msxMachine.slotInfo[i].startPage = 2;
-    msxMachine.slotInfo[i].pageCount = 4;
-    msxMachine.slotInfo[i].romType = ROM_TC8566AF;
-    strcpy(msxMachine.slotInfo[i].name, "PANASONICDISK.rom");
-    i++;
-
-    msxMachine.slotInfo[i].slot = 0;
-    msxMachine.slotInfo[i].subslot = 2;
-    msxMachine.slotInfo[i].startPage = 2;
-    msxMachine.slotInfo[i].pageCount = 2;
-    msxMachine.slotInfo[i].romType = ROM_MSXMUSIC; // FMPAC
-    strcpy(msxMachine.slotInfo[i].name, "MSX2PMUS.rom");
-    i++;
-
-    msxMachine.slotInfoCount = i;
+    setPropertiesMsx(&msxMachine,selected_msx_index);
 
     memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
     memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
-
-    // Init Sound
-    msxAudioBufferOffset = 0;
-    memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
-    memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
-    HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
 
     emulatorStartMachine(NULL, &msxMachine);
     // Enable SCC and disable MSX-MUSIC as G&W is not powerfull enough to handle both at same time
@@ -658,18 +772,10 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
         }
         size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : MSX_AUDIO_BUFFER_LENGTH;
         if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH) {
-#ifdef DEBUG_AUDIO
-            printf("DMA copy offset %d\n",msxAudioBufferOffset);
-#endif
             memcpy(&audiobuffer_dma[offset],audiobuffer_emulator,MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
-//            msxAudioBufferOffset = 0;
             msxAudioBufferOffset -= MSX_AUDIO_BUFFER_LENGTH;
             // Move second buffer to first location
             memcpy(audiobuffer_emulator,&audiobuffer_emulator[MSX_AUDIO_BUFFER_LENGTH],MSX_AUDIO_BUFFER_LENGTH*sizeof(Int16));
-        } else {
-#ifdef DEBUG_AUDIO
-            printf("DMA underrun %d\n",underrun++);
-#endif
         }
         if(!common_emu_state.skip_frames) {
             dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
@@ -683,25 +789,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     }
 }
 
-static int8_t currentVolume = -1;
-const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
-    0,
-    6,
-    12,
-    19,
-    25,
-    35,
-    46,
-    60,
-    80,
-    100,
-};
-
 static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
 {
     uint8_t volume = odroid_audio_volume_get();
-    int32_t factor = volume_tbl[volume];
-    int32_t sample;
     if (volume != currentVolume) {
         if (volume == 0) {
             mixerSetEnable(mixer,0);
@@ -712,34 +802,19 @@ static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
         currentVolume = volume;
     }
     if (msxAudioBufferOffset <= MSX_AUDIO_BUFFER_LENGTH) {
-        memcpy(&audiobuffer_emulator[msxAudioBufferOffset],buffer,count*sizeof(Int16));
+        memcpy(&audiobuffer_emulator[msxAudioBufferOffset],buffer,count*sizeof(int16_t));
         msxAudioBufferOffset+=MSX_AUDIO_BUFFER_LENGTH;
     }
-#ifdef DEBUG_AUDIO
-    printf("soundWrite offset %d count %d\n",msxAudioBufferOffset,count);
-#endif
-#if 0
-    for (int i = 0; i < count; i++) {
-        sample = buffer[i];
-        if (msxAudioBufferOffset >= MSX_AUDIO_BUFFER_LENGTH*2)
-        {
-#ifdef DEBUG_AUDIO
-            printf("DMA overrun %d (count %d i %d)\n",overrun++, count, i);
-#endif
-            break;
-        }
-        if (audio_mute || volume == ODROID_AUDIO_VOLUME_MIN) {
-                audiobuffer_emulator[msxAudioBufferOffset] = 0;
-        } else {
-                audiobuffer_emulator[msxAudioBufferOffset] = (sample * factor) >> 8;
-        }
-        msxAudioBufferOffset++;
-    }
-#endif
     return 0;
 }
 
 void archSoundCreate(Mixer* mixer, UInt32 sampleRate, UInt32 bufferSize, Int16 channels) {
+    // Init Sound
+    msxAudioBufferOffset = 0;
+    memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
+    memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
+    HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AUDIO_BUFFER_LENGTH_DMA_MSX);
+
     mixerSetStereo(mixer, 0);
     mixerSetWriteCallback(mixer, soundWrite, NULL, MSX_AUDIO_BUFFER_LENGTH);
 }

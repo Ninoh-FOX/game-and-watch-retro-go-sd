@@ -163,6 +163,7 @@ $(CORE_MSX)/Src/Bios/Patch.c \
 $(CORE_MSX)/Src/Memory/DeviceManager.c \
 $(CORE_MSX)/Src/Memory/IoPort.c \
 $(CORE_MSX)/Src/Memory/MegaromCartridge.c \
+$(CORE_MSX)/Src/Memory/ramNormal.c \
 $(CORE_MSX)/Src/Memory/ramMapper.c \
 $(CORE_MSX)/Src/Memory/ramMapperIo.c \
 $(CORE_MSX)/Src/Memory/RomLoader.c \
