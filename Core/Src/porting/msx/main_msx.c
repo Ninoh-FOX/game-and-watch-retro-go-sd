@@ -175,6 +175,101 @@ void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 {
 }
 
+/** GuessROM() ***********************************************/
+/** Guess MegaROM mapper of a ROM.                          **/
+/*************************************************************/
+#define MAP_GEN8 0
+#define MAP_ASCII8 1
+#define MAP_ASCII16 2
+#define MAP_KONAMI4 3
+#define MAP_KONAMI5 4
+int GuessROM(const int8_t *buf,int size)
+{
+    int data;
+    int i,ROMCount[5];
+    int mapper;
+
+    /* No result yet */
+    mapper = ROM_UNKNOWN;
+
+    /* Clear all counters */
+    for(i=0;i<5;++i) ROMCount[i]=1;
+    /* Generic 8kB mapper is default */
+    ROMCount[MAP_GEN8]+=1;
+    /* ASCII 16kB preferred over ASCII 8kB */
+    ROMCount[MAP_ASCII8]-=1;
+
+    /* Count occurences of characteristic addresses */
+    for(i=0;i<size-2;++i)
+    {
+        data=buf[i]+((int)buf[i+1]<<8)+((int)buf[i+2]<<16);
+        switch(data)
+        {
+            case 0x500032:
+                ROMCount[MAP_KONAMI5]++;
+                break;
+            case 0x900032:
+                ROMCount[MAP_KONAMI5]++;
+                break;
+            case 0xB00032:
+                ROMCount[MAP_KONAMI5]++;
+                break;
+            case 0x400032:
+                ROMCount[MAP_KONAMI4]++;
+                break;
+            case 0x800032:
+                ROMCount[MAP_KONAMI4]++;
+                break;
+            case 0xA00032:
+                ROMCount[MAP_KONAMI4]++;
+                break;
+            case 0x680032:
+                ROMCount[MAP_ASCII8]++;
+                break;
+            case 0x780032:
+                ROMCount[MAP_ASCII8]++;
+                break;
+            case 0x600032:
+                ROMCount[MAP_KONAMI4]++;
+                ROMCount[MAP_ASCII8]++;
+                ROMCount[MAP_ASCII16]++;
+                break;
+            case 0x700032:
+                ROMCount[MAP_KONAMI5]++;
+                ROMCount[MAP_ASCII8]++;
+                ROMCount[MAP_ASCII16]++;
+                break;
+            case 0x77FF32:
+                ROMCount[MAP_ASCII16]++;
+                break;
+        }
+    }
+
+    /* Find which mapper type got more hits */
+    for(mapper=0,i=0;i<5;++i)
+        if(ROMCount[i]>ROMCount[mapper]) mapper=i;
+
+    switch (mapper) {
+        case MAP_GEN8:
+            mapper = ROM_STANDARD;
+            break;
+        case MAP_ASCII8:
+            mapper = ROM_ASCII8;
+            break;
+        case MAP_ASCII16:
+            mapper = ROM_ASCII16;
+            break;
+        case MAP_KONAMI4:
+            mapper = ROM_KONAMI4;
+            break;
+        case MAP_KONAMI5:
+            mapper = ROM_KONAMI5;
+            break;
+    }
+    /* Return the most likely mapper type */
+    return(mapper);
+}
+
 static int selected_disk_index = 0;
 #define MSX_DISK_EXTENSION "dsk"
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
@@ -724,7 +819,11 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
         // We load SCC-I cartridge for disk games requiring it
         insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
     } else {
-        insertCartridge(properties, 0, game_name, NULL, ACTIVE_FILE->mapper, -1);
+        if (ACTIVE_FILE->mapper != ROM_UNKNOWN) {
+            insertCartridge(properties, 0, game_name, NULL, ACTIVE_FILE->mapper, -1);
+        } else {
+            insertCartridge(properties, 0, game_name, NULL, GuessROM(ACTIVE_FILE->address,ACTIVE_FILE->size), -1);
+        }
     }
 
     boardSetFdcTimingEnable(0/*properties->emulation.enableFdcTiming*/);
