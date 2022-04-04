@@ -330,12 +330,8 @@ static bool update_msx_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t 
     }
 
     if (event == ODROID_DIALOG_ENTER) {
-        machineDestroy(&msxMachine);
+        boardInfo.destroy();
         setPropertiesMsx(&msxMachine,selected_msx_index);
-
-        memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
-        memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
-
         emulatorStartMachine(NULL, &msxMachine);
     }
     return event == ODROID_DIALOG_ENTER;
