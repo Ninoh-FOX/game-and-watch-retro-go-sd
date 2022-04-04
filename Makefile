@@ -155,7 +155,6 @@ LIBRETRO_COMM_DIR  = $(CORE_MSX)/libretro-common
 
 MSX_C_SOURCES = \
 $(CORE_MSX)/Src/Libretro/Event.c \
-$(CORE_MSX)/Src/Libretro/Input.c \
 $(CORE_MSX)/Src/Libretro/Notifications.c \
 $(CORE_MSX)/Src/Libretro/Timer.c \
 $(CORE_MSX)/Src/Libretro/Emulator.c \
