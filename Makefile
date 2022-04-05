@@ -198,7 +198,6 @@ $(CORE_MSX)/Src/SoundChips/SCC.c \
 $(CORE_MSX)/Src/SoundChips/MsxPsg.c \
 $(CORE_MSX)/Src/SoundChips/YM2413_msx.c \
 $(CORE_MSX)/Src/SoundChips/emu2413_msx.c \
-$(CORE_MSX)/Src/Emulator/Actions.c \
 $(CORE_MSX)/Src/Emulator/AppConfig.c \
 $(CORE_MSX)/Src/Emulator/LaunchFile.c \
 $(CORE_MSX)/Src/Emulator/Properties.c \
