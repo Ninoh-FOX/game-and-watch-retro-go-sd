@@ -50,7 +50,7 @@ int msx_button_a_key_index = 5; /* EC_SPACE index */
 int msx_button_b_key_index = 51; /* n key index */
 
 /* strings for options */
-static char disk_name[128];
+static char disk_name[PROP_MAXPATH];
 static char msx_name[6];
 static char key_name[7];
 static char frequency_name[5];
@@ -811,7 +811,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     int i;
     odroid_dialog_choice_t options[10];
     bool drawFrame;
-    char game_name[80];
+    char game_name[PROP_MAXPATH];
     size_t offset = 0;
     uint8_t volume = 0;
     dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
