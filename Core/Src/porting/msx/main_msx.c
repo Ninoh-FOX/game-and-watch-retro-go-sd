@@ -272,7 +272,7 @@ static int selected_disk_index = 0;
 #define MSX_DISK_EXTENSION "dsk"
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
-    char game_name[80];
+    char game_name[PROP_MAXPATH];
     int disk_count = 0;
     int max_index = 0;
     retro_emulator_file_t *disk_file = NULL;
