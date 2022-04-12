@@ -40,8 +40,6 @@
 #include "R800.h"
 #include "save_msx.h"
 
-static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count);
-
 static Properties* properties;
 extern BoardInfo boardInfo;
 static Mixer* mixer;
@@ -94,14 +92,13 @@ static void setPropertiesMsx(Machine *machine, int msxType);
 
 static bool msx_system_LoadState(char *pathName)
 {
-    loadMsxState(ACTIVE_FILE->save_address);
+    loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
     return true;
 }
 
 static bool msx_system_SaveState(char *pathName)
 {
-    int size = 0;
-    size = saveMsxState(ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+    saveMsxState((UInt8 *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
     return true;
 }
 
@@ -843,7 +840,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     properties->emulation.vdpSyncMode = P_VDP_SYNCAUTO;
     properties->emulation.enableFdcTiming = 0;
     properties->emulation.noSpriteLimits = 0;
-    properties->sound.masterVolume = 100;
+    properties->sound.masterVolume = 0;
 
     // Default : enable SCC and disable MSX-MUSIC
     // This will be changed dynamicly if the game use MSX-MUSIC
@@ -917,7 +914,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     mixerEnableChannelType(boardGetMixer(), MIXER_CHANNEL_MSXMUSIC, 0);
 
     if (load_state) {
-        loadMsxState(ACTIVE_FILE->save_address);
+        loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
     }
 
     while (1) {

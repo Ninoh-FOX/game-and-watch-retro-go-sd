@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include "Board.h"
 
+static char *headerString = "bMSX0000";
+
 #define WORK_BLOCK_SIZE (256)
 static int flashBlockOffset = 0;
 static bool isLastFlashWrite = 0;
@@ -54,7 +56,10 @@ struct SaveStateSection {
     UInt32 offset;
 };
 
-#define MAX_SECTIONS 32 // We have 256 Bytes available
+// We have 31*8 Bytes available for sections info
+// Do not increase this value without reserving
+// another 256 bytes block for header
+#define MAX_SECTIONS 31
 
 struct SaveState {
     struct SaveStateSection sections[MAX_SECTIONS];
@@ -107,9 +112,9 @@ UInt32 saveMsxState(UInt8 *destBuffer, UInt32 save_size) {
     SaveFlashSaveData(msxSaveState.buffer+msxSaveState.offset,NULL,0);
 
     // Copy header data in the first 256 bytes block of flash
-    //TODO : add a identification string in header
+    SaveFlashSaveData(msxSaveState.buffer,(UInt8 *)headerString,8);
     isLastFlashWrite = true;
-    SaveFlashSaveData(msxSaveState.buffer,(UInt8 *)msxSaveState.sections,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
+    SaveFlashSaveData(msxSaveState.buffer+8,(UInt8 *)msxSaveState.sections,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
 
     return msxSaveState.offset;
 }
@@ -150,10 +155,14 @@ void saveStateClose(SaveState* state)
 
 /* Loadstate functions */
 UInt32 loadMsxState(UInt8 *srcBuffer) {
-    msxSaveState.buffer = srcBuffer;
-    // Copy sections header in structure
-    memcpy(msxSaveState.sections,msxSaveState.buffer,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
-    boardInfo.loadState();
+    msxSaveState.offset = 0;
+    // Check for header
+    if (memcmp(headerString,srcBuffer,8) == 0) {
+        msxSaveState.buffer = srcBuffer;
+        // Copy sections header in structure
+        memcpy(msxSaveState.sections,msxSaveState.buffer+8,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
+        boardInfo.loadState();
+    }
     return msxSaveState.offset;
 }
 
