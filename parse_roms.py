@@ -288,7 +288,7 @@ class ROM:
         self.path = filepath
         self.filename = filepath
         # Remove compression extension from the name in case it ends with that
-        if filepath.suffix in COMPRESSIONS or filepath.suffix == '.fdi':
+        if filepath.suffix in COMPRESSIONS or filepath.suffix == '.cdk':
             self.filename = filepath.with_suffix("").stem
         else :
             self.filename = filepath.stem
@@ -365,10 +365,12 @@ class ROMParser:
         rom_files = list(roms_folder.iterdir())
         rom_files = [r for r in rom_files if r.name.lower().endswith(extension)]
         rom_files.sort()
-        if system_name == "MSX":# and extension == "rom" :
-            print("--------- system name ="+system_name+" extension = "+extension)
-
         found_roms = [ROM(system_name, rom_file, ext, romdefs) for rom_file in rom_files]
+        for rom in found_roms:
+            suffix = "_no_save"
+            if rom.name.endswith(suffix) :
+                rom.name = rom.name[:-len(suffix)]
+                rom.enable_save = False
 
         return found_roms
 
@@ -615,14 +617,14 @@ class ROMParser:
             output_file.write_bytes(output_data)
 
     def _convert_dsk(self, variable_name, dsk, compress):
-        """This will convert dsk image to fdi."""
+        """This will convert dsk image to cdk."""
         if not (dsk.publish):
             return
         if compress is None:
             compress="none"
 
         if "msx_system" in variable_name:  # MSX
-            subprocess.check_output("python3 tools/dsk2fdi.py \""+str(dsk.path)+"\" "+compress, shell=True)
+            subprocess.check_output("python3 tools/dsk2lzma.py \""+str(dsk.path)+"\" "+compress, shell=True)
 
     def generate_system(
         self,
@@ -674,30 +676,41 @@ class ROMParser:
                     disk.enable_save = False
             return disks
 
+        def find_cdk_disks():
+            disks = self.find_roms(system_name, folder, "ckd", romdefs)
+            for disk in disks:
+                suffix = "_no_save"
+                if disk.name.endswith(suffix) :
+                    disk.name = disk.name[:-len(suffix)]
+                    disk.enable_save = False
+            return disks
+
         def contains_rom_by_name(rom, roms):
             for r in roms:
                 if r.name == rom.name:
                     return True
             return False
 
-        fdi_disks = find_disks()
-        disks_raw = [r for r in roms_raw if not contains_rom_by_name(r, fdi_disks)]
+        cdk_disks = find_cdk_disks()
+
+        disks_raw = [r for r in roms_raw if not contains_rom_by_name(r, cdk_disks)]
         disks_raw = [r for r in disks_raw if r.ext == "dsk"]
-#        if disks_raw:
-#            pbar = tqdm(disks_raw) if tqdm else disks_raw
-#            for r in pbar:
-#                if tqdm:
-#                    pbar.set_description(f"Converting: {system_name} / {r.name}")
-#                self._convert_dsk(
-#                    variable_name,
-#                    r,
-#                    compress)
-            # Re-generate the fdi disks list
-#            fdi_disks = find_disks()
+
+        if disks_raw:
+            pbar = tqdm(disks_raw) if tqdm else disks_raw
+            for r in pbar:
+                if tqdm:
+                    pbar.set_description(f"Converting: {system_name} / {r.name}")
+                self._convert_dsk(
+                    variable_name,
+                    r,
+                    compress)
+            # Re-generate the cdk disks list
+            cdk_disks = find_cdk_disks()
         #remove .dsk from list
-#        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
-        #add .fdi to list
-#        roms_raw.extend(fdi_disks)
+        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
+        #add .cdk disks to list
+        roms_raw.extend(cdk_disks)
 
         roms_compressed = find_compressed_roms()
 

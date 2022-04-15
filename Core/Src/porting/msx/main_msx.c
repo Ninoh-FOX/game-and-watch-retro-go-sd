@@ -270,7 +270,7 @@ int GuessROM(const uint8_t *buf,int size)
 }
 
 static int selected_disk_index = 0;
-#define MSX_DISK_EXTENSION "dsk"
+#define MSX_DISK_EXTENSION "cdk"
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     char game_name[PROP_MAXPATH];
