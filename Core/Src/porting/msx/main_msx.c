@@ -81,7 +81,7 @@ static int double_width;
 #define FPS_PAL   50
 static int8_t msx_fps = FPS_NTSC;
 
-#define AUDIO_MSX_SAMPLE_RATE 22050
+#define AUDIO_MSX_SAMPLE_RATE 16000
 
 int selected_frequency_index = 0; // 60Hz by default
 // Default is MSX2+
