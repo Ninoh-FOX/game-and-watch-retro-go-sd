@@ -677,7 +677,7 @@ class ROMParser:
             return disks
 
         def find_cdk_disks():
-            disks = self.find_roms(system_name, folder, "ckd", romdefs)
+            disks = self.find_roms(system_name, folder, "cdk", romdefs)
             for disk in disks:
                 suffix = "_no_save"
                 if disk.name.endswith(suffix) :
