@@ -169,14 +169,17 @@ $(CORE_MSX)/Src/Memory/RomLoader.c \
 $(CORE_MSX)/Src/Memory/romMapperASCII8.c \
 $(CORE_MSX)/Src/Memory/romMapperASCII16.c \
 $(CORE_MSX)/Src/Memory/romMapperASCII16nf.c \
+$(CORE_MSX)/Src/Memory/romMapperBasic.c \
 $(CORE_MSX)/Src/Memory/romMapperCasette.c \
 $(CORE_MSX)/Src/Memory/romMapperDRAM.c \
 $(CORE_MSX)/Src/Memory/romMapperF4device.c \
+$(CORE_MSX)/Src/Memory/romMapperKoei.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami4.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami4nf.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami5.c \
 $(CORE_MSX)/Src/Memory/romMapperMsxMusic.c \
 $(CORE_MSX)/Src/Memory/romMapperNormal.c \
+$(CORE_MSX)/Src/Memory/romMapperPlain.c \
 $(CORE_MSX)/Src/Memory/romMapperStandard.c \
 $(CORE_MSX)/Src/Memory/romMapperSCCplus.c \
 $(CORE_MSX)/Src/Memory/romMapperTC8566AF.c \

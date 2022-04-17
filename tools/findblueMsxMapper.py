@@ -268,9 +268,20 @@ def getRomMapper(collection,sha1):
         for dump in software.getElementsByTagName('dump'):
             for rom in dump.getElementsByTagName('rom'):
                 hash = rom.getElementsByTagName('hash')[0].childNodes[0].data
+                mapper = ROM_PLAIN
                 if (hash == sha1string):
-                    type = megarom.getElementsByTagName('type')[0].childNodes[0].data
-                    return getMapperValue(type)
+                    if (rom.getElementsByTagName('type')):
+                        mapper = getMapperValue(rom.getElementsByTagName('type')[0].childNodes[0].data)
+                        if (mapper == ROM_STANDARD):
+                            if rom.getElementsByTagName('start') :
+                                start = rom.getElementsByTagName('start')[0].childNodes[0].data
+                                if (start == "0x4000"):
+                                    mapper = ROM_0x4000
+                                elif (start == "0x8000"):
+                                    mapper = ROM_BASIC
+                                elif (start == "0xC000"):
+                                    mapper = ROM_0xC000
+                    return mapper
             for megarom in dump.getElementsByTagName('megarom'):
                 hash = megarom.getElementsByTagName('hash')[0].childNodes[0].data
                 if sha1string == hash:
