@@ -107,6 +107,7 @@ UInt32 saveMsxState(UInt8 *destBuffer, UInt32 save_size) {
     msxSaveState.offset += sizeof(msxSaveState.sections[0])*MAX_SECTIONS;
     // Start saving data
     boardSaveState("mem0",0);
+    save_gnw_msx_data();
 
     // Write dummy data to force writing last block of data
     SaveFlashSaveData(msxSaveState.buffer+msxSaveState.offset,NULL,0);
@@ -154,6 +155,16 @@ void saveStateClose(SaveState* state)
 }
 
 /* Loadstate functions */
+void initLoadMsxState(UInt8 *srcBuffer) {
+    msxSaveState.offset = 0;
+    // Check for header
+    if (memcmp(headerString,srcBuffer,8) == 0) {
+        msxSaveState.buffer = srcBuffer;
+        // Copy sections header in structure
+        memcpy(msxSaveState.sections,msxSaveState.buffer+8,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
+    }
+}
+
 UInt32 loadMsxState(UInt8 *srcBuffer) {
     msxSaveState.offset = 0;
     // Check for header

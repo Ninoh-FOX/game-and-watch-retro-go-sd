@@ -48,6 +48,11 @@ static odroid_gamepad_state_t previous_joystick_state;
 int msx_button_a_key_index = 5; /* EC_SPACE index */
 int msx_button_b_key_index = 51; /* n key index */
 
+static int selected_disk_index = 0;
+#define MSX_DISK_EXTENSION "cdk"
+
+static int selected_key_index = 0;
+
 /* strings for options */
 static char disk_name[PROP_MAXPATH];
 static char msx_name[6];
@@ -100,6 +105,33 @@ static bool msx_system_SaveState(char *pathName)
 {
     saveMsxState((UInt8 *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
     return true;
+}
+
+void save_gnw_msx_data() {
+    SaveState* state;
+    state = saveStateOpenForWrite("main_msx");
+    saveStateSet(state, "selected_msx_index", selected_msx_index);
+    saveStateSet(state, "selected_disk_index", selected_disk_index);
+    saveStateSet(state, "msx_button_a_key_index", msx_button_a_key_index);
+    saveStateSet(state, "msx_button_b_key_index", msx_button_b_key_index);
+    saveStateSet(state, "selected_frequency_index", selected_frequency_index);
+    saveStateSet(state, "selected_key_index", selected_key_index);
+    saveStateSet(state, "msx_fps", msx_fps);
+    saveStateClose(state);
+}
+
+void load_gnw_msx_data() {
+    SaveState* state;
+    initLoadMsxState((UInt8 *)ACTIVE_FILE->save_address);
+    state = saveStateOpenForRead("main_msx");
+    selected_msx_index = saveStateGet(state, "selected_msx_index", 0);
+    selected_disk_index = saveStateGet(state, "selected_disk_index", 0);
+    msx_button_a_key_index = saveStateGet(state, "msx_button_a_key_index", 0);
+    msx_button_b_key_index = saveStateGet(state, "msx_button_b_key_index", 0);
+    selected_frequency_index = saveStateGet(state, "selected_frequency_index", 0);
+    selected_key_index = saveStateGet(state, "selected_key_index", 0);
+    msx_fps = saveStateGet(state, "msx_fps", 0);
+    saveStateClose(state);
 }
 
 /* Core stubs */
@@ -274,8 +306,6 @@ int GuessROM(const uint8_t *buf,int size)
     return(mapper);
 }
 
-static int selected_disk_index = 0;
-#define MSX_DISK_EXTENSION "cdk"
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     char game_name[PROP_MAXPATH];
@@ -466,7 +496,6 @@ struct msx_key_info msx_keyboard[] = {
 };
 
 #define RELEASE_KEY_DELAY 5
-static int selected_key_index = 0;
 static struct msx_key_info *pressed_key = NULL;
 static struct msx_key_info *release_key = NULL;
 static int release_key_delay = RELEASE_KEY_DELAY;
@@ -828,6 +857,11 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     uint8_t volume = 0;
     dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
 
+    selected_disk_index = -1;
+
+    if (load_state) {
+        load_gnw_msx_data();
+    }
     createOptionMenu(options);
 
     memset(&msxMachine,0,sizeof(Machine));
@@ -854,7 +888,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     properties->sound.masterVolume = 0;
 
     // Default : enable SCC and disable MSX-MUSIC
-    // This will be changed dynamicly if the game use MSX-MUSIC
+    // This will be changed dynamically if the game use MSX-MUSIC
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].enable = 1;
     properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].enable = 1;
     properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
@@ -879,10 +913,18 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
     sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
     if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
-        const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
-        selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
+        if (selected_disk_index == -1) {
+            const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+            selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
 
-        insertDiskette(properties, 0, game_name, NULL, -1);
+            insertDiskette(properties, 0, game_name, NULL, -1);
+        } else {
+            retro_emulator_file_t *disk_file = NULL;
+            const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+            disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
+            sprintf(game_name,"%s.%s",disk_file->name,disk_file->ext);
+            insertDiskette(properties, 0, game_name, NULL, -1);
+        }
         // We load SCC-I cartridge for disk games requiring it
         insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
     } else {

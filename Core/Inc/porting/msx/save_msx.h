@@ -32,6 +32,7 @@
 
 typedef struct SaveState SaveState;
 
+void initLoadMsxState(UInt8 *srcBuffer);
 UInt32 saveMsxState(UInt8 *destBuffer, UInt32 save_size);
 UInt32 loadMsxState(UInt8 *srcBuffer);
 
