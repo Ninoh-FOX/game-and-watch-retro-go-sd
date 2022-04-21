@@ -56,7 +56,7 @@ static int selected_key_index = 0;
 /* strings for options */
 static char disk_name[PROP_MAXPATH];
 static char msx_name[6];
-static char key_name[7];
+static char key_name[10];
 static char frequency_name[5];
 static char a_button_name[6];
 static char b_button_name[6];
