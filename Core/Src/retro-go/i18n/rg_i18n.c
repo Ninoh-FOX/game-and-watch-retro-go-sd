@@ -86,7 +86,7 @@
 #if INCLUDED_ZH_CN == 1
 #include "rg_i18n_zh_cn.c"
 #endif
-#if INCLUDED_ZHT_TW == 1
+#if INCLUDED_ZH_TW == 1
 #include "rg_i18n_zh_tw.c"
 #endif
 #if INCLUDED_KO_KR == 1
