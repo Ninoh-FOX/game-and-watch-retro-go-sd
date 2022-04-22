@@ -4,6 +4,7 @@ import os
 import shutil
 import struct
 import subprocess
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
@@ -39,6 +40,7 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.save_size = {save_size},
 \t\t.system = &{system},
 \t\t.region = {region},
+\t\t.mapper = {mapper},
 #if GAME_GENIE == 1
 \t\t.game_genie_codes = {game_genie_codes},
 \t\t.game_genie_descs = {game_genie_descs},
@@ -81,6 +83,7 @@ SAVE_SIZES = {
     "col": 60 * 1024,
     "sg": 60 * 1024,
     "pce": 76 * 1024,
+    "msx": 272 * 1024,
     "gw": 4 * 1024,
 }
 
@@ -317,9 +320,9 @@ class ROM:
         self.path = filepath
         self.filename = filepath
         # Remove compression extension from the name in case it ends with that
-        if filepath.suffix in COMPRESSIONS:
+        if filepath.suffix in COMPRESSIONS or filepath.suffix == '.cdk':
             self.filename = filepath.with_suffix("").stem
-        else:
+        else :
             self.filename = filepath.stem
         romdefs.setdefault(self.filename, {})
         self.romdef = romdefs[self.filename]
@@ -463,6 +466,10 @@ class ROM:
         return self.path.stat().st_size
 
     @property
+    def mapper(self):
+        return int(subprocess.check_output([sys.executable, "./tools/findblueMsxMapper.py", "roms/msx_bios/msxromdb.xml", str(self.path)]))
+
+    @property
     def img_size(self):
         try:
             return self.img_path.stat().st_size
@@ -484,8 +491,12 @@ class ROMParser:
         rom_files = list(roms_folder.iterdir())
         rom_files = [r for r in rom_files if r.name.lower().endswith(extension)]
         rom_files.sort()
-
         found_roms = [ROM(system_name, rom_file, ext, romdefs) for rom_file in rom_files]
+        for rom in found_roms:
+            suffix = "_no_save"
+            if rom.name.endswith(suffix) :
+                rom.name = rom.name[:-len(suffix)]
+                rom.enable_save = False
 
         return found_roms
 
@@ -530,6 +541,7 @@ class ROMParser:
                 game_genie_codes=gg_code_array_name if game_genie_codes_prefix else "NULL",
                 game_genie_descs=gg_desc_array_name if game_genie_codes_prefix else 0,
                 game_genie_count=gg_count_name if game_genie_codes_prefix else 0,
+                mapper=rom.mapper,
             )
             body += "\n"
             pubcount += 1
@@ -764,6 +776,16 @@ class ROMParser:
 
             output_file.write_bytes(output_data)
 
+    def _convert_dsk(self, variable_name, dsk, compress):
+        """This will convert dsk image to cdk."""
+        if not (dsk.publish):
+            return
+        if compress is None:
+            compress="none"
+
+        if "msx_system" in variable_name:  # MSX
+            subprocess.check_output("python3 tools/dsk2lzma.py \""+str(dsk.path)+"\" "+compress, shell=True)
+
     def generate_system(
         self,
         file: str,
@@ -804,11 +826,53 @@ class ROMParser:
                 roms += self.find_roms(system_name, folder, e + "." + compress, romdefs)
             return roms
 
+        def find_disks():
+            disks = self.find_roms(system_name, folder, "dsk", romdefs)
+            # If a disk name ends with _no_save then it means that we shouldn't
+            # allocate save space for this disk (to use with multi disks games
+            # as they only need to get a save for the first disk)
+            for disk in disks:
+                suffix = "_no_save"
+                if disk.name.endswith(suffix) :
+                    disk.name = disk.name[:-len(suffix)]
+                    disk.enable_save = False
+            return disks
+
+        def find_cdk_disks():
+            disks = self.find_roms(system_name, folder, "cdk", romdefs)
+            for disk in disks:
+                suffix = "_no_save"
+                if disk.name.endswith(suffix) :
+                    disk.name = disk.name[:-len(suffix)]
+                    disk.enable_save = False
+            return disks
+
         def contains_rom_by_name(rom, roms):
             for r in roms:
                 if r.name == rom.name:
                     return True
             return False
+
+        cdk_disks = find_cdk_disks()
+
+        disks_raw = [r for r in roms_raw if not contains_rom_by_name(r, cdk_disks)]
+        disks_raw = [r for r in disks_raw if r.ext == "dsk"]
+
+        if disks_raw:
+            pbar = tqdm(disks_raw) if tqdm else disks_raw
+            for r in pbar:
+                if tqdm:
+                    pbar.set_description(f"Converting: {system_name} / {r.name}")
+                self._convert_dsk(
+                    variable_name,
+                    r,
+                    compress)
+            # Re-generate the cdk disks list
+            cdk_disks = find_cdk_disks()
+        #remove .dsk from list
+        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
+        #add .cdk disks to list
+        roms_raw.extend(cdk_disks)
 
         roms_compressed = find_compressed_roms()
 
@@ -950,6 +1014,8 @@ class ROMParser:
         romdef.setdefault('sg', {})
         romdef.setdefault('pce', {})
         romdef.setdefault('gw', {})
+        romdef.setdefault('msx', {})
+        romdef.setdefault('msx_bios', {})
 
         save_size, rom_size, img_size, current_id = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
@@ -1083,6 +1149,34 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_GW\n" if rom_size > 0 else ""
+
+        save_size, rom_size, img_size = self.generate_system(
+            "Core/Src/retro-go/msx_roms.c",
+            "MSX",
+            "msx_system",
+            "msx",
+            ["rom","mx1","mx2","dsk"],
+            "SAVE_MSX_",
+            romdef["msx"],
+            args.compress
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        total_img_size += img_size
+        #bios
+        save_size, rom_size, img_size = self.generate_system(
+            "Core/Src/retro-go/msx_bios.c",
+            "MSX_BIOS",
+            "msx_bios",
+            "msx_bios",
+            ["rom","sha"],
+            "SAVE_MSXB_",
+            romdef["msx_bios"]
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        total_img_size += img_size
+        build_config += "#define ENABLE_EMULATOR_MSX\n" if rom_size > 0 else ""
 
         total_size = total_save_size + total_rom_size + total_img_size
 

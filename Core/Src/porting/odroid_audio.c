@@ -16,12 +16,36 @@ static void set_audio_frequency(uint32_t frequency)
 
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
 
-    /* Reconfigure on the fly PLL2 */
-    /* config to get 32768Hz */
-    /* The audio clock frequency is derived directly */
-    /* SAI mode is MCKDIV mode */
-    if (frequency == 32768)
+    if (frequency == 16000)
     {
+
+        PeriphClkInitStruct.PLL2.PLL2M = 25;
+        PeriphClkInitStruct.PLL2.PLL2N = 128;
+        PeriphClkInitStruct.PLL2.PLL2P = 10;
+        PeriphClkInitStruct.PLL2.PLL2Q = 2;
+        PeriphClkInitStruct.PLL2.PLL2R = 5;
+        PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_1;
+        PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+        PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+    }
+    else if (frequency == 22050)
+    {
+
+        PeriphClkInitStruct.PLL2.PLL2M = 36;
+        PeriphClkInitStruct.PLL2.PLL2N = 254;
+        PeriphClkInitStruct.PLL2.PLL2P = 10;
+        PeriphClkInitStruct.PLL2.PLL2Q = 2;
+        PeriphClkInitStruct.PLL2.PLL2R = 5;
+        PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_1;
+        PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+        PeriphClkInitStruct.PLL2.PLL2FRACN = 131;
+    }
+    else if (frequency == 32768)
+    {
+        /* Reconfigure on the fly PLL2 */
+        /* config to get 32768Hz */
+        /* The audio clock frequency is derived directly */
+        /* SAI mode is MCKDIV mode */
 
         PeriphClkInitStruct.PLL2.PLL2M = 25;
         PeriphClkInitStruct.PLL2.PLL2N = 196;

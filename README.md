@@ -76,6 +76,7 @@ Supported emulators:
 - Sega Game Gear (gg)
 - Sega Master System (sms)
 - Sega SG-1000 (sg)
+- MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)
 
 ## Table of Contents
 - [Emulator collection for Nintendo® Game & Watch™](#emulator-collection-for-nintendo-game--watch)
@@ -319,6 +320,20 @@ To flash the custom firmware, [follow the CFW README](https://github.com/BrianPu
 # In the game-and-watch-patch folder
 make PATCH_PARAMS="--internal-only" flash_patched_int
 ```
+
+## MSX Emulator
+
+MSX system is a computer with a keyboard and with multiple extensions possible (like sound cartridges).
+The system needs bios files to be in the roms/msx_bios folder. Check roms/msx_bios/README.md file for details.
+
+What is supported :
+- MSX2+ system is supported, other version (MSX1 & MSX2) will come later. MSX Turbo-R will probably not work on the G&W.
+- ROM cartridges images : roms have to be named with rom, mx1 or mx2 extension.
+- Disks images : disks images have to be named with dsk extension. Due to memory constraints, disks images are read only. Multiple disks games are supported and user can change the current disk using the "Pause/Options/Change Dsk" menu. Note : Savestates on the MSX are taking a lot of space (260kBytes) due to all the system memory to save, and one savestate slot is allocated for each dsk file. In the case of multiple disks games, only the first disk needs to have a savestate allocation, for this reason it is possible to disable savestate allocation for disk2/3/... of a multiple disk game by adding the _no_save suffix to disk name. Example : "SD Snatcher Disk 1.dsk" will have the savestate memory allocated, and "SD Snatcher Disk 2_no_save.dsk" will not have save state memory allocated. To prevent wasting flash memory for savestates that will never be used, it's a good practice to keep original name for first disk of a game (the one you are selecting to start the game) and to add _no_save suffix to other disks of the game.
+- Button A is associated to space key and button B is associated to n key, which is the correct configuration for most Konami games. But some games are using different keys, so in "Pause/Options/Button A&Button B" menu, you can change the keys associated to A/B.
+- Sometimes games require the user to enter his name using the keyboard, and some games like Metal Gear 1/2 are using F1-F5 keys to acces items/radio/... menus. It is possible to virtually press these keys using the "Pause/Options/Press Key" menu.
+
+Note that the MSX support is done using blueMsx 2.8.2, any game that is not working correctly using this emulator will not work on the Game & Watch. To fit in the G&W, a some features have been removed, so it's possible that some games running on blueMSX will not work in the G&W port. The emulator port is still in progress, consider it as a preview version.
 
 ## Discord, support and discussion
 

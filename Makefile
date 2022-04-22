@@ -151,6 +151,72 @@ retro-go-stm32/pce-go/components/pce-go/pce.c \
 Core/Src/porting/pce/sound_pce.c \
 Core/Src/porting/pce/main_pce.c
 
+CORE_MSX = blueMSX-go
+LIBRETRO_COMM_DIR  = $(CORE_MSX)/libretro-common
+
+MSX_C_SOURCES = \
+$(CORE_MSX)/Src/Libretro/Event.c \
+$(CORE_MSX)/Src/Libretro/Notifications.c \
+$(CORE_MSX)/Src/Libretro/Timer.c \
+$(CORE_MSX)/Src/Libretro/Emulator.c \
+$(CORE_MSX)/Src/Bios/Patch.c \
+$(CORE_MSX)/Src/Memory/DeviceManager.c \
+$(CORE_MSX)/Src/Memory/IoPort.c \
+$(CORE_MSX)/Src/Memory/MegaromCartridge.c \
+$(CORE_MSX)/Src/Memory/ramNormal.c \
+$(CORE_MSX)/Src/Memory/ramMapper.c \
+$(CORE_MSX)/Src/Memory/ramMapperIo.c \
+$(CORE_MSX)/Src/Memory/RomLoader.c \
+$(CORE_MSX)/Src/Memory/romMapperASCII8.c \
+$(CORE_MSX)/Src/Memory/romMapperASCII16.c \
+$(CORE_MSX)/Src/Memory/romMapperASCII16nf.c \
+$(CORE_MSX)/Src/Memory/romMapperBasic.c \
+$(CORE_MSX)/Src/Memory/romMapperCasette.c \
+$(CORE_MSX)/Src/Memory/romMapperDRAM.c \
+$(CORE_MSX)/Src/Memory/romMapperF4device.c \
+$(CORE_MSX)/Src/Memory/romMapperKoei.c \
+$(CORE_MSX)/Src/Memory/romMapperKonami4.c \
+$(CORE_MSX)/Src/Memory/romMapperKonami4nf.c \
+$(CORE_MSX)/Src/Memory/romMapperKonami5.c \
+$(CORE_MSX)/Src/Memory/romMapperMsxMusic.c \
+$(CORE_MSX)/Src/Memory/romMapperNormal.c \
+$(CORE_MSX)/Src/Memory/romMapperPlain.c \
+$(CORE_MSX)/Src/Memory/romMapperStandard.c \
+$(CORE_MSX)/Src/Memory/romMapperSCCplus.c \
+$(CORE_MSX)/Src/Memory/romMapperTC8566AF.c \
+$(CORE_MSX)/Src/Memory/SlotManager.c \
+$(CORE_MSX)/Src/VideoChips/VDP_YJK.c \
+$(CORE_MSX)/Src/VideoChips/VDP_MSX.c \
+$(CORE_MSX)/Src/VideoChips/V9938.c \
+$(CORE_MSX)/Src/VideoChips/VideoManager.c \
+$(CORE_MSX)/Src/Z80/R800.c \
+$(CORE_MSX)/Src/Z80/R800SaveState.c \
+$(CORE_MSX)/Src/IoDevice/Casette.c \
+$(CORE_MSX)/Src/IoDevice/Disk.c \
+$(CORE_MSX)/Src/IoDevice/I8255.c \
+$(CORE_MSX)/Src/IoDevice/MsxPPI.c \
+$(CORE_MSX)/Src/IoDevice/RTC.c \
+$(CORE_MSX)/Src/IoDevice/TC8566AF.c \
+$(CORE_MSX)/Src/IoDevice/WD2793.c \
+$(CORE_MSX)/Src/SoundChips/AudioMixer.c \
+$(CORE_MSX)/Src/SoundChips/AY8910.c \
+$(CORE_MSX)/Src/SoundChips/SCC.c \
+$(CORE_MSX)/Src/SoundChips/MsxPsg.c \
+$(CORE_MSX)/Src/SoundChips/YM2413_msx.c \
+$(CORE_MSX)/Src/SoundChips/emu2413_msx.c \
+$(CORE_MSX)/Src/Emulator/AppConfig.c \
+$(CORE_MSX)/Src/Emulator/LaunchFile.c \
+$(CORE_MSX)/Src/Emulator/Properties.c \
+$(CORE_MSX)/Src/Utils/IsFileExtension.c \
+$(CORE_MSX)/Src/Utils/StrcmpNoCase.c \
+$(CORE_MSX)/Src/Utils/TokenExtract.c \
+$(CORE_MSX)/Src/Board/Board.c \
+$(CORE_MSX)/Src/Board/Machine.c \
+$(CORE_MSX)/Src/Board/MSX.c \
+$(CORE_MSX)/Src/Input/InputEvent.c \
+Core/Src/porting/msx/main_msx.c \
+Core/Src/porting/msx/save_msx.c
+
 GW_C_SOURCES = \
 LCD-Game-Emulator/src/cpus/sm500op.c \
 LCD-Game-Emulator/src/cpus/sm510op.c \
@@ -180,15 +246,41 @@ C_INCLUDES +=  \
 -Iretro-go-stm32/pce-go/components/pce-go \
 -ILCD-Game-Emulator/src \
 -ILCD-Game-Emulator/src/cpus \
--ILCD-Game-Emulator/src/gw_sys
+-ILCD-Game-Emulator/src/gw_sys \
+-I$(CORE_MSX) \
+-I$(LIBRETRO_COMM_DIR)/include \
+-I$(CORE_MSX)/Src/Arch \
+-I$(CORE_MSX)/Src/Bios \
+-I$(CORE_MSX)/Src/Board \
+-I$(CORE_MSX)/Src/BuildInfo \
+-I$(CORE_MSX)/Src/Common \
+-I$(CORE_MSX)/Src/Debugger \
+-I$(CORE_MSX)/Src/Emulator \
+-I$(CORE_MSX)/Src/IoDevice \
+-I$(CORE_MSX)/Src/Language \
+-I$(CORE_MSX)/Src/Media \
+-I$(CORE_MSX)/Src/Memory \
+-I$(CORE_MSX)/Src/Resources \
+-I$(CORE_MSX)/Src/SoundChips \
+-I$(CORE_MSX)/Src/TinyXML \
+-I$(CORE_MSX)/Src/Utils \
+-I$(CORE_MSX)/Src/VideoChips \
+-I$(CORE_MSX)/Src/VideoRender \
+-I$(CORE_MSX)/Src/Z80 \
+-I$(CORE_MSX)/Src/Input \
+-I$(CORE_MSX)/Src/Libretro
 
 include Makefile.common
 
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_gw $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
 	$(V)$(BIN) -j .isr_vector -j .text -j .rodata -j .ARM.extab -j .preinit_array -j .init_array -j .fini_array -j .data $< $(BUILD_DIR)/$(TARGET)_intflash.bin
+
+$(BUILD_DIR)/$(TARGET)_intflash2.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
+	$(V)$(ECHO) [ BIN ] $(notdir $@)
+	$(V)$(BIN) -j .flash2 $< $(BUILD_DIR)/$(TARGET)_intflash2.bin

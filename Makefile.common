@@ -359,6 +359,16 @@ C_DEFS +=  \
 -DGNW_TARGET_MARIO=$(GNW_TARGET_MARIO) \
 -DGNW_TARGET_ZELDA=$(GNW_TARGET_ZELDA) \
 -DGAME_GENIE=$(GAME_GENIE) \
+-DTARGET_GNW \
+-DNO_EMBEDDED_SAMPLES \
+-D__LIBRETRO__ \
+-DVIDEO_COLOR_TYPE_RGB565 \
+-DZ80_CUSTOM_CONFIGURATION \
+-DMSX_NO_ZIP \
+-DMSX_NO_FILESYSTEM \
+-DMSX_NO_MALLOC \
+-DMAX_VIDEO_WIDTH_320 \
+-DMSX_NO_STEREO
 
 # AS includes
 AS_INCLUDES +=
@@ -371,6 +381,7 @@ C_INCLUDES +=  \
 -ICore/Inc/porting/nes \
 -ICore/Inc/porting/smsplusgx \
 -ICore/Inc/porting/pce \
+-ICore/Inc/porting/msx \
 -ICore/Inc/porting/gw \
 -ICore/Inc/retro-go \
 -IDrivers/STM32H7xx_HAL_Driver/Inc \
@@ -428,7 +439,7 @@ LIBDIR +=
 LDFLAGS += $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
-all: CheckTools CheckDirtySubmodules $(BUILD_DIR) $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET)_extflash.bin $(BUILD_DIR)/$(TARGET)_intflash.bin
+all: CheckTools CheckDirtySubmodules $(BUILD_DIR) $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET)_extflash.bin $(BUILD_DIR)/$(TARGET)_intflash.bin $(BUILD_DIR)/$(TARGET)_intflash2.bin
 
 #######################################
 # build the application
@@ -440,8 +451,9 @@ NES_OBJECTS = $(addprefix $(BUILD_DIR)/nes/,$(notdir $(NES_C_SOURCES:.c=.o)))
 SMSPLUSGX_OBJECTS = $(addprefix $(BUILD_DIR)/smsplusgx/,$(notdir $(SMSPLUSGX_C_SOURCES:.c=.o)))
 PCE_OBJECTS = $(addprefix $(BUILD_DIR)/pce/,$(notdir $(PCE_C_SOURCES:.c=.o)))
 GW_OBJECTS = $(addprefix $(BUILD_DIR)/gw/,$(notdir $(GW_C_SOURCES:.c=.o)))
+MSX_OBJECTS = $(addprefix $(BUILD_DIR)/msx/,$(notdir $(MSX_C_SOURCES:.c=.o)))
 
-vpath %.c $(sort $(dir $(C_SOURCES) $(NES_C_SOURCES) $(GNUBOY_C_SOURCES) $(SMSPLUSGX_C_SOURCES) $(PCE_C_SOURCES) $(GW_C_SOURCES) $(SDK_C_SOURCES)))
+vpath %.c $(sort $(dir $(C_SOURCES) $(NES_C_SOURCES) $(GNUBOY_C_SOURCES) $(SMSPLUSGX_C_SOURCES) $(PCE_C_SOURCES) $(MSX_C_SOURCES) $(GW_C_SOURCES) $(SDK_C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(SDK_ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(SDK_ASM_SOURCES)))
@@ -470,7 +482,7 @@ $(BUILD_DIR)/core/rg_main.o: Core/Inc/githash.h
 # Run parse_roms.py to generate information about the roms
 $(BUILD_DIR)/rom_files.txt: FORCE | $(BUILD_DIR)
 	$(V)$(ECHO) [ BASH ] Checking for updated roms
-	$(V)./scripts/update_rom_files.sh build/rom_files.txt roms/gb roms/nes roms/sms roms/gg roms/col roms/pce roms/sg roms/gw
+	$(V)./scripts/update_rom_files.sh build/rom_files.txt roms/gb roms/nes roms/sms roms/gg roms/col roms/pce roms/sg roms/msx roms/gw
 
 $(BUILD_DIR)/roms.a: $(BUILD_DIR)/rom_files.txt parse_roms.py
 	$(V)$(ECHO) [ PYTHON3 ] $(notdir $<)
@@ -538,9 +550,9 @@ $(BUILD_DIR)/%.o: %.s Makefile.common Makefile $(BUILD_DIR)/config.h | $(BUILD_D
 	$(V)$(ECHO) [ AS ] $(notdir $<)
 	$(V)$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(GW_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
 	$(V)$(ECHO) [ LD ] $(notdir $@)
-	$(V)$(CC) $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(GW_OBJECTS) $(LDFLAGS) -o $@
+	$(V)$(CC) $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(LDFLAGS) -o $@
 	$(V)./scripts/extflash_size.sh $@
 
 $(BUILD_DIR)/core/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
@@ -563,6 +575,10 @@ $(BUILD_DIR)/pce/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/c
 	$(V)$(ECHO) [ CC pce ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pce/$(notdir $(<:.c=.lst)) $< -o $@
 
+$(BUILD_DIR)/msx/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+	$(V)$(ECHO) [ CC msx ] $(notdir $<)
+	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/msx/$(notdir $(<:.c=.lst)) $< -o $@
+
 $(BUILD_DIR)/gw/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC gw ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/gw/$(notdir $(<:.c=.lst)) $< -o $@
@@ -574,6 +590,7 @@ $(BUILD_DIR):
 	$(V)mkdir $@/gnuboy
 	$(V)mkdir $@/smsplusgx
 	$(V)mkdir $@/pce
+	$(V)mkdir $@/msx
 	$(V)mkdir $@/gw
 
 #######################################
@@ -638,7 +655,16 @@ flash_intflash: $(BUILD_DIR)/$(TARGET)_intflash.bin
 # Flashes using an existing openocd instance
 flash_intflash_nc: $(BUILD_DIR)/$(TARGET)_intflash.bin
 	echo "program $< $(INTFLASH_ADDRESS) verify reset" | nc -c localhost 4444
-.PHONY: flashx
+.PHONY: flash_intflash_nc
+
+flash_intflash2: $(BUILD_DIR)/$(TARGET)_intflash2.bin
+	$(OPENOCD) -f scripts/interface_$(ADAPTER).cfg -c "program $< 0x08100000 verify reset exit"
+.PHONY: flash_intflash2
+
+# Flashes using an existing openocd instance
+flash_intflash2_nc: $(BUILD_DIR)/$(TARGET)_intflash2.bin
+	echo "program $< 0x08100000 verify reset" | nc -c localhost 4444
+.PHONY: flash_intflash2_nc
 
 flash_extflash: $(BUILD_DIR)/$(TARGET)_extflash.bin
 	$(FLASH_MULTI) $(BUILD_DIR)/$(TARGET)_extflash.bin $(EXTFLASH_OFFSET)
@@ -651,6 +677,7 @@ flash_test: flash_intflash
 # Programs both the external and internal flash.
 flash: CheckTools CheckDirtySubmodules
 	$(V)$(MAKE) flash_intflash
+	$(V)$(MAKE) flash_intflash2
 	$(V)$(MAKE) flash_extflash
 	$(V)$(RESET_DBGMCU_CMD)
 .PHONY: flash
