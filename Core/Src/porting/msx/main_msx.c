@@ -46,7 +46,7 @@ static Mixer* mixer;
 
 static odroid_gamepad_state_t previous_joystick_state;
 int msx_button_a_key_index = 5; /* EC_SPACE index */
-int msx_button_b_key_index = 51; /* n key index */
+int msx_button_b_key_index = 52; /* n key index */
 
 static int selected_disk_index = 0;
 #define MSX_DISK_EXTENSION "cdk"
@@ -58,8 +58,8 @@ static char disk_name[PROP_MAXPATH];
 static char msx_name[6];
 static char key_name[10];
 static char frequency_name[5];
-static char a_button_name[6];
-static char b_button_name[6];
+static char a_button_name[10];
+static char b_button_name[10];
 
 /* Volume management */
 static int8_t currentVolume = -1;
@@ -441,6 +441,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_BKSPACE,"BS",true},
     {EC_TAB,"Tab",true},
     {EC_CAPS,"CapsLock",true},
+    {EC_CODE,"Code",true},
     {EC_SELECT,"Select",true},
     {EC_RETURN,"Return",true},
     {EC_DEL,"Delete",true},
