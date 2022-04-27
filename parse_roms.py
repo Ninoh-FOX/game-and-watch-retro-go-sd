@@ -1150,7 +1150,7 @@ class ROMParser:
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_GW\n" if rom_size > 0 else ""
 
-        save_size, rom_size, img_size = self.generate_system(
+        save_size, rom_size, img_size, current_id = self.generate_system(
             "Core/Src/retro-go/msx_roms.c",
             "MSX",
             "msx_system",
@@ -1158,20 +1158,24 @@ class ROMParser:
             ["rom","mx1","mx2","dsk"],
             "SAVE_MSX_",
             romdef["msx"],
+            None,
+            current_id,
             args.compress
         )
         total_save_size += save_size
         total_rom_size += rom_size
         total_img_size += img_size
         #bios
-        save_size, rom_size, img_size = self.generate_system(
+        save_size, rom_size, img_size, current_id = self.generate_system(
             "Core/Src/retro-go/msx_bios.c",
             "MSX_BIOS",
             "msx_bios",
             "msx_bios",
             ["rom","sha"],
             "SAVE_MSXB_",
-            romdef["msx_bios"]
+            romdef["msx_bios"],
+            None,
+            current_id
         )
         total_save_size += save_size
         total_rom_size += rom_size

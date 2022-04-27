@@ -84,11 +84,11 @@ static int double_width;
 
 #define FPS_NTSC  60
 #define FPS_PAL   50
-static int8_t msx_fps = FPS_NTSC;
+static int8_t msx_fps = FPS_PAL;
 
 #define AUDIO_MSX_SAMPLE_RATE 16000
 
-int selected_frequency_index = 0; // 60Hz by default
+int selected_frequency_index = 1; // 50Hz by default
 // Default is MSX2+
 int selected_msx_index = 2;
 static Machine msxMachine;
@@ -185,26 +185,26 @@ FrameBufferData* frameBufferGetActive()
 
 void   frameBufferSetLineCount(FrameBuffer* frameBuffer, int val)
 {
-   image_buffer_height = val;
+    image_buffer_height = val;
 }
 
 int    frameBufferGetLineCount(FrameBuffer* frameBuffer) {
-   return image_buffer_height;
+    return image_buffer_height;
 }
 
 int frameBufferGetMaxWidth(FrameBuffer* frameBuffer)
 {
-   return FB_MAX_LINE_WIDTH;
+    return FB_MAX_LINE_WIDTH;
 }
 
 int frameBufferGetDoubleWidth(FrameBuffer* frameBuffer, int y)
 {
-   return double_width;
+    return double_width;
 }
 
 void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 {
-   double_width = val;
+    double_width = val;
 }
 
 /** GuessROM() ***********************************************/
@@ -415,6 +415,8 @@ static bool update_msx_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t 
     if (event == ODROID_DIALOG_ENTER) {
         boardInfo.destroy();
         setPropertiesMsx(&msxMachine,selected_msx_index);
+        emulatorInit(properties, mixer);
+        emulatorRestartSound();
         emulatorStartMachine(NULL, &msxMachine);
     }
     return event == ODROID_DIALOG_ENTER;
@@ -881,7 +883,11 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
     properties = propCreate(1, EMU_LANG_ENGLISH, P_KBD_EUROPEAN, P_EMU_SYNCNONE, "");
     properties->sound.stereo = 0;
-    properties->emulation.vdpSyncMode = P_VDP_SYNCAUTO;
+    if (msx_fps == FPS_NTSC) {
+        properties->emulation.vdpSyncMode = P_VDP_SYNC60HZ;
+    } else {
+        properties->emulation.vdpSyncMode = P_VDP_SYNC50HZ;
+    }
     properties->emulation.enableFdcTiming = 0;
     properties->emulation.noSpriteLimits = 0;
     properties->sound.masterVolume = 0;
@@ -1013,6 +1019,8 @@ void archSoundCreate(Mixer* mixer, UInt32 sampleRate, UInt32 bufferSize, Int16 c
     // Init Sound
     memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
     memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
+
+    HAL_SAI_DMAStop(&hsai_BlockA1);
     HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, 2 * AUDIO_MSX_SAMPLE_RATE / msx_fps);
 
     mixerSetStereo(mixer, 0);
