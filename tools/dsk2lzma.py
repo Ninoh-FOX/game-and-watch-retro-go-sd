@@ -63,9 +63,11 @@ def analyzeRawDsk(dskFile,fileName):
     size = dskFile.tell()
     dskFile.seek(0, os.SEEK_SET)
 
-    if size == 2*80*9*512:
+    if size <= 80*9*512:
+        diskArray = createLZMA(1,80,9,512,dskFile.read(),compress)
+    elif size <= 2*80*9*512:
         diskArray = createLZMA(2,80,9,512,dskFile.read(),compress)
-    else :
+    else:
         diskArray = bytearray(0)
 
     return diskArray
