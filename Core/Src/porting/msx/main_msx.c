@@ -39,10 +39,16 @@
 #include "InputEvent.h"
 #include "R800.h"
 #include "save_msx.h"
+#include "gw_malloc.h"
 
-static Properties* properties;
 extern BoardInfo boardInfo;
+static Properties* properties;
+static Machine *msxMachine;
 static Mixer* mixer;
+// Default is MSX2+
+static int selected_msx_index = 2;
+// Default is 50Hz
+static int selected_frequency_index = 1;
 
 static odroid_gamepad_state_t previous_joystick_state;
 int msx_button_a_key_index = 5; /* EC_SPACE index */
@@ -92,12 +98,10 @@ static int8_t msx_fps = FPS_PAL;
 
 #define AUDIO_MSX_SAMPLE_RATE 16000
 
-int selected_frequency_index = 1; // 50Hz by default
-// Default is MSX2+
-int selected_msx_index = 2;
-static Machine msxMachine;
-
+static void createMsxMachine(int msxType);
 static void setPropertiesMsx(Machine *machine, int msxType);
+static void setupEmulatorRessources(int msxType);
+static void createProperties();
 
 static bool msx_system_LoadState(char *pathName)
 {
@@ -369,7 +373,6 @@ static bool update_frequency_cb(odroid_dialog_choice_t *option, odroid_dialog_ev
             case 0: // Force 60Hz;
                 msx_fps = 60;
                 common_emu_state.frame_time_10us = (uint16_t)(100000 / FPS_NTSC + 0.5f);
-                memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
                 memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
                 HAL_SAI_DMAStop(&hsai_BlockA1);
                 HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, (2 * AUDIO_MSX_SAMPLE_RATE / msx_fps));
@@ -380,7 +383,6 @@ static bool update_frequency_cb(odroid_dialog_choice_t *option, odroid_dialog_ev
             case 1: // Force 50Hz;
                 msx_fps = 50;
                 common_emu_state.frame_time_10us = (uint16_t)(100000 / FPS_PAL + 0.5f);
-                memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
                 memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
                 HAL_SAI_DMAStop(&hsai_BlockA1);
                 HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, (2 * AUDIO_MSX_SAMPLE_RATE / msx_fps));
@@ -417,11 +419,16 @@ static bool update_msx_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t 
     }
 
     if (event == ODROID_DIALOG_ENTER) {
+        int frequency;
         boardInfo.destroy();
-        setPropertiesMsx(&msxMachine,selected_msx_index);
-        emulatorInit(properties, mixer);
-        emulatorRestartSound();
-        emulatorStartMachine(NULL, &msxMachine);
+        boardDestroy();
+        ahb_init();
+        itc_init();
+        printf("Changing system %d\n",selected_msx_index);
+        setupEmulatorRessources(selected_msx_index);
+        printf("emulatorSetFrequency\n");
+        emulatorSetFrequency(msx_fps, &frequency);
+        boardSetFrequency(frequency);
     }
     return event == ODROID_DIALOG_ENTER;
 }
@@ -856,40 +863,26 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
     }
 }
 
-void app_main_msx(uint8_t load_state, uint8_t start_paused)
-{
-    int frequency;
-    int i;
-    odroid_dialog_choice_t options[10];
-    bool drawFrame;
+static void createMsxMachine(int msxType) {
+    msxMachine = ahb_calloc(1,sizeof(Machine));
+
+    msxMachine->cpu.freqZ80 = 3579545;
+    msxMachine->cpu.freqR800 = 7159090;
+    msxMachine->fdc.count = 1;
+    msxMachine->cmos.batteryBacked = 1;
+    msxMachine->audio.psgstereo = 0;
+    msxMachine->audio.psgpan[0] = 0;
+    msxMachine->audio.psgpan[1] = -1;
+    msxMachine->audio.psgpan[2] = 1;
+
+    msxMachine->cpu.hasR800 = 0;
+    msxMachine->fdc.enabled = 1;
+
+    setPropertiesMsx(msxMachine,msxType);
+}
+
+static void createProperties() {
     char game_name[PROP_MAXPATH];
-    size_t offset = 0;
-    uint8_t volume = 0;
-    dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
-
-    selected_disk_index = -1;
-
-    if (load_state) {
-        load_gnw_msx_data();
-    }
-    createOptionMenu(options);
-
-    memset(&msxMachine,0,sizeof(Machine));
-
-    if (start_paused) {
-        common_emu_state.pause_after_frames = 2;
-    } else {
-        common_emu_state.pause_after_frames = 0;
-    }
-    common_emu_state.frame_time_10us = (uint16_t)(100000 / msx_fps + 0.5f);
-
-    odroid_system_init(APPID_MSX, AUDIO_MSX_SAMPLE_RATE);
-    odroid_system_emu_init(&msx_system_LoadState, &msx_system_SaveState, NULL);
-
-    image_buffer_base_width    =  320;
-    image_buffer_current_width =  image_buffer_base_width;
-    image_buffer_height        =  240;
-
     properties = propCreate(1, EMU_LANG_ENGLISH, P_KBD_EUROPEAN, P_EMU_SYNCNONE, "");
     properties->sound.stereo = 0;
     if (msx_fps == FPS_NTSC) {
@@ -901,6 +894,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     properties->emulation.noSpriteLimits = 0;
     properties->sound.masterVolume = 0;
 
+    currentVolume = -1;
     // Default : enable SCC and disable MSX-MUSIC
     // This will be changed dynamically if the game use MSX-MUSIC
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].enable = 1;
@@ -908,22 +902,6 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].pan = 0;
-
-    mixer = mixerCreate();
-
-    emulatorInit(properties, mixer);
-
-    emulatorRestartSound();
-
-    for (i = 0; i < MIXER_CHANNEL_TYPE_COUNT; i++)
-    {
-        mixerSetChannelTypeVolume(mixer, i, properties->sound.mixerChannel[i].volume);
-        mixerSetChannelTypePan(mixer, i, properties->sound.mixerChannel[i].pan);
-        mixerEnableChannelType(mixer, i, properties->sound.mixerChannel[i].enable);
-    }
-
-    mixerSetMasterVolume(mixer, properties->sound.masterVolume);
-    mixerEnableMaster(mixer, properties->sound.masterEnable);
 
     sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
     if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
@@ -970,8 +948,29 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
                 msx_button_select_key = EC_F2;
                 break;
         }
+        printf("insertCartridge msx mapper %d\n",mapper);
         insertCartridge(properties, 0, game_name, NULL, mapper, -1);
     }
+}
+
+static void setupEmulatorRessources(int msxType)
+{
+    int i;
+    mixer = mixerCreate();
+    createProperties();
+    createMsxMachine(msxType);
+    emulatorInit(properties, mixer);
+    emulatorRestartSound();
+
+    for (i = 0; i < MIXER_CHANNEL_TYPE_COUNT; i++)
+    {
+        mixerSetChannelTypeVolume(mixer, i, properties->sound.mixerChannel[i].volume);
+        mixerSetChannelTypePan(mixer, i, properties->sound.mixerChannel[i].pan);
+        mixerEnableChannelType(mixer, i, properties->sound.mixerChannel[i].enable);
+    }
+
+    mixerSetMasterVolume(mixer, properties->sound.masterVolume);
+    mixerEnableMaster(mixer, properties->sound.masterEnable);
 
     boardSetFdcTimingEnable(properties->emulation.enableFdcTiming);
     boardSetY8950Enable(0/*properties->sound.chip.enableY8950*/);
@@ -979,29 +978,48 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     boardSetMoonsoundEnable(0/*properties->sound.chip.enableMoonsound*/);
     boardSetVideoAutodetect(1/*properties->video.detectActiveMonitor*/);
 
-    msxMachine.cpu.freqZ80 = 3579545;
-    msxMachine.cpu.freqR800 = 7159090;
-    msxMachine.fdc.count = 1;
-    msxMachine.cmos.batteryBacked = 1;
-    msxMachine.audio.psgstereo = 0;
-    msxMachine.audio.psgpan[0] = 0;
-    msxMachine.audio.psgpan[1] = -1;
-    msxMachine.audio.psgpan[2] = 1;
-
-    msxMachine.cpu.hasR800 = 0;
-    msxMachine.fdc.enabled = 1;
-
-    setPropertiesMsx(&msxMachine,selected_msx_index);
-
-    memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
-    memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
-
-    emulatorStartMachine(NULL, &msxMachine);
+    emulatorStartMachine(NULL, msxMachine);
     // Enable SCC and disable MSX-MUSIC as G&W is not powerfull enough to handle both at same time
     // If a game wants to play MSX-MUSIC sound, the mapper will detect it and it will disable SCC
     // and enbale MSX-MUSIC
     mixerEnableChannelType(boardGetMixer(), MIXER_CHANNEL_SCC, 1);
     mixerEnableChannelType(boardGetMixer(), MIXER_CHANNEL_MSXMUSIC, 0);
+}
+
+void app_main_msx(uint8_t load_state, uint8_t start_paused)
+{
+    int frequency;
+    odroid_dialog_choice_t options[10];
+    bool drawFrame;
+    size_t offset = 0;
+    uint8_t volume = 0;
+    dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
+
+    selected_disk_index = -1;
+
+    if (load_state) {
+        load_gnw_msx_data();
+    }
+    createOptionMenu(options);
+
+    if (start_paused) {
+        common_emu_state.pause_after_frames = 2;
+    } else {
+        common_emu_state.pause_after_frames = 0;
+    }
+    common_emu_state.frame_time_10us = (uint16_t)(100000 / msx_fps + 0.5f);
+
+    odroid_system_init(APPID_MSX, AUDIO_MSX_SAMPLE_RATE);
+    odroid_system_emu_init(&msx_system_LoadState, &msx_system_SaveState, NULL);
+
+    image_buffer_base_width    =  320;
+    image_buffer_current_width =  image_buffer_base_width;
+    image_buffer_height        =  240;
+
+    memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
+    memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
+
+    setupEmulatorRessources(selected_msx_index);
 
     if (load_state) {
         loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
@@ -1049,14 +1067,13 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
 
 void archSoundCreate(Mixer* mixer, UInt32 sampleRate, UInt32 bufferSize, Int16 channels) {
     // Init Sound
-    memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
     memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
 
     HAL_SAI_DMAStop(&hsai_BlockA1);
     HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, 2 * AUDIO_MSX_SAMPLE_RATE / msx_fps);
 
     mixerSetStereo(mixer, 0);
-    mixerSetSampleRate(mixer,AUDIO_MSX_SAMPLE_RATE);
+//    mixerSetSampleRate(mixer,AUDIO_MSX_SAMPLE_RATE);
 }
 
 void archSoundDestroy(void) {}

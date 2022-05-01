@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "gw_linker.h"
+#include "gw_malloc.h"
 #include "rg_emulators.h"
 #include "rg_i18n.h"
 #include "bitmaps.h"
@@ -476,6 +477,10 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // odroid_settings_StartAction_set(load_state ? ODROID_START_ACTION_RESUME : ODROID_START_ACTION_NEWGAME);
     // odroid_settings_RomFilePath_set(path);
     // odroid_settings_commit();
+
+    // Reinit AHB & ITC RAM memory allocation
+    ahb_init();
+    itc_init();
 
     // odroid_system_switch_app(((retro_emulator_t *)file->emulator)->partition);
     retro_emulator_t *emu = file_to_emu(file);
