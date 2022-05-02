@@ -117,6 +117,7 @@ static inline void screen_blit_nn(int32_t dest_width, int32_t dest_height)
 #ifdef PROFILING_ENABLED
     printf("Blit: %d us\n", (1000000 * PROFILING_DIFF(t_blit)) / t_blit_t0.SecondFraction);
 #endif
+    common_ingame_overlay();
 
     lcd_swap();
 }
@@ -180,6 +181,7 @@ static void screen_blit_bilinear(int32_t dest_width)
 #ifdef PROFILING_ENABLED
     printf("Blit: %d us\n", (1000000 * PROFILING_DIFF(t_blit)) / t_blit_t0.SecondFraction);
 #endif
+    common_ingame_overlay();
 
     lcd_swap();
 }
@@ -324,6 +326,7 @@ static inline void screen_blit_jth(void) {
 #ifdef PROFILING_ENABLED
     printf("Blit: %d us\n", (1000000 * PROFILING_DIFF(t_blit)) / t_blit_t0.SecondFraction);
 #endif
+    common_ingame_overlay();
 
     lcd_swap();
 }
@@ -540,11 +543,8 @@ int app_main_wsv(uint8_t load_state, uint8_t start_paused)
         supervision_exec((uint16 *)emulator_framebuffer);
         if (drawFrame) {
             blit();
-//            wsv_render_image();
-//            lcd_swap();
         }
         wsv_pcm_submit();
-        common_ingame_overlay();
         if(!common_emu_state.skip_frames){
             static dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
             for(uint8_t p = 0; p < common_emu_state.pause_frames + 1; p++) {
