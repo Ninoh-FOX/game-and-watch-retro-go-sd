@@ -20,6 +20,7 @@ retro_emulator_file_t *ACTIVE_FILE = NULL;
 #include "gw_roms.c"
 #include "msx_roms.c"
 #include "msx_bios.c"
+#include "wsv_roms.c"
 
 const rom_system_t *systems[] = {
     &nes_system,
@@ -32,6 +33,7 @@ const rom_system_t *systems[] = {
     &gw_system,
     &msx_system,
     &msx_bios,
+    &wsv_system,
 };
 
 const rom_manager_t rom_mgr = {

@@ -85,12 +85,14 @@ SAVE_SIZES = {
     "pce": 76 * 1024,
     "msx": 272 * 1024,
     "gw": 4 * 1024,
+    "wsv": 28 * 1024,
 }
 
 
 # TODO: Find a better way to find this before building
 MAX_COMPRESSED_NES_SIZE = 0x00081000
 MAX_COMPRESSED_PCE_SIZE = 0x00049000
+MAX_COMPRESSED_WSV_SIZE = 0x00080000
 
 """
 All ``compress_*`` functions must be decorated ``@COMPRESSIONS`` and have the
@@ -725,6 +727,14 @@ class ROMParser:
                 return
             compressed_data = compress(data)
             output_file.write_bytes(compressed_data)
+        elif "wsv_system" in variable_name:  # WSV
+            if rom.path.stat().st_size > MAX_COMPRESSED_WSV_SIZE:
+                print(
+                    f"INFO: {rom.name} is too large to compress, skipping compression!"
+                )
+                return
+            compressed_data = compress(data)
+            output_file.write_bytes(compressed_data)
         elif "gb_system" in variable_name:  # GB/GBC
             BANK_SIZE = 16384
             banks = [data[i : i + BANK_SIZE] for i in range(0, len(data), BANK_SIZE)]
@@ -1016,6 +1026,7 @@ class ROMParser:
         romdef.setdefault('gw', {})
         romdef.setdefault('msx', {})
         romdef.setdefault('msx_bios', {})
+        romdef.setdefault('wsv', {})
 
         save_size, rom_size, img_size, current_id = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
@@ -1181,6 +1192,22 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_MSX\n" if rom_size > 0 else ""
+
+        save_size, rom_size, img_size, current_id = self.generate_system(
+            "Core/Src/retro-go/wsv_roms.c",
+            "Watara Supervision",
+            "wsv_system",
+            "wsv",
+            ["bin","sv"],
+            "SAVE_WSV_",
+            romdef["wsv"],
+            "GG_PCE_",
+            current_id,
+            args.compress
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        build_config += "#define ENABLE_EMULATOR_WSV\n" if rom_size > 0 else ""
 
         total_size = total_save_size + total_rom_size + total_img_size
 

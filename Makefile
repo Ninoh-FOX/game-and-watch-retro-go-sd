@@ -231,6 +231,16 @@ LCD-Game-Emulator/src/gw_sys/gw_graphic.c \
 LCD-Game-Emulator/src/gw_sys/gw_system.c \
 Core/Src/porting/gw/main_gw.c
 
+WSV_C_SOURCES = \
+potator/common/controls.c \
+potator/common/gpu.c \
+potator/common/m6502/m6502.c \
+potator/common/memorymap.c \
+potator/common/timer.c \
+potator/common/watara.c \
+potator/common/wsv_sound.c \
+Core/Src/porting/wsv/main_wsv.c
+
 C_INCLUDES +=  \
 -ICore/Inc \
 -ICore/Src/porting/lib \
@@ -269,14 +279,15 @@ C_INCLUDES +=  \
 -I$(CORE_MSX)/Src/VideoRender \
 -I$(CORE_MSX)/Src/Z80 \
 -I$(CORE_MSX)/Src/Input \
--I$(CORE_MSX)/Src/Libretro
+-I$(CORE_MSX)/Src/Libretro \
+-Ipotator/common
 
 include Makefile.common
 
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
