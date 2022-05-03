@@ -332,8 +332,10 @@ AS_DEFS +=
 
 # C defines
 C_DEFS +=  \
+-D_GNU_SOURCE \
 -DINTFLASH_BANK=$(INTFLASH_BANK) \
 -DBIG_BANK=$(BIG_BANK) \
+-DEXTFLASH_SIZE=$(EXTFLASH_SIZE) \
 -DCODEPAGE=$(CODEPAGE) \
 -DUICODEPAGE=$(UICODEPAGE) \
 -DINCLUDED_ES_ES=$(ES_ES) \
@@ -677,7 +679,9 @@ flash_test: flash_intflash
 # Programs both the external and internal flash.
 flash: CheckTools CheckDirtySubmodules
 	$(V)$(MAKE) flash_intflash
+ifeq ($(INTFLASH_BANK), 1)
 	$(V)$(MAKE) flash_intflash2
+endif
 	$(V)$(MAKE) flash_extflash
 	$(V)$(RESET_DBGMCU_CMD)
 .PHONY: flash
