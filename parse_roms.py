@@ -1220,7 +1220,7 @@ class ROMParser:
             ["bin","sv"],
             "SAVE_WSV_",
             romdef["wsv"],
-            "GG_PCE_",
+            None,
             current_id,
             args.compress
         )
