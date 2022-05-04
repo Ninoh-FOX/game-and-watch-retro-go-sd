@@ -881,28 +881,8 @@ static void createMsxMachine(int msxType) {
     setPropertiesMsx(msxMachine,msxType);
 }
 
-static void createProperties() {
+static void insertGame() {
     char game_name[PROP_MAXPATH];
-    properties = propCreate(1, EMU_LANG_ENGLISH, P_KBD_EUROPEAN, P_EMU_SYNCNONE, "");
-    properties->sound.stereo = 0;
-    if (msx_fps == FPS_NTSC) {
-        properties->emulation.vdpSyncMode = P_VDP_SYNC60HZ;
-    } else {
-        properties->emulation.vdpSyncMode = P_VDP_SYNC50HZ;
-    }
-    properties->emulation.enableFdcTiming = 0;
-    properties->emulation.noSpriteLimits = 0;
-    properties->sound.masterVolume = 0;
-
-    currentVolume = -1;
-    // Default : enable SCC and disable MSX-MUSIC
-    // This will be changed dynamically if the game use MSX-MUSIC
-    properties->sound.mixerChannel[MIXER_CHANNEL_SCC].enable = 1;
-    properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].enable = 1;
-    properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
-    properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].pan = 0;
-    properties->sound.mixerChannel[MIXER_CHANNEL_SCC].pan = 0;
-
     sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
     if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
         if (selected_disk_index == -1) {
@@ -953,6 +933,28 @@ static void createProperties() {
     }
 }
 
+static void createProperties() {
+    properties = propCreate(1, EMU_LANG_ENGLISH, P_KBD_EUROPEAN, P_EMU_SYNCNONE, "");
+    properties->sound.stereo = 0;
+    if (msx_fps == FPS_NTSC) {
+        properties->emulation.vdpSyncMode = P_VDP_SYNC60HZ;
+    } else {
+        properties->emulation.vdpSyncMode = P_VDP_SYNC50HZ;
+    }
+    properties->emulation.enableFdcTiming = 0;
+    properties->emulation.noSpriteLimits = 0;
+    properties->sound.masterVolume = 0;
+
+    currentVolume = -1;
+    // Default : enable SCC and disable MSX-MUSIC
+    // This will be changed dynamically if the game use MSX-MUSIC
+    properties->sound.mixerChannel[MIXER_CHANNEL_SCC].enable = 1;
+    properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].enable = 1;
+    properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
+    properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].pan = 0;
+    properties->sound.mixerChannel[MIXER_CHANNEL_SCC].pan = 0;
+}
+
 static void setupEmulatorRessources(int msxType)
 {
     int i;
@@ -960,6 +962,7 @@ static void setupEmulatorRessources(int msxType)
     createProperties();
     createMsxMachine(msxType);
     emulatorInit(properties, mixer);
+    insertGame();
     emulatorRestartSound();
 
     for (i = 0; i < MIXER_CHANNEL_TYPE_COUNT; i++)

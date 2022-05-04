@@ -7,3 +7,6 @@
 [submodule "blueMSX-go"]
 	path = blueMSX-go
 	url = https://github.com/sylverb/blueMSX-go.git
+[submodule "potator"]
+	path = potator
+	url = https://github.com/sylverb/potator.git

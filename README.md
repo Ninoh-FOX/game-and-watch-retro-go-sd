@@ -77,6 +77,7 @@ Supported emulators:
 - Sega Master System (sms)
 - Sega SG-1000 (sg)
 - MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)
+- Watara Supervision (wsv)
 
 ## Table of Contents
 - [Emulator collection for Nintendo® Game & Watch™](#emulator-collection-for-nintendo-game--watch)

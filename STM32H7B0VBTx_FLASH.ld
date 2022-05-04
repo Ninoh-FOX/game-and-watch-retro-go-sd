@@ -362,6 +362,27 @@ SECTIONS
   }
   _OVERLAY_MSX_BSS_SIZE = SIZEOF(.overlay_msx_bss);
 
+  .overlay_wsv __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_wsv_start__ = .;
+    build/wsv/*.o (.data. data* .text .text* .rodata .rodata*)
+    . = ALIGN(4);
+    _OVERLAY_WSV_LOAD_END = .;
+  } AT> EXTFLASH
+  _OVERLAY_WSV_LOAD_START = LOADADDR(.overlay_wsv);
+  _OVERLAY_WSV_SIZE = SIZEOF(.overlay_wsv);
+  .overlay_wsv_bss _OVERLAY_WSV_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_WSV_BSS_START = .;
+    build/wsv/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/wsv/*.o (COMMON)
+    __ram_emu_wsv_end__ = .;
+    _OVERLAY_WSV_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_WSV_BSS_END) < __RAM_EMU_END__, "Error: WSV BSS overflow");
+  }
+  _OVERLAY_WSV_BSS_SIZE = SIZEOF(.overlay_wsv_bss);
+
   .overlay_gw __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_gw_start__ = .;

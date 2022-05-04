@@ -56,6 +56,10 @@ extern void * _OVERLAY_MSX_LOAD_START[];
 extern uint8_t _OVERLAY_MSX_SIZE;
 extern void * _OVERLAY_MSX_BSS_START[];
 extern uint8_t _OVERLAY_MSX_BSS_SIZE;
+extern void * _OVERLAY_WSV_LOAD_START[];
+extern uint8_t _OVERLAY_WSV_SIZE;
+extern void * _OVERLAY_WSV_BSS_START[];
+extern uint8_t _OVERLAY_WSV_BSS_SIZE;
 
 extern uint8_t *_NES_ROM_UNPACK_BUFFER;
 extern uint8_t _NES_ROM_UNPACK_BUFFER_SIZE;

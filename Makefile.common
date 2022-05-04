@@ -384,6 +384,7 @@ C_INCLUDES +=  \
 -ICore/Inc/porting/smsplusgx \
 -ICore/Inc/porting/pce \
 -ICore/Inc/porting/msx \
+-ICore/Inc/porting/wsv \
 -ICore/Inc/porting/gw \
 -ICore/Inc/retro-go \
 -IDrivers/STM32H7xx_HAL_Driver/Inc \
@@ -454,8 +455,9 @@ SMSPLUSGX_OBJECTS = $(addprefix $(BUILD_DIR)/smsplusgx/,$(notdir $(SMSPLUSGX_C_S
 PCE_OBJECTS = $(addprefix $(BUILD_DIR)/pce/,$(notdir $(PCE_C_SOURCES:.c=.o)))
 GW_OBJECTS = $(addprefix $(BUILD_DIR)/gw/,$(notdir $(GW_C_SOURCES:.c=.o)))
 MSX_OBJECTS = $(addprefix $(BUILD_DIR)/msx/,$(notdir $(MSX_C_SOURCES:.c=.o)))
+WSV_OBJECTS = $(addprefix $(BUILD_DIR)/wsv/,$(notdir $(WSV_C_SOURCES:.c=.o)))
 
-vpath %.c $(sort $(dir $(C_SOURCES) $(NES_C_SOURCES) $(GNUBOY_C_SOURCES) $(SMSPLUSGX_C_SOURCES) $(PCE_C_SOURCES) $(MSX_C_SOURCES) $(GW_C_SOURCES) $(SDK_C_SOURCES)))
+vpath %.c $(sort $(dir $(C_SOURCES) $(NES_C_SOURCES) $(GNUBOY_C_SOURCES) $(SMSPLUSGX_C_SOURCES) $(PCE_C_SOURCES) $(MSX_C_SOURCES) $(GW_C_SOURCES) $(WSV_C_SOURCES) $(SDK_C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(SDK_ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(SDK_ASM_SOURCES)))
@@ -484,7 +486,7 @@ $(BUILD_DIR)/core/rg_main.o: Core/Inc/githash.h
 # Run parse_roms.py to generate information about the roms
 $(BUILD_DIR)/rom_files.txt: FORCE | $(BUILD_DIR)
 	$(V)$(ECHO) [ BASH ] Checking for updated roms
-	$(V)./scripts/update_rom_files.sh build/rom_files.txt roms/gb roms/nes roms/sms roms/gg roms/col roms/pce roms/sg roms/msx roms/gw
+	$(V)./scripts/update_rom_files.sh build/rom_files.txt roms/gb roms/nes roms/sms roms/gg roms/col roms/pce roms/sg roms/msx roms/gw roms/wsv
 
 $(BUILD_DIR)/roms.a: $(BUILD_DIR)/rom_files.txt parse_roms.py
 	$(V)$(ECHO) [ PYTHON3 ] $(notdir $<)
@@ -552,9 +554,9 @@ $(BUILD_DIR)/%.o: %.s Makefile.common Makefile $(BUILD_DIR)/config.h | $(BUILD_D
 	$(V)$(ECHO) [ AS ] $(notdir $<)
 	$(V)$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
 	$(V)$(ECHO) [ LD ] $(notdir $@)
-	$(V)$(CC) $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(LDFLAGS) -o $@
+	$(V)$(CC) $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(LDFLAGS) -o $@
 	$(V)./scripts/extflash_size.sh $@
 
 $(BUILD_DIR)/core/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
@@ -585,6 +587,10 @@ $(BUILD_DIR)/gw/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/co
 	$(V)$(ECHO) [ CC gw ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/gw/$(notdir $(<:.c=.lst)) $< -o $@
 
+$(BUILD_DIR)/wsv/%.o: %.c Makefile Makefile.common $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+	$(V)$(ECHO) [ CC wsv ] $(notdir $<)
+	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/wsv/$(notdir $(<:.c=.lst)) $< -o $@
+
 $(BUILD_DIR):
 	$(V)mkdir $@
 	$(V)mkdir $@/core
@@ -594,6 +600,7 @@ $(BUILD_DIR):
 	$(V)mkdir $@/pce
 	$(V)mkdir $@/msx
 	$(V)mkdir $@/gw
+	$(V)mkdir $@/wsv
 
 #######################################
 # Flashing
