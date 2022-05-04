@@ -1165,22 +1165,41 @@ class ROMParser:
         total_save_size += save_size
         total_rom_size += rom_size
         total_img_size += img_size
-        #bios
-        save_size, rom_size, img_size, current_id = self.generate_system(
-            "Core/Src/retro-go/msx_bios.c",
-            "MSX_BIOS",
-            "msx_bios",
-            "msx_bios",
-            ["rom","sha"],
-            "SAVE_MSXB_",
-            romdef["msx_bios"],
-            None,
-            current_id
-        )
-        total_save_size += save_size
-        total_rom_size += rom_size
-        total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_MSX\n" if rom_size > 0 else ""
+
+        #bios (only parse if there are some MSX games)
+        if rom_size > 0:
+            save_size, rom_size, img_size, current_id = self.generate_system(
+                "Core/Src/retro-go/msx_bios.c",
+                "MSX_BIOS",
+                "msx_bios",
+                "msx_bios",
+                ["rom"],
+                "SAVE_MSXB_",
+                romdef["msx_bios"],
+                None,
+                current_id
+            )
+            total_save_size += save_size
+            total_rom_size += rom_size
+            total_img_size += img_size
+            if rom_size == 0:
+                print(
+                    "You need to add MSX bios files in roms/msx_bios folder\nDo a make clean after adding bios files"
+                )
+                exit(-1)
+        else:
+            save_size, rom_size, img_size, current_id = self.generate_system(
+                "Core/Src/retro-go/msx_bios.c",
+                "MSX_BIOS",
+                "msx_bios",
+                "msx_bios",
+                ["fakeToGenerateEmtyC"],
+                "SAVE_MSXB_",
+                romdef["msx_bios"],
+                None,
+                current_id
+            )
 
         total_size = total_save_size + total_rom_size + total_img_size
 
