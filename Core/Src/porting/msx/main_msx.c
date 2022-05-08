@@ -726,13 +726,15 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX.rom");
             i++;
 
-            machine->slotInfo[i].slot = 3;
-            machine->slotInfo[i].subslot = 1;
-            machine->slotInfo[i].startPage = 2;
-            machine->slotInfo[i].pageCount = 4;
-            machine->slotInfo[i].romType = ROM_TC8566AF;
-            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
-            i++;
+            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+                machine->slotInfo[i].slot = 3;
+                machine->slotInfo[i].subslot = 1;
+                machine->slotInfo[i].startPage = 2;
+                machine->slotInfo[i].pageCount = 4;
+                machine->slotInfo[i].romType = ROM_TC8566AF;
+                strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                i++;
+            }
 
             machine->slotInfoCount = i;
             break;
@@ -776,13 +778,15 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX2EXT.rom");
             i++;
 
-            machine->slotInfo[i].slot = 3;
-            machine->slotInfo[i].subslot = 1;
-            machine->slotInfo[i].startPage = 2;
-            machine->slotInfo[i].pageCount = 4;
-            machine->slotInfo[i].romType = ROM_TC8566AF;
-            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
-            i++;
+            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+                machine->slotInfo[i].slot = 3;
+                machine->slotInfo[i].subslot = 1;
+                machine->slotInfo[i].startPage = 2;
+                machine->slotInfo[i].pageCount = 4;
+                machine->slotInfo[i].romType = ROM_TC8566AF;
+                strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                i++;
+            }
 
             machine->slotInfo[i].slot = 3;
             machine->slotInfo[i].subslot = 0;
@@ -842,13 +846,15 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX2PEXT.rom");
             i++;
 
-            machine->slotInfo[i].slot = 3;
-            machine->slotInfo[i].subslot = 2;
-            machine->slotInfo[i].startPage = 2;
-            machine->slotInfo[i].pageCount = 4;
-            machine->slotInfo[i].romType = ROM_TC8566AF;
-            strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
-            i++;
+            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+                machine->slotInfo[i].slot = 3;
+                machine->slotInfo[i].subslot = 1;
+                machine->slotInfo[i].startPage = 2;
+                machine->slotInfo[i].pageCount = 4;
+                machine->slotInfo[i].romType = ROM_TC8566AF;
+                strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                i++;
+            }
 
             machine->slotInfo[i].slot = 0;
             machine->slotInfo[i].subslot = 2;
