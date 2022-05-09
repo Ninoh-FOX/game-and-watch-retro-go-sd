@@ -824,6 +824,7 @@ void gui_draw_coverflow_h(tab_t *tab) //------------
     int p1_top = cover_top + (cover_height - p_height1) / 4 * 3;
     //let's start draw effect;
     uint16_t *dst_img = lcd_get_active_buffer();
+    uint16_t max_y = ODROID_SCREEN_HEIGHT - HEADER_HEIGHT;
 
     //left1
     odroid_overlay_draw_rect(start_xpos + 1, cover_top + (cover_height - p_height1) / 4 * 3 - 2, p_width1 + 2, p_height1 + 4, 1, get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c, 40));
@@ -846,10 +847,13 @@ void gui_draw_coverflow_h(tab_t *tab) //------------
         dst_img[(p1_top + p_height1 + 2 + y) * ODROID_SCREEN_WIDTH + start_xpos + 1] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c, 20 * (100 - y * 6) / 100);
         dst_img[(p2_top + p_height2 + 2 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + 4] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c ,40 * (100 - y * 6) / 100);
 
-        dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 8] = get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c,50 * (100 - y * 6) / 100);
-        dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 9] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c,50 * (100 - y * 6) / 100);
-        dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + cover_width + 13] = get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c,50 * (100 - y * 6) / 100);
-        dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + cover_width + 12] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c,50 * (100 - y * 6) / 100);
+        if ((cover_top + cover_height + 3 + y) < max_y)
+        {
+            dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 8] = get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c, 50 * (100 - y * 6) / 100);
+            dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 9] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c, 50 * (100 - y * 6) / 100);
+            dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + cover_width + 13] = get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c, 50 * (100 - y * 6) / 100);
+            dst_img[(cover_top + cover_height + 3 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + cover_width + 12] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c, 50 * (100 - y * 6) / 100);
+        };
 
         dst_img[(p2_top + p_height2 + 2 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 * 2 + cover_width + 17] = get_darken_pixel_d(curr_colors->dis_c,curr_colors->bg_c, 40 * (100 - y * 6) / 100);
         dst_img[(p1_top + p_height1 + 2 + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 * 2 + p_width2 * 2 + cover_width + 20] = get_darken_pixel_d(curr_colors->dis_c, curr_colors->bg_c, 20 * (100 - y * 6) / 100);
@@ -877,9 +881,12 @@ void gui_draw_coverflow_h(tab_t *tab) //------------
             odroid_display_write_rect(start_xpos + p_width1 + p_width2 + 11, cover_top, cover_width, cover_height, cover_width, pCover_Buffer);
             //draw the cover shadow
             for (int y = 0; y <= 20; y++)
-                for (int x = 0; x < cover_width; x++)
-                    dst_img[(5 + cover_top + cover_height + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 11 + x] =
-                        get_darken_pixel_d(pCover_Buffer[(cover_height - y - 1) * cover_width + x], curr_colors->bg_c, 50 * (100 - y * 5) / 100);
+                if ((5 + cover_top + cover_height + y) < max_y)
+                {
+                    for (int x = 0; x < cover_width; x++)
+                        dst_img[(5 + cover_top + cover_height + y) * ODROID_SCREEN_WIDTH + start_xpos + p_width1 + p_width2 + 11 + x] =
+                            get_darken_pixel_d(pCover_Buffer[(cover_height - y - 1) * cover_width + x], curr_colors->bg_c, 50 * (100 - y * 5) / 100);
+                };
         }
     }
     int index = list->cursor + 1;
@@ -983,7 +990,10 @@ void gui_draw_coverflow_h(tab_t *tab) //------------
         size_t width = i18n_get_text_width(str_buffer, curr_romlang);
         if (width > (ODROID_SCREEN_WIDTH - 24))
             width = ODROID_SCREEN_WIDTH - 24;
-        i18n_draw_text_line((ODROID_SCREEN_WIDTH - width) / 2, STATUS_HEIGHT + LIST_HEIGHT - font_height - 8, width, str_buffer, curr_colors->sel_c, curr_colors->bg_c, 1, curr_romlang);
+        int cap_top = (max_y - (cover_top + cover_height + 4) - font_height) / 2;
+        cap_top = (cap_top < 0) ? 0 : ((cap_top > 8) ? 8 : cap_top);
+        cap_top = max_y - font_height - cap_top; 
+        i18n_draw_text_line((ODROID_SCREEN_WIDTH - width) / 2, cap_top, width, str_buffer, curr_colors->sel_c, curr_colors->bg_c, 1, curr_romlang);
     };
 };
 
