@@ -41,7 +41,7 @@ typedef struct app_config {
 } app_config_t;
 
 #if GAME_GENIE == 1
-#if MAX_GAME_GENIE_CODES != 32
+#if (MAX_GAME_GENIE_CODES > 32)
 #error MAX_GAME_GENIE_CODES is assumed to be 32. Changing this value requires adjusting the type of active_game_genie_codes below
 #endif
 typedef struct rom_config {

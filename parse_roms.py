@@ -23,7 +23,7 @@ const uint32_t {name}_count = {rom_count};
 """
 
 # Note: this value is not easily changed as it's assumed in some memory optimizations
-MAX_GAME_GENIE_CODES = 32
+MAX_GAME_GENIE_CODES = 16
 
 ROM_ENTRY_TEMPLATE = """\t{{
 #if GAME_GENIE == 1
@@ -1273,7 +1273,7 @@ class ROMParser:
             ["bin","sv"],
             "SAVE_WSV_",
             romdef["wsv"],
-            "GG_PCE_",
+            None,
             current_id,
             args.compress
         )
