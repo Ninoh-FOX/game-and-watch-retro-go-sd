@@ -58,6 +58,41 @@ def createLZMA(Sides,Tracks,Sectors,SecSize,diskBytesArray,compress=None):
 
     return lzmaDiskArray[0:lzmaDataWriteOffset]
 
+def createIdeLZMA(Sides,Tracks,Sectors,SecSize,diskBytesArray,compress=None):
+    # Allocate memory */
+    diskDataLength = int(Sides*Tracks*Sectors*SecSize)
+    lzmaDataLength = int(Sides*Tracks*Sectors*4+4) # 14 = header size
+    lzmaDiskArray = bytearray(lzmaDataLength+diskDataLength)
+
+    # LZMA magic number
+    lzmaDiskArray[0] = ord('l')
+    lzmaDiskArray[1] = ord('z')
+    lzmaDiskArray[2] = ord('m')
+    lzmaDiskArray[3] = ord('a')
+
+    offset = 4
+    sector = 0
+    sectorAddress = lzmaDataLength
+    lzmaDataWriteOffset = lzmaDataLength
+    diskDataReadOffset = 0
+    while sector<Sides*Tracks*Sectors :
+        # Create Sector entry
+        lzmaDiskArray[offset+0] = sectorAddress&0xFF
+        lzmaDiskArray[offset+1] = (sectorAddress>>8)&0xFF
+        lzmaDiskArray[offset+2] = (sectorAddress>>16)&0xFF
+        lzmaDiskArray[offset+3] = (sectorAddress>>24)&0xFF
+        # For all sectors on a track...
+        offset+=4
+        sectorData = compress_lzma(diskBytesArray[diskDataReadOffset:diskDataReadOffset+SecSize],compress)
+        # write track data at correct address
+        lzmaDiskArray[lzmaDataWriteOffset:lzmaDataWriteOffset+len(sectorData)] = sectorData
+        diskDataReadOffset+=SecSize
+        lzmaDataWriteOffset+=len(sectorData)
+        sectorAddress+=len(sectorData)
+        sector+=1
+
+    return lzmaDiskArray[0:lzmaDataWriteOffset]
+
 def analyzeRawDsk(dskFile,fileName):
     dskFile.seek(0, os.SEEK_END)
     size = dskFile.tell()
@@ -72,6 +107,14 @@ def analyzeRawDsk(dskFile,fileName):
 
     return diskArray
 
+def analyzeIdeDsk(dskFile,fileName):
+    dskFile.seek(0, os.SEEK_END)
+    size = dskFile.tell()
+    dskFile.seek(0, os.SEEK_SET)
+
+    diskArray = createIdeLZMA(1,1,int(size/512),512,dskFile.read(),compress)
+    return diskArray
+
 n = len(sys.argv)
 
 if n < 2: print("Usage :\ndsk2lzma.py file.dsk [compress]\n"); sys.exit(0)
@@ -79,6 +122,23 @@ if n == 2:
     compress=None
 else:
     compress=sys.argv[2]
+
+# Check file size
+if (os.path.getsize(sys.argv[1]) > 2*1024*1024) :
+    ideFile = open(sys.argv[1], 'rb')
+    lzmaArray = analyzeIdeDsk(ideFile,sys.argv[1])
+    print("IDE HDD image")
+    if len(lzmaArray) > 0 :
+        outFile = sys.argv[1]+".cdk"
+        print("File converted, saving "+outFile)
+        newfile=open(outFile,'wb')
+        newfile.write(lzmaArray)
+        newfile.close()
+        ideFile.close()
+        print("Done")
+        sys.exit(0)
+    ideFile.close()
+    sys.exit(-1)
 
 # Open file and find its size
 print("Opening "+sys.argv[1])

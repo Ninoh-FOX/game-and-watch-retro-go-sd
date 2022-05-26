@@ -934,7 +934,7 @@ class ROMParser:
             # Re-generate the cdk disks list
             cdk_disks = find_cdk_disks()
         #remove .dsk from list
-        roms_raw = [r for r in roms_raw if not r.ext == "dsk"]
+        roms_raw = [r for r in roms_raw if not contains_rom_by_name(r, cdk_disks)]
         #add .cdk disks to list
         roms_raw.extend(cdk_disks)
 

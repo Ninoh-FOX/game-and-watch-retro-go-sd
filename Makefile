@@ -177,10 +177,12 @@ $(CORE_MSX)/Src/Memory/romMapperKoei.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami4.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami4nf.c \
 $(CORE_MSX)/Src/Memory/romMapperKonami5.c \
+$(CORE_MSX)/Src/Memory/romMapperMsxDos2.c \
 $(CORE_MSX)/Src/Memory/romMapperMsxMusic.c \
 $(CORE_MSX)/Src/Memory/romMapperNormal.c \
 $(CORE_MSX)/Src/Memory/romMapperPlain.c \
 $(CORE_MSX)/Src/Memory/romMapperStandard.c \
+$(CORE_MSX)/Src/Memory/romMapperSunriseIDE.c \
 $(CORE_MSX)/Src/Memory/romMapperSCCplus.c \
 $(CORE_MSX)/Src/Memory/romMapperTC8566AF.c \
 $(CORE_MSX)/Src/Memory/SlotManager.c \
@@ -191,9 +193,11 @@ $(CORE_MSX)/Src/VideoChips/VideoManager.c \
 $(CORE_MSX)/Src/Z80/R800.c \
 $(CORE_MSX)/Src/Z80/R800SaveState.c \
 $(CORE_MSX)/Src/IoDevice/Disk.c \
+$(CORE_MSX)/Src/IoDevice/HarddiskIDE.c \
 $(CORE_MSX)/Src/IoDevice/I8255.c \
 $(CORE_MSX)/Src/IoDevice/MsxPPI.c \
 $(CORE_MSX)/Src/IoDevice/RTC.c \
+$(CORE_MSX)/Src/IoDevice/SunriseIDE.c \
 $(CORE_MSX)/Src/IoDevice/TC8566AF.c \
 $(CORE_MSX)/Src/SoundChips/AudioMixer.c \
 $(CORE_MSX)/Src/SoundChips/AY8910.c \

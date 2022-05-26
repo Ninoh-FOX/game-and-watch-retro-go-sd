@@ -52,6 +52,13 @@ enum{
    FREQUENCY_VDP_60HZ
 };
 
+enum{
+   MSX_GAME_ROM = 0,
+   MSX_GAME_DISK,
+   MSX_GAME_HDIDE
+};
+
+static int msx_game_type = MSX_GAME_ROM;
 // Default is MSX2+
 static int selected_msx_index = 2;
 // Default is Automatic
@@ -513,6 +520,8 @@ struct msx_key_info msx_keyboard[] = {
     {EC_Y,"y",true},
     {EC_Z,"z",true},
     {EC_COLON,":",true},
+    {EC_UNDSCRE,"_",true},
+    {EC_DIV,"/",true},
 };
 
 #define RELEASE_KEY_DELAY 5
@@ -653,7 +662,7 @@ static void msxInputUpdate(odroid_gamepad_state_t *joystick)
 
 static void createOptionMenu(odroid_dialog_choice_t *options) {
     int index=0;
-    if (strcmp(ROM_EXT,MSX_DISK_EXTENSION) == 0) {
+    if (msx_game_type == MSX_GAME_DISK) {
         options[index].id = 100;
         options[index].label = "Change Dsk";
         options[index].value = disk_name;
@@ -733,7 +742,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX.rom");
             i++;
 
-            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+            if (msx_game_type == MSX_GAME_DISK) {
                 machine->slotInfo[i].slot = 3;
                 machine->slotInfo[i].subslot = 1;
                 machine->slotInfo[i].startPage = 2;
@@ -785,13 +794,21 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX2EXT.rom");
             i++;
 
-            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+            if (msx_game_type == MSX_GAME_DISK) {
                 machine->slotInfo[i].slot = 3;
                 machine->slotInfo[i].subslot = 1;
                 machine->slotInfo[i].startPage = 2;
                 machine->slotInfo[i].pageCount = 4;
                 machine->slotInfo[i].romType = ROM_TC8566AF;
                 strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                i++;
+            } else if (msx_game_type == MSX_GAME_HDIDE) {
+                machine->slotInfo[i].slot = 1;
+                machine->slotInfo[i].subslot = 0;
+                machine->slotInfo[i].startPage = 0;
+                machine->slotInfo[i].pageCount = 16;
+                machine->slotInfo[i].romType = ROM_MSXDOS2;
+                strcpy(machine->slotInfo[i].name, "MSXDOS23.ROM");
                 i++;
             }
 
@@ -853,13 +870,21 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             strcpy(machine->slotInfo[i].name, "MSX2PEXT.rom");
             i++;
 
-            if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+            if (msx_game_type == MSX_GAME_DISK) {
                 machine->slotInfo[i].slot = 3;
                 machine->slotInfo[i].subslot = 1;
                 machine->slotInfo[i].startPage = 2;
                 machine->slotInfo[i].pageCount = 4;
                 machine->slotInfo[i].romType = ROM_TC8566AF;
                 strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                i++;
+            } else if (msx_game_type == MSX_GAME_HDIDE) {
+                machine->slotInfo[i].slot = 1;
+                machine->slotInfo[i].subslot = 0;
+                machine->slotInfo[i].startPage = 0;
+                machine->slotInfo[i].pageCount = 16;
+                machine->slotInfo[i].romType = ROM_MSXDOS2;
+                strcpy(machine->slotInfo[i].name, "MSXDOS23.ROM");
                 i++;
             }
 
@@ -891,58 +916,86 @@ static void createMsxMachine(int msxType) {
     msxMachine->cpu.hasR800 = 0;
     msxMachine->fdc.enabled = 1;
 
+    // We need to know which kind of media we will load to
+    // load correct configuration
+    if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
+        // Find if file is disk image or IDE HDD image
+        const uint8_t *diskData = ACTIVE_FILE->address;
+        uint32_t payload_offset = diskData[4]+(diskData[5]<<8)+(diskData[6]<<16)+(diskData[7]<<24);
+        if (payload_offset <= 0x288) {
+            msx_game_type = MSX_GAME_DISK;
+        } else {
+            msx_game_type = MSX_GAME_HDIDE;
+        }
+    } else {
+        msx_game_type = MSX_GAME_ROM;
+    }
     setPropertiesMsx(msxMachine,msxType);
 }
 
 static void insertGame() {
     char game_name[PROP_MAXPATH];
     sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
-    if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
-        if (selected_disk_index == -1) {
-            const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
-            selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
-
-            insertDiskette(properties, 0, game_name, NULL, -1);
-        } else {
-            retro_emulator_file_t *disk_file = NULL;
-            const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
-            disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
-            sprintf(game_name,"%s.%s",disk_file->name,disk_file->ext);
-            insertDiskette(properties, 0, game_name, NULL, -1);
-        }
-        // We load SCC-I cartridge for disk games requiring it
-        insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
-        // If game name contains konami, we setup a Konami key mapping
-        if (strcasestr(ACTIVE_FILE->name,"konami")) {
-            msx_button_a_key_index = 5; /* EC_SPACE index */
-            msx_button_b_key_index = 52; /* n key index */
-            msx_button_game_key = EC_F4;
-            msx_button_time_key = EC_F3;
-            msx_button_start_key = EC_F1;
-            msx_button_select_key = EC_F2;
-        }
-    } else {
-        printf("Rom Mapper %d\n",ACTIVE_FILE->mapper);
-        uint16_t mapper = ACTIVE_FILE->mapper;
-        if (mapper == ROM_UNKNOWN) {
-            mapper = GuessROM(ACTIVE_FILE->address,ACTIVE_FILE->size);
-        }
-        // If game is using konami mapper, we setup a Konami key mapping
-        switch (mapper)
+    switch (msx_game_type) {
+        case MSX_GAME_ROM:
         {
-            case ROM_KONAMI5:
-            case ROM_KONAMI4:
-            case ROM_KONAMI4NF:
+            printf("Rom Mapper %d\n",ACTIVE_FILE->mapper);
+            uint16_t mapper = ACTIVE_FILE->mapper;
+            if (mapper == ROM_UNKNOWN) {
+                mapper = GuessROM(ACTIVE_FILE->address,ACTIVE_FILE->size);
+            }
+            // If game is using konami mapper, we setup a Konami key mapping
+            switch (mapper)
+            {
+                case ROM_KONAMI5:
+                case ROM_KONAMI4:
+                case ROM_KONAMI4NF:
+                    msx_button_a_key_index = 5; /* EC_SPACE index */
+                    msx_button_b_key_index = 52; /* n key index */
+                    msx_button_game_key = EC_F4;
+                    msx_button_time_key = EC_F3;
+                    msx_button_start_key = EC_F1;
+                    msx_button_select_key = EC_F2;
+                    break;
+            }
+            printf("insertCartridge msx mapper %d\n",mapper);
+            insertCartridge(properties, 0, game_name, NULL, mapper, -1);
+            break;
+        }
+        case MSX_GAME_DISK:
+        {
+            if (selected_disk_index == -1) {
+                const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+                selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
+
+                insertDiskette(properties, 0, game_name, NULL, -1);
+            } else {
+                retro_emulator_file_t *disk_file = NULL;
+                const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
+                disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
+                sprintf(game_name,"%s.%s",disk_file->name,disk_file->ext);
+                insertDiskette(properties, 0, game_name, NULL, -1);
+            }
+            // We load SCC-I cartridge for disk games requiring it
+            insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
+            // If game name contains konami, we setup a Konami key mapping
+            if (strcasestr(ACTIVE_FILE->name,"konami")) {
                 msx_button_a_key_index = 5; /* EC_SPACE index */
                 msx_button_b_key_index = 52; /* n key index */
                 msx_button_game_key = EC_F4;
                 msx_button_time_key = EC_F3;
                 msx_button_start_key = EC_F1;
                 msx_button_select_key = EC_F2;
-                break;
+            }
+            break;
         }
-        printf("insertCartridge msx mapper %d\n",mapper);
-        insertCartridge(properties, 0, game_name, NULL, mapper, -1);
+        case MSX_GAME_HDIDE:
+        {
+            insertCartridge(properties, 0, CARTNAME_SUNRISEIDE, NULL, ROM_SUNRISEIDE, -1);
+            insertCartridge(properties, 1, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
+            insertDiskette(properties, 1, game_name, NULL, -1);
+            break;
+        }
     }
 }
 
@@ -1015,7 +1068,6 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     if (load_state) {
         load_gnw_msx_data();
     }
-    createOptionMenu(options);
 
     if (start_paused) {
         common_emu_state.pause_after_frames = 2;
@@ -1036,6 +1088,8 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     memset(audiobuffer_dma, 0, 2*(AUDIO_MSX_SAMPLE_RATE/FPS_PAL)*sizeof(Int16));
 
     setupEmulatorRessources(selected_msx_index);
+
+    createOptionMenu(options);
 
     if (load_state) {
         loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
