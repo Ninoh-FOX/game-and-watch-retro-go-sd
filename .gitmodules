@@ -10,3 +10,6 @@
 [submodule "potator"]
 	path = potator
 	url = https://github.com/sylverb/potator.git
+[submodule "gwenesis"]
+	path = gwenesis
+	url = https://github.com/bzhxx/gwenesis

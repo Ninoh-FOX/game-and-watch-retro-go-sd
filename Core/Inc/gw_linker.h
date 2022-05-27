@@ -4,6 +4,8 @@
 
 extern uint8_t __SAVEFLASH_START__;
 extern uint8_t __SAVEFLASH_END__;
+extern uint8_t __CACHEFLASH_START__;
+extern uint8_t __CACHEFLASH_END__;
 extern uint8_t __EXTFLASH_START__;
 extern uint8_t __EXTFLASH_BASE__;
 extern uint32_t __INTFLASH__;  // From linker, usually value 0x08000000 for bank 1, or 0x08100000 for bank 2
@@ -26,6 +28,8 @@ extern uint32_t __itcram_hot_start__;
 extern uint32_t __itcram_hot_end__;
 extern uint8_t __configflash_start__;
 extern uint8_t __configflash_end__;
+extern uint8_t __cacheflash_start__;
+extern uint8_t __cacheflash_end__;
 extern uint8_t __fbflash_start__;
 extern uint8_t __fbflash_end__;
 
@@ -60,6 +64,10 @@ extern void * _OVERLAY_WSV_LOAD_START[];
 extern uint8_t _OVERLAY_WSV_SIZE;
 extern void * _OVERLAY_WSV_BSS_START[];
 extern uint8_t _OVERLAY_WSV_BSS_SIZE;
+extern void * _OVERLAY_MD_LOAD_START[];
+extern uint8_t _OVERLAY_MD_SIZE;
+extern void * _OVERLAY_MD_BSS_START[];
+extern uint8_t _OVERLAY_MD_BSS_SIZE;
 
 extern uint8_t *_NES_ROM_UNPACK_BUFFER;
 extern uint8_t _NES_ROM_UNPACK_BUFFER_SIZE;

@@ -74,6 +74,7 @@ Supported emulators:
 - Nintendo Entertainment System (nes)
 - PC Engine / TurboGrafx-16 (pce)
 - Sega Game Gear (gg)
+- Sega Genesis / Megadrive (md)
 - Sega Master System (sms)
 - Sega SG-1000 (sg)
 - MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)

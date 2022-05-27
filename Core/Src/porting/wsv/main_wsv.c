@@ -186,8 +186,6 @@ static void screen_blit_bilinear(int32_t dest_width)
     lcd_swap();
 }
 
-__attribute__((optimize("unroll-loops")))
-__attribute__((section (".itcram_hot_text")))
 static inline void screen_blit_v3to5(void) {
     static uint32_t lastFPSTime = 0;
     static uint32_t frames = 0;
@@ -250,8 +248,6 @@ static inline void screen_blit_v3to5(void) {
 }
 
 
-__attribute__((optimize("unroll-loops")))
-__attribute__((section (".itcram_hot_text")))
 static inline void screen_blit_jth(void) {
     static uint32_t lastFPSTime = 0;
     static uint32_t frames = 0;

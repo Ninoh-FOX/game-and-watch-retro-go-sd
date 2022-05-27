@@ -20,12 +20,14 @@
 #include "common.h"
 #include "rom_manager.h"
 #include "appid.h"
+#include "gw_malloc.h"
 
 #define NVS_KEY_SAVE_SRAM "sram"
 
 // Use 60Hz for GB
 #define AUDIO_BUFFER_LENGTH_GB (AUDIO_SAMPLE_RATE / 60)
 #define AUDIO_BUFFER_LENGTH_DMA_GB ((2 * AUDIO_SAMPLE_RATE) / 60)
+static int16_t *audiobuffer_emulator;
 
 static odroid_video_frame_t update1 = {GB_WIDTH, GB_HEIGHT, GB_WIDTH * 2, 2, 0xFF, -1, NULL, NULL, 0, {}};
 static odroid_video_frame_t update2 = {GB_WIDTH, GB_HEIGHT, GB_WIDTH * 2, 2, 0xFF, -1, NULL, NULL, 0, {}};
@@ -164,8 +166,6 @@ static void screen_blit_bilinear(int32_t dest_width)
     lcd_swap();
 }
 
-__attribute__((optimize("unroll-loops")))
-__attribute__((section (".itcram_hot_text")))
 static inline void screen_blit_v3to5(void) {
     static uint32_t lastFPSTime = 0;
     static uint32_t frames = 0;
@@ -228,8 +228,6 @@ static inline void screen_blit_v3to5(void) {
 }
 
 
-__attribute__((optimize("unroll-loops")))
-__attribute__((section (".itcram_hot_text")))
 static inline void screen_blit_jth(void) {
     static uint32_t lastFPSTime = 0;
     static uint32_t frames = 0;
@@ -506,7 +504,6 @@ void pcm_submit() {
     }
 }
 
-
 rg_app_desc_t * init(uint8_t load_state)
 {
     odroid_system_init(APPID_GB, AUDIO_SAMPLE_RATE);
@@ -541,12 +538,12 @@ rg_app_desc_t * init(uint8_t load_state)
     fb.blit_func = &blit;
 
     // Audio
-    memset(audiobuffer_emulator, 0, sizeof(audiobuffer_emulator));
+    audiobuffer_emulator = ahb_calloc(sizeof(uint16_t),AUDIO_BUFFER_LENGTH_GB);
     memset(&pcm, 0, sizeof(pcm));
     pcm.hz = AUDIO_SAMPLE_RATE;
     pcm.stereo = 0;
     pcm.len = AUDIO_BUFFER_LENGTH_GB;
-    pcm.buf = (n16*)&audiobuffer_emulator;
+    pcm.buf = (n16*)audiobuffer_emulator;
     pcm.pos = 0;
 
     memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
