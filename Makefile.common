@@ -685,7 +685,7 @@ endif
 ifeq ($(FLASH_BANK2),0)
 	$(V)$(ECHO) [ BANK2 ] Do not flash
 else
-	$(OPENOCD) -f scripts/interface_$(ADAPTER).cfg -c "program $< 0x08100000 verify reset exit"
+#	$(OPENOCD) -f scripts/interface_$(ADAPTER).cfg -c "program $< 0x08100000 verify reset exit"
 endif
 .PHONY: flash_intflash2
 
