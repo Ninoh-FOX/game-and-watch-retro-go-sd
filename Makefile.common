@@ -552,48 +552,48 @@ CheckTools:
 endif
 .PHONY: CheckTools
 
-$(BUILD_DIR)/%.o: %.s $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.s Makefile.common Makefile $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ AS ] $(notdir $<)
 	$(V)$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(LDSCRIPT)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
 	$(V)$(ECHO) [ LD ] $(notdir $@)
 	$(V)$(CC) $(OBJECTS) $(NES_OBJECTS) $(GNUBOY_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(LDFLAGS) -o $@
 	$(V)./scripts/extflash_size.sh $@
 
-$(BUILD_DIR)/core/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/core/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC core ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/core/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/nes/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/nes/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC nes ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(NES_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/nes/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/gnuboy/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/gnuboy/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC gb ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(GNUBOY_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/gnuboy/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/smsplusgx/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/smsplusgx/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC sms ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(SMSPLUSGX_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/smsplusgx/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/pce/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/pce/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC pce ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(PCE_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pce/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/msx/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/msx/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC msx ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(MSX_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/msx/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/gw/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/gw/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC gw ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(GW_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/gw/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/wsv/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/wsv/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC wsv ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(WSV_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/wsv/$(notdir $(<:.c=.lst)) $< -o $@
 
-$(BUILD_DIR)/md/%.o: %.c $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/md/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(BUILD_DIR)/config.h | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC md ] $(notdir $<)
 	$(V)$(CC) -c $(CFLAGS) $(MD_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/md/$(notdir $(<:.c=.lst)) $< -o $@
 
@@ -674,19 +674,7 @@ flash_intflash_nc: $(BUILD_DIR)/$(TARGET)_intflash.bin
 .PHONY: flash_intflash_nc
 
 flash_intflash2: $(BUILD_DIR)/$(TARGET)_intflash2.bin
-	$(eval BANK2_FILE_SIZE=$(shell du -k $(BUILD_DIR)/$(TARGET)_intflash2.bin | cut -f1))
-ifeq ($(BANK2_FILE_SIZE),0)
-	$(V)$(ECHO) [ _intflash2 ] empty file  -$(BANK2_FILE_SIZE)- -$(FLASH_BANK2)-
-	FLASH_BANK2=0
-else
-	$(V)$(ECHO) [ _intflash2 ] not empty file -$(BANK2_FILE_SIZE)- -$(FLASH_BANK2)-
-	FLASH_BANK2=1
-endif
-ifeq ($(FLASH_BANK2),0)
-	$(V)$(ECHO) [ BANK2 ] Do not flash
-else
 #	$(OPENOCD) -f scripts/interface_$(ADAPTER).cfg -c "program $< 0x08100000 verify reset exit"
-endif
 .PHONY: flash_intflash2
 
 # Flashes using an existing openocd instance
