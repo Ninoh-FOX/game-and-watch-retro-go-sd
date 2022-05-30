@@ -30,7 +30,7 @@ void *ahb_malloc(size_t size) {
   void *pointer = (void *)current_ahb_pointer;
 //  printf("hab_malloc 0x%lx size %d\n",current_ahb_pointer,size);
   current_ahb_pointer += size;
-  assert((current_ahb_pointer) < ((((uint32_t)&__ahbram_start__) + ((uint32_t)(&__AHBRAM_LENGTH__)))));
+  assert((current_ahb_pointer) <= ((((uint32_t)&__ahbram_start__) + ((uint32_t)(&__AHBRAM_LENGTH__)))));
   return pointer;
 }
 
@@ -50,7 +50,7 @@ void *itc_malloc(size_t size) {
   void *pointer = (void *)current_itc_pointer;
 //  printf("itc_malloc 0x%lx size %d\n",current_itc_pointer,size);
   current_itc_pointer += size;
-  assert((current_itc_pointer) < ((((uint32_t)&__itcram_start__) + ((uint32_t)(&__ITCMRAM_LENGTH__)) - ((uint32_t)(&__NULLPTR_LENGTH__)))));
+  assert((current_itc_pointer) <= ((((uint32_t)&__itcram_start__) + ((uint32_t)(&__ITCMRAM_LENGTH__)) - ((uint32_t)(&__NULLPTR_LENGTH__)))));
   return pointer;
 }
 
