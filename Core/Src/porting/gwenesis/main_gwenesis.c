@@ -176,8 +176,6 @@ unsigned int gwenesis_refresh_rate = GWENESIS_REFRESH_RATE_NTSC;
 unsigned int gwenesis_lcd_current_line;
 #define GWENESIS_AUDIOSYNC_START_LCD_LINE 248
 
-unsigned int nb_audio_samples;
-
 uint64_t system_clock;
 uint64_t m68k_clock;
 
@@ -186,11 +184,24 @@ static odroid_gamepad_state_t joystick;
 
 //static unsigned char state_save_buffer[sizeof(gwenesis_state_t)];
 
+void gwenesis_save_local_data(void) {
+  SaveState *state = saveGwenesisStateOpenForWrite("gwenesis");
+  saveGwenesisStateSetBuffer(state, "system_clock", &system_clock, sizeof(uint64_t));
+  saveGwenesisStateSetBuffer(state, "m68k_clock", &m68k_clock, sizeof(uint64_t));
+  saveGwenesisStateSet(state, "gwenesis_lcd_current_line", gwenesis_lcd_current_line);
+}
+
+void gwenesis_load_local_data(void) {
+  SaveState *state = saveGwenesisStateOpenForWrite("gwenesis");
+  saveGwenesisStateGetBuffer(state, "system_clock", &system_clock, sizeof(uint64_t));
+  saveGwenesisStateGetBuffer(state, "m68k_clock", &m68k_clock, sizeof(uint64_t));
+  gwenesis_lcd_current_line = saveGwenesisStateGet(state, "gwenesis_lcd_current_line");
+}
+
 static bool gwenesis_system_SaveState(char *pathName)
 {
-  int size = 0;
   printf("Saving state...\n");
-  size = saveGwenesisState((unsigned char *)ACTIVE_FILE->save_address, ACTIVE_FILE->save_size);
+  saveGwenesisState((unsigned char *)ACTIVE_FILE->save_address, ACTIVE_FILE->save_size);
   return true;
 }
 
