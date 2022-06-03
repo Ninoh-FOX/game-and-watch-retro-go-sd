@@ -181,6 +181,10 @@ uint64_t m68k_clock;
 
 /* keys inpus (hw & sw) */
 static odroid_gamepad_state_t joystick;
+const char ODROID_INPUT_DEF_C = ODROID_INPUT_X;
+static int PAD_A_def = ODROID_INPUT_A;
+static int PAD_B_def = ODROID_INPUT_B;
+static int PAD_C_def = ODROID_INPUT_DEF_C;
 
 //static unsigned char state_save_buffer[sizeof(gwenesis_state_t)];
 
@@ -189,6 +193,10 @@ void gwenesis_save_local_data(void) {
   saveGwenesisStateSetBuffer(state, "system_clock", &system_clock, sizeof(uint64_t));
   saveGwenesisStateSetBuffer(state, "m68k_clock", &m68k_clock, sizeof(uint64_t));
   saveGwenesisStateSet(state, "gwenesis_lcd_current_line", gwenesis_lcd_current_line);
+  saveGwenesisStateSet(state, "gwenesis_refresh_rate", gwenesis_refresh_rate);
+  saveGwenesisStateSet(state, "PAD_A_def", PAD_A_def);
+  saveGwenesisStateSet(state, "PAD_B_def", PAD_B_def);
+  saveGwenesisStateSet(state, "PAD_C_def", PAD_C_def);
 }
 
 void gwenesis_load_local_data(void) {
@@ -196,6 +204,10 @@ void gwenesis_load_local_data(void) {
   saveGwenesisStateGetBuffer(state, "system_clock", &system_clock, sizeof(uint64_t));
   saveGwenesisStateGetBuffer(state, "m68k_clock", &m68k_clock, sizeof(uint64_t));
   gwenesis_lcd_current_line = saveGwenesisStateGet(state, "gwenesis_lcd_current_line");
+  gwenesis_refresh_rate = saveGwenesisStateGet(state, "gwenesis_refresh_rate");
+  PAD_A_def = saveGwenesisStateGet(state, "PAD_A_def");
+  PAD_B_def = saveGwenesisStateGet(state, "PAD_A_def");
+  PAD_C_def = saveGwenesisStateGet(state, "PAD_A_def");
 }
 
 static bool gwenesis_system_SaveState(char *pathName)
@@ -219,11 +231,7 @@ extern unsigned short button_state[3];
 
 #if GNW_TARGET_ZELDA != 0
 
-const char ODROID_INPUT_DEF_C = ODROID_INPUT_X;
 static int ABCkeys_value = 5;
-static int PAD_A_def = ODROID_INPUT_A;
-static int PAD_B_def = ODROID_INPUT_B;
-static int PAD_C_def = ODROID_INPUT_DEF_C;
 static const char ABCkeys_combo_str[NB_OF_COMBO][10] = {"B-A-START", "A-B-START","B-START-A","A-START-B","START-A-B","START-B-A"};
 static char ABCkeys_str[10]="START-B-A";
 
