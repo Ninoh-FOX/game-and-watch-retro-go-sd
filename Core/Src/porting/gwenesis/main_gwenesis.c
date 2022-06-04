@@ -181,10 +181,17 @@ uint64_t m68k_clock;
 
 /* keys inpus (hw & sw) */
 static odroid_gamepad_state_t joystick;
+#if GNW_TARGET_ZELDA != 0
 const char ODROID_INPUT_DEF_C = ODROID_INPUT_X;
 static int PAD_A_def = ODROID_INPUT_A;
 static int PAD_B_def = ODROID_INPUT_B;
 static int PAD_C_def = ODROID_INPUT_DEF_C;
+#else
+const char ODROID_INPUT_DEF_C = ODROID_INPUT_VOLUME;
+static int PAD_A_def = ODROID_INPUT_A;
+static int PAD_B_def = ODROID_INPUT_B;
+static int PAD_C_def = ODROID_INPUT_DEF_C;
+#endif
 
 //static unsigned char state_save_buffer[sizeof(gwenesis_state_t)];
 
@@ -229,23 +236,9 @@ extern unsigned short button_state[3];
 
 #define NB_OF_COMBO 6
 
-#if GNW_TARGET_ZELDA != 0
-
 static int ABCkeys_value = 5;
 static const char ABCkeys_combo_str[NB_OF_COMBO][10] = {"B-A-START", "A-B-START","B-START-A","A-START-B","START-A-B","START-B-A"};
 static char ABCkeys_str[10]="START-B-A";
-
-#else
-
-const char ODROID_INPUT_DEF_C = ODROID_INPUT_VOLUME;
-static int ABCkeys_value = 5;
-static int PAD_A_def = ODROID_INPUT_A;
-static int PAD_B_def = ODROID_INPUT_B;
-static int PAD_C_def = ODROID_INPUT_DEF_C;
-static const char ABCkeys_combo_str[NB_OF_COMBO][10] = { "B-A-PAUSE", "A-B-PAUSE","B-PAUSE-A","A-PAUSE-B","PAUSE-A-B","PAUSE-B-A"};
-static char ABCkeys_str[10]="PAUSE-B-A";
-
-#endif
 
 /* callback used by the meluator to capture keys */
 void gwenesis_io_get_buttons()
