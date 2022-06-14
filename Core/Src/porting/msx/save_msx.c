@@ -178,7 +178,7 @@ UInt32 loadMsxState(UInt8 *srcBuffer) {
         // Copy sections header in structure
         memcpy(msxSaveState.sections,msxSaveState.buffer+8,sizeof(msxSaveState.sections[0])*MAX_SECTIONS);
         boardInfo.loadState();
-        load_gnw_msx_data();
+        load_gnw_msx_data(srcBuffer);
     }
     return msxSaveState.offset;
 }

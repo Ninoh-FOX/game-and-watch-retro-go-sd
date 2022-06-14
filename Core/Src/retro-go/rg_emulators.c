@@ -435,7 +435,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 
     if (sel == 0 || sel == 1) {
         gui_save_current_tab();
-        emulator_start(file, sel == 0, false);
+        emulator_start(file, sel == 0, false, 0);
     }
     else if (sel == 2) {
         if (odroid_overlay_confirm(curr_lang->s_Confiem_del_save, false) == 1) {
@@ -463,7 +463,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     return force_redraw;
 }
 
-void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_paused)
+void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_paused, uint8_t save_slot)
 {
     printf("Retro-Go: Starting game: %s\n", file->name);
     rom_manager_set_active_file(file);
@@ -533,7 +533,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       memcpy(&__RAM_EMU_START__, &_OVERLAY_MSX_LOAD_START, (size_t)&_OVERLAY_MSX_SIZE);
       memset(&_OVERLAY_MSX_BSS_START, 0x0, (size_t)&_OVERLAY_MSX_BSS_SIZE);
       SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_MSX_SIZE);
-      app_main_msx(load_state,start_paused);
+      app_main_msx(load_state,start_paused,save_slot);
 #endif
     } else if(strcmp(emu->system_name, "Watara Supervision") == 0) {
 #ifdef ENABLE_EMULATOR_WSV

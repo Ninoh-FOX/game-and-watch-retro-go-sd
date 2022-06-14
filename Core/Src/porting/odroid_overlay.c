@@ -692,7 +692,12 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
             else if (joystick.values[ODROID_INPUT_POWER])
             {
                 sel = -1;
+#if OFF_SAVESTATE == 1
+                // Slot 1 is a common slot used only for power off/power on
+                odroid_system_emu_save_state(1);
+#else
                 odroid_system_emu_save_state(0);
+#endif
                 odroid_system_sleep();
                 break;
             }

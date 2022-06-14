@@ -1019,6 +1019,7 @@ class ROMParser:
             rom.rom_id = current_id
             current_id += 1
 
+        system_save_size = 0
         total_save_size = 0
         total_rom_size = 0
         total_img_size = 0
@@ -1055,9 +1056,10 @@ class ROMParser:
                 # Aligned
                 aligned_size = 4 * 1024
                 if rom.enable_save:
-                    total_save_size += (
+                    system_save_size = (
                         (save_size + aligned_size - 1) // (aligned_size)
                     ) * aligned_size
+                    total_save_size += system_save_size
                 total_rom_size += rom.size
                 if (args.coverflow != 0) :
                     total_img_size += rom.img_size
@@ -1096,7 +1098,7 @@ class ROMParser:
         for r in roms_uncompressed:
             if r.ext in ["gg","sms","md","gen","bin"]:
                 if larger_rom_size < r.size: larger_rom_size = r.size
-        return total_save_size, total_rom_size, total_img_size, current_id, larger_rom_size
+        return system_save_size, total_save_size, total_rom_size, total_img_size, current_id, larger_rom_size
 
     def write_if_changed(self, path: str, data: str):
         path = Path(path)
@@ -1107,6 +1109,7 @@ class ROMParser:
             path.write_text(data)
 
     def parse(self, args):
+        larger_save_size = 0
         total_save_size = 0
         total_rom_size = 0
         sega_larger_rom_size = 0
@@ -1141,7 +1144,7 @@ class ROMParser:
         romdef.setdefault('msx_bios', {})
         romdef.setdefault('wsv', {})
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
             "Nintendo Gameboy",
             "gb_system",
@@ -1158,8 +1161,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_GB\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/nes_roms.c",
             "Nintendo Entertainment System",
             "nes_system",
@@ -1175,8 +1179,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_NES\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/sms_roms.c",
             "Sega Master System",
             "sms_system",
@@ -1193,8 +1198,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_SMS\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/gg_roms.c",
             "Sega Game Gear",
             "gg_system",
@@ -1210,8 +1216,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_GG\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/md_roms.c",
             "Sega Genesis",
             "md_system",
@@ -1227,8 +1234,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_MD\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/col_roms.c",
             "Colecovision",
             "col_system",
@@ -1243,8 +1251,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_COL\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/sg1000_roms.c",
             "Sega SG-1000",
             "sg1000_system",
@@ -1259,8 +1268,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_SG1000\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/pce_roms.c",
             "PC Engine",
             "pce_system",
@@ -1277,8 +1287,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_PCE\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/gw_roms.c",
             "Game & Watch",
             "gw_system",
@@ -1293,8 +1304,9 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_GW\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/msx_roms.c",
             "MSX",
             "msx_system",
@@ -1310,12 +1322,13 @@ class ROMParser:
         total_rom_size += rom_size
         total_img_size += img_size
         build_config += "#define ENABLE_EMULATOR_MSX\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
         #MSX bios (only parse if there are some MSX games)
         if rom_size > 0:
             #Check that required bios files are here and patch files if needed
             if parse_msx_bios_files():
-                save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+                system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
                     "Core/Src/retro-go/msx_bios.c",
                     "MSX_BIOS",
                     "msx_bios",
@@ -1332,7 +1345,7 @@ class ROMParser:
             else:
                 exit(-1)
         else:
-            save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+            system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
                 "Core/Src/retro-go/msx_bios.c",
                 "MSX_BIOS",
                 "msx_bios",
@@ -1344,7 +1357,7 @@ class ROMParser:
                 current_id
             )
 
-        save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/wsv_roms.c",
             "Watara Supervision",
             "wsv_system",
@@ -1359,6 +1372,7 @@ class ROMParser:
         total_save_size += save_size
         total_rom_size += rom_size
         build_config += "#define ENABLE_EMULATOR_WSV\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
 
         total_size = total_save_size + total_rom_size + total_img_size
         #total_size +=sega_larger_rom_size
@@ -1391,6 +1405,14 @@ class ROMParser:
         self.write_if_changed(
             "build/saveflash.ld", f"__SAVEFLASH_LENGTH__ = {total_save_size};\n"
         )
+        if (args.off_saveflash == 1):
+            self.write_if_changed(
+                "build/offsaveflash.ld", f"__OFFSAVEFLASH_LENGTH__ = {larger_save_size};\n"
+            )
+        else:
+            self.write_if_changed(
+                "build/offsaveflash.ld", f"__OFFSAVEFLASH_LENGTH__ = 0;\n"
+            )
         self.write_if_changed(
              "build/cacheflash.ld", f"__CACHEFLASH_LENGTH__ = {sega_larger_rom_size};\n")
         self.write_if_changed("build/config.h", build_config)
@@ -1423,6 +1445,12 @@ if __name__ == "__main__":
         type=int,
         default=90,
         help="skip convert cover art image jpg quality",
+    )
+    parser.add_argument(
+        "--off_saveflash",
+        type=int,
+        default=0,
+        help="set separate flash zone for off/on savestate",
     )
     compression_choices = [t for t in COMPRESSIONS if not t[0] == "."]
     parser.add_argument(

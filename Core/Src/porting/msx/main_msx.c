@@ -40,6 +40,8 @@
 #include "R800.h"
 #include "save_msx.h"
 #include "gw_malloc.h"
+#include "gw_linker.h"
+#include "main_msx.h"
 
 extern BoardInfo boardInfo;
 static Properties* properties;
@@ -131,7 +133,16 @@ static bool msx_system_LoadState(char *pathName)
 
 static bool msx_system_SaveState(char *pathName)
 {
-    saveMsxState((UInt8 *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        saveMsxState((UInt8 *)&__OFFSAVEFLASH_START__,ACTIVE_FILE->save_size);
+    } else {
+#endif
+        saveMsxState((UInt8 *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+#if OFF_SAVESTATE==1
+    }
+#endif
     return true;
 }
 
@@ -148,9 +159,9 @@ void save_gnw_msx_data() {
     saveStateClose(state);
 }
 
-void load_gnw_msx_data() {
+void load_gnw_msx_data(UInt8 *address) {
     SaveState* state;
-    if (initLoadMsxState((UInt8 *)ACTIVE_FILE->save_address)) {
+    if (initLoadMsxState(address)) {
         state = saveStateOpenForRead("main_msx");
         selected_msx_index = saveStateGet(state, "selected_msx_index", 0);
         selected_disk_index = saveStateGet(state, "selected_disk_index", 0);
@@ -1149,7 +1160,7 @@ static void blit(uint8_t *msx_fb, uint16_t *framebuffer)
     }
 }
 
-void app_main_msx(uint8_t load_state, uint8_t start_paused)
+void app_main_msx(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 {
     pixel_t *fb;
     odroid_dialog_choice_t options[10];
@@ -1168,9 +1179,17 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     }
 
     if (load_state) {
-        load_gnw_msx_data();
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            load_gnw_msx_data((UInt8 *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            load_gnw_msx_data((UInt8 *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
-
     if (start_paused) {
         common_emu_state.pause_after_frames = 2;
     } else {
@@ -1196,7 +1215,16 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused)
     createOptionMenu(options);
 
     if (load_state) {
-        loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            loadMsxState((UInt8 *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            loadMsxState((UInt8 *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
 
     while (1) {

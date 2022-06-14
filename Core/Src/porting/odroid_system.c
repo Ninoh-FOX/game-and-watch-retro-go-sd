@@ -60,7 +60,15 @@ bool odroid_system_emu_load_state(int slot)
 bool odroid_system_emu_save_state(int slot)
 {
     if (currentApp.saveState != NULL) {
-        (*currentApp.saveState)("");
+#if OFF_SAVESTATE==1
+        if (slot == 0) {
+#endif
+            (*currentApp.saveState)("0");
+#if OFF_SAVESTATE==1
+        } else {
+            (*currentApp.saveState)("1");
+        }
+#endif
     }
     return true;
 };

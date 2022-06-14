@@ -8,8 +8,8 @@
 #include "main.h"
 #include "utils.h"
 
-#define DBG(...) printf(__VA_ARGS__)
-// #define DBG(...)
+//#define DBG(...) printf(__VA_ARGS__)
+#define DBG(...)
 
 // Convenience macro to access the struct for a command
 // in the active flash configuration.

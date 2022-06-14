@@ -22,6 +22,11 @@ EXTFLASH_OFFSET ?= 0
 # Configure Game & Watch target device mario|zelda
 GNW_TARGET ?= mario
 
+OFF_SAVESTATE = 0
+ifeq ($(ADDITIONAL_OFF_SAVESTATE),1)
+	OFF_SAVESTATE = 1
+endif
+
 # Set the preprocessor options
 ifeq ($(GNW_TARGET),mario)
 	GNW_TARGET_ZELDA = 0
@@ -336,6 +341,7 @@ C_DEFS +=  \
 -DINTFLASH_BANK=$(INTFLASH_BANK) \
 -DBIG_BANK=$(BIG_BANK) \
 -DEXTFLASH_SIZE=$(EXTFLASH_SIZE) \
+-DOFF_SAVESTATE=$(OFF_SAVESTATE) \
 -DCODEPAGE=$(CODEPAGE) \
 -DUICODEPAGE=$(UICODEPAGE) \
 -DINCLUDED_ES_ES=$(ES_ES) \
@@ -492,11 +498,11 @@ $(BUILD_DIR)/rom_files.txt: FORCE | $(BUILD_DIR)
 
 $(BUILD_DIR)/roms.a: $(BUILD_DIR)/rom_files.txt parse_roms.py
 	$(V)$(ECHO) [ PYTHON3 ] $(notdir $<)
-	$(V)$(PYTHON3) parse_roms.py --flash-size $(EXTFLASH_SIZE) $(SAVE_PARAM) $(COMPRESS_PARAM) $(CODEPAGE_PARAM) $(COVERFLOW_PARAM) $(JPG_QUALITY_PARAM)
+	$(V)$(PYTHON3) parse_roms.py --flash-size $(EXTFLASH_SIZE) $(SAVE_PARAM) $(COMPRESS_PARAM) $(CODEPAGE_PARAM) $(COVERFLOW_PARAM) $(JPG_QUALITY_PARAM) --off_saveflash=$(OFF_SAVESTATE)
 
-$(BUILD_DIR)/config.h $(BUILD_DIR)/saveflash.ld $(BUILD_DIR)/cacheflash.ld &: $(BUILD_DIR)/roms.a
+$(BUILD_DIR)/config.h $(BUILD_DIR)/saveflash.ld $(BUILD_DIR)/cacheflash.ld $(BUILD_DIR)/offsaveflash.ld &: $(BUILD_DIR)/roms.a
 	$(V)/bin/sh -c true
-STM32H7B0VBTx_FLASH.ld: $(BUILD_DIR)/saveflash.ld $(BUILD_DIR)/cacheflash.ld
+STM32H7B0VBTx_FLASH.ld: $(BUILD_DIR)/offsaveflash.ld $(BUILD_DIR)/saveflash.ld $(BUILD_DIR)/cacheflash.ld
 
 # rom_manager.c depends on the different *_roms.c files but they only change when roms.a changes
 $(BUILD_DIR)/core/rom_manager.o: Core/Src/retro-go/rom_manager.c $(BUILD_DIR)/roms.a
@@ -793,7 +799,8 @@ help:
 	@echo "  JPG_QUALITY         - Set convert cover art image jpg quality (default = 90)"
 	@echo "  ENABLE_SCREENSHOT   - Set to 1 to enable screenshot support (default disabled if extflash is 1MB)"
 	@echo "  GNW_TARGET          - Game & Watch target, Valid values {mario,zelda} (default=mario)"
-	@echo "  GAME_GENIE   - Set to 1 to enable game genie support (default=0)"
+	@echo "  GAME_GENIE          - Set to 1 to enable game genie support (default=0)"
+	@echo "  ADDITIONAL_OFF_SAVESTATE - Set to 1 to enable a separate savestate for off/on (default=0)"
 	@echo ""
 	@echo "Current configuration:"
 	@echo "  EXTFLASH_FORCE_SPI=$(EXTFLASH_FORCE_SPI)"
