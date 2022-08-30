@@ -7,7 +7,6 @@
 #include "gw_linker.h"
 #include "gw_flash.h"
 #include "gw_lcd.h"
-#include "main_gwenesis.h"
 #include "gwenesis_savestate.h"
 #include <stdlib.h>
 #include <string.h>
@@ -107,7 +106,6 @@ int saveGwenesisState(unsigned char *destBuffer, int save_size) {
     gwenesisSaveState.offset += 8+sizeof(gwenesisSaveState.sections[0])*MAX_SECTIONS;
     // Start saving data
     gwenesis_save_state();
-    gwenesis_save_local_data();
 
     // Write dummy data to force writing last block of data
     SaveGwenesisFlashSaveData(gwenesisSaveState.buffer+gwenesisSaveState.offset,NULL,0);
@@ -162,7 +160,6 @@ int loadGwenesisState(unsigned char *srcBuffer) {
         // Copy sections header in structure
         memcpy(gwenesisSaveState.sections,gwenesisSaveState.buffer+8,sizeof(gwenesisSaveState.sections[0])*MAX_SECTIONS);
         gwenesis_load_state();
-        gwenesis_load_local_data();
     }
     return gwenesisSaveState.offset;
 }
