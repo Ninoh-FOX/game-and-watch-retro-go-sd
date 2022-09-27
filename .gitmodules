@@ -13,3 +13,6 @@
 [submodule "gwenesis"]
 	path = gwenesis
 	url = https://github.com/sylverb/gwenesis
+[submodule "prosystem-go"]
+	path = prosystem-go
+	url = https://github.com/sylverb/prosystem-go.git

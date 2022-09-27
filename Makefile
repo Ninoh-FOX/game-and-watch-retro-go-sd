@@ -255,6 +255,22 @@ gwenesis/src/savestate/gwenesis_savestate.c \
 gwenesis/src/porting/gwenesis/save_gwenesis.c \
 Core/Src/porting/gwenesis/main_gwenesis.c
 
+A7800_C_SOURCES = \
+prosystem-go/core/Bios.c \
+prosystem-go/core/Cartridge.c \
+prosystem-go/core/Database.c \
+prosystem-go/core/Hash.c \
+prosystem-go/core/Maria.c \
+prosystem-go/core/Memory.c \
+prosystem-go/core/Palette.c \
+prosystem-go/core/Pokey.c \
+prosystem-go/core/ProSystem.c \
+prosystem-go/core/Region.c \
+prosystem-go/core/Riot.c \
+prosystem-go/core/Sally.c \
+prosystem-go/core/Tia.c \
+Core/Src/porting/a7800/main_a7800.c
+
 GNUBOY_C_INCLUDES +=  \
 -ICore/Inc \
 -ICore/Src/porting/lib \
@@ -367,12 +383,18 @@ WSV_C_INCLUDES += \
 -ICore/Src/porting/lib/lzma \
 -Ipotator/common
 
+A7800_C_INCLUDES += \
+-ICore/Inc \
+-ICore/Src/porting/lib \
+-ICore/Src/porting/lib/lzma \
+-Iprosystem-go/core
+
 include Makefile.common
 
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md -j .overlay_a7800 $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)

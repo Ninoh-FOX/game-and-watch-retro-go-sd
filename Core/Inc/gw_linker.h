@@ -70,6 +70,10 @@ extern void * _OVERLAY_MD_LOAD_START[];
 extern uint8_t _OVERLAY_MD_SIZE;
 extern void * _OVERLAY_MD_BSS_START[];
 extern uint8_t _OVERLAY_MD_BSS_SIZE;
+extern void * _OVERLAY_A7800_LOAD_START[];
+extern uint8_t _OVERLAY_A7800_SIZE;
+extern void * _OVERLAY_A7800_BSS_START[];
+extern uint8_t _OVERLAY_A7800_BSS_SIZE;
 
 extern uint8_t *_NES_ROM_UNPACK_BUFFER;
 extern uint8_t _NES_ROM_UNPACK_BUFFER_SIZE;

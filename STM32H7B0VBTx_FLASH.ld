@@ -424,7 +424,6 @@ SECTIONS
   }
   _OVERLAY_GW_BSS_SIZE = SIZEOF(.overlay_gw_bss);
 
-
   .overlay_md __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_md_start__ = .;
@@ -446,6 +445,28 @@ SECTIONS
     ASSERT(ABSOLUTE(_OVERLAY_MD_BSS_END) < __RAM_EMU_END__, "Error: MD BSS overflow");
   }
   _OVERLAY_MD_BSS_SIZE = SIZEOF(.overlay_md_bss);
+
+  .overlay_a7800 __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_a7800_start__ = .;
+    build/a7800/*.o (.data. data* .text .text* .rodata .rodata*)
+    . = ALIGN(4);
+    _OVERLAY_A7800_LOAD_END = .;
+  } AT> EXTFLASH
+  _OVERLAY_A7800_LOAD_START = LOADADDR(.overlay_a7800);
+  _OVERLAY_A7800_SIZE = SIZEOF(.overlay_a7800);
+
+  .overlay_a7800_bss _OVERLAY_A7800_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_A7800_BSS_START = .;
+    build/a7800/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/a7800/*.o (COMMON)
+    __ram_emu_a7800_end__ = .;
+    _OVERLAY_A7800_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_A7800_BSS_END) < __RAM_EMU_END__, "Error: A7800 BSS overflow");
+  }
+  _OVERLAY_A7800_BSS_SIZE = SIZEOF(.overlay_a7800_bss);
 
   /* Place this symbol after the last overlay definition */
   .overlay_end : {

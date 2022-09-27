@@ -22,6 +22,7 @@ retro_emulator_file_t *ACTIVE_FILE = NULL;
 #include "msx_bios.c"
 #include "wsv_roms.c"
 #include "md_roms.c"
+#include "a7800_roms.c"
 
 const rom_system_t *systems[] = {
     &nes_system,
@@ -36,6 +37,7 @@ const rom_system_t *systems[] = {
     &msx_bios,
     &wsv_system,
     &md_system,
+    &a7800_system,
 };
 
 const rom_manager_t rom_mgr = {

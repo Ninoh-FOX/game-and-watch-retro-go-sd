@@ -88,6 +88,7 @@ SAVE_SIZES = {
     "gw": 4 * 1024,
     "wsv": 28 * 1024,
     "md": 144 * 1024,
+    "a7800": 36 * 1024,
 }
 
 
@@ -96,6 +97,7 @@ MAX_COMPRESSED_NES_SIZE = 0x00081000
 MAX_COMPRESSED_PCE_SIZE = 0x00049000
 MAX_COMPRESSED_WSV_SIZE = 0x00080000
 MAX_COMPRESSED_SG_COL_SIZE = 60 * 1024
+MAX_COMPRESSED_A7800_SIZE = 131200
 
 """
 All ``compress_*`` functions must be decorated ``@COMPRESSIONS`` and have the
@@ -810,6 +812,14 @@ class ROMParser:
                 return
             compressed_data = compress(data)
             output_file.write_bytes(compressed_data)
+        elif "a7800_system" in variable_name:  # Atari 7800
+            if rom.path.stat().st_size > MAX_COMPRESSED_A7800_SIZE:
+                print(
+                    f"INFO: {rom.name} is too large to compress, skipping compression!"
+                )
+                return
+            compressed_data = compress(data)
+            output_file.write_bytes(compressed_data)
         elif variable_name in ["col_system","sg1000_system"] :  # COL or SG
             if rom.path.stat().st_size > MAX_COMPRESSED_SG_COL_SIZE:
                 print(
@@ -1143,6 +1153,7 @@ class ROMParser:
         romdef.setdefault('msx', {})
         romdef.setdefault('msx_bios', {})
         romdef.setdefault('wsv', {})
+        romdef.setdefault('a7800', {})
 
         system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
@@ -1372,6 +1383,23 @@ class ROMParser:
         total_save_size += save_size
         total_rom_size += rom_size
         build_config += "#define ENABLE_EMULATOR_WSV\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
+
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+            "Core/Src/retro-go/a7800_roms.c",
+            "Atari 7800",
+            "a7800_system",
+            "a7800",
+            ["a78","bin"],
+            "SAVE_A7800_",
+            romdef["a7800"],
+            None,
+            current_id,
+            args.compress
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        build_config += "#define ENABLE_EMULATOR_A7800\n" if rom_size > 0 else ""
         if system_save_size > larger_save_size : larger_save_size = system_save_size
 
         total_size = total_save_size + total_rom_size + total_img_size
