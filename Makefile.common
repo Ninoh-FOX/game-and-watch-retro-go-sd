@@ -51,6 +51,9 @@ else
 	endif
 endif
 
+# Configure overclocking
+OVERCLOCKING_LEVEL ?= 2
+
 # Configure external flash size in MB (Megabytes)
 EXTFLASH_SIZE_MB ?= 1
 INTFLASH_BANK ?= 1
@@ -368,6 +371,7 @@ C_DEFS +=  \
 -DGNW_TARGET_ZELDA=$(GNW_TARGET_ZELDA) \
 -DGAME_GENIE=$(GAME_GENIE) \
 -DTARGET_GNW \
+-DOVERCLOCKING_LEVEL=$(OVERCLOCKING_LEVEL)
 -DNO_EMBEDDED_SAMPLES \
 -D__LIBRETRO__ \
 -DZ80_CUSTOM_CONFIGURATION \
@@ -801,6 +805,7 @@ help:
 	@echo "  GNW_TARGET          - Game & Watch target, Valid values {mario,zelda} (default=mario)"
 	@echo "  GAME_GENIE          - Set to 1 to enable game genie support (default=0)"
 	@echo "  SHARED_HIBERNATE_SAVESTATE - Set to 1 to enable a separate savestate for off/on (default=0)"
+	@echo "  OVERCLOCKING_LEVEL  - Set OC level. 0 no OC, 1 intermediate OC, 2 maximum OC (default=2)"
 	@echo ""
 	@echo "Current configuration:"
 	@echo "  EXTFLASH_FORCE_SPI=$(EXTFLASH_FORCE_SPI)"
@@ -822,6 +827,8 @@ help:
 	@echo "  UICODEPAGE=$(UICODEPAGE)"
 	@echo "  COVERFLOW=$(COVERFLOW)"
 	@echo "  ROMINFOCODE=$(ROMINFOCODE)"
+	@echo "  SHARED_HIBERNATE_SAVESTATE=$(SHARED_HIBERNATE_SAVESTATE)"
+	@echo "  OVERCLOCKING_LEVEL=$(OVERCLOCKING_LEVEL)"
 	@echo "  ES_ES=$(ES_ES)"
 	@echo "  PT_PT=$(PT_PT)"
 	@echo "  FR_FR=$(FR_FR)"

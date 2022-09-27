@@ -582,11 +582,25 @@ void SystemClock_Config(void)
     CoreClock= HSI/PLLM x PLLN/PLLP
     OSPIClock= HSI/PLLM x PLLN/PLLQ
   */
-  RCC_OscInitStruct.PLL.PLLM = 38; //16;
-  RCC_OscInitStruct.PLL.PLLN = 420; //156;
+#if (OVERCLOCKING_LEVEL == 0) // No overclocking
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 140;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 7; //6;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
+#elif (OVERCLOCKING_LEVEL == 1) // Intermediate overclocking
+  RCC_OscInitStruct.PLL.PLLM = 16;
+  RCC_OscInitStruct.PLL.PLLN = 156;
+  RCC_OscInitStruct.PLL.PLLP = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 6;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+#else // Maximum overclocking
+  RCC_OscInitStruct.PLL.PLLM = 38;
+  RCC_OscInitStruct.PLL.PLLN = 420;
+  RCC_OscInitStruct.PLL.PLLP = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+#endif
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
@@ -631,8 +645,11 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
-//  PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_CLKP;
+#if (OVERCLOCKING_LEVEL == 0)
+  PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_CLKP;
+#else
   PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_PLL;
+#endif
   PeriphClkInitStruct.CkperClockSelection = RCC_CLKPSOURCE_HSI;
   PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_CLKP;
