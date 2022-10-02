@@ -55,6 +55,22 @@ static bool LoadState(char *pathName) {
     return 0;
 }
 
+#if OFF_SAVESTATE==1
+#pragma GCC diagnostic ignored "-Warray-bounds"
+static bool LoadA7800State(int8_t *srcBuffer) {
+    if ((srcBuffer[0] == '7') &&
+        (srcBuffer[1] == '8') &&
+        (srcBuffer[2] == '0') &&
+        (srcBuffer[3] == '0')) {
+            printf("LoadState OK\n");
+            prosystem_Load((const char *)(srcBuffer+4));
+        }
+    return 0;
+}
+#pragma GCC diagnostic pop
+#endif
+
+
 static bool SaveState(char *pathName) {
     emulator_framebuffer[0] = '7';
     emulator_framebuffer[1] = '8';
@@ -62,7 +78,16 @@ static bool SaveState(char *pathName) {
     emulator_framebuffer[3] = '0';
     prosystem_Save((char *)emulator_framebuffer+4, false);
     uint32_t size = 32833;
-    store_save(ACTIVE_FILE->save_address, emulator_framebuffer, size);
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, emulator_framebuffer, size);
+    } else {
+#endif
+        store_save(ACTIVE_FILE->save_address, emulator_framebuffer, size);
+#if OFF_SAVESTATE==1
+    }
+#endif
     return 0;
 }
 
@@ -227,7 +252,7 @@ static void sound_store(int16_t *audio_out_buf)
     }
 }
 
-int app_main_a7800(uint8_t load_state, uint8_t start_paused)
+int app_main_a7800(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 {
     size_t offset;
     const uint8_t *buffer = NULL;
@@ -235,7 +260,6 @@ int app_main_a7800(uint8_t load_state, uint8_t start_paused)
     uint8_t *rom_ptr = NULL;
 
     static dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
-    bool drawFrame;
     odroid_gamepad_state_t joystick;
     odroid_dialog_choice_t options[] = {
         ODROID_DIALOG_CHOICE_LAST
@@ -284,12 +308,21 @@ int app_main_a7800(uint8_t load_state, uint8_t start_paused)
     HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, 2*AUDIO_SAMPLE_BUFFER_SIZE);
 
     if (load_state) {
-        LoadState("");
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            LoadA7800State((int8_t *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            LoadState("");
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
     while (1)
     {
         wdog_refresh();
-        drawFrame = common_emu_frame_loop();
+        common_emu_frame_loop();
         odroid_input_read_gamepad(&joystick);
         common_emu_input_loop(&joystick, options);
         update_joystick(&joystick);

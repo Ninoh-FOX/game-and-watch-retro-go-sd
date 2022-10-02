@@ -116,7 +116,16 @@ static bool gw_system_SaveState(char *pathName)
 
     memset(state_save_buffer, '\x00', sizeof(state_save_buffer));
     gw_state_save(state_save_buffer);
-    store_save(ACTIVE_FILE->save_address, state_save_buffer, sizeof(state_save_buffer));
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, state_save_buffer, sizeof(state_save_buffer));
+    } else {
+#endif
+        store_save(ACTIVE_FILE->save_address, state_save_buffer, sizeof(state_save_buffer));
+#if OFF_SAVESTATE==1
+    }
+#endif
     return false;
 }
 
@@ -406,7 +415,7 @@ static void gw_display_ram_overlay(){
 
 
 /* Main */
-int app_main_gw(uint8_t load_state)
+int app_main_gw(uint8_t load_state, uint8_t save_slot)
 {
 
     odroid_dialog_choice_t options[] = {
@@ -456,7 +465,16 @@ int app_main_gw(uint8_t load_state)
     /* check if we have to load state */
     bool LoadState_done = false;
     if (load_state != 0) {
-        LoadState_done = gw_system_LoadState(NULL);
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            LoadState_done = gw_state_load((unsigned char *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            LoadState_done = gw_system_LoadState(NULL);
+#if OFF_SAVESTATE==1
+        }
+#endif
         if (LoadState_done) {
             gw_check_time();
             gw_set_time();

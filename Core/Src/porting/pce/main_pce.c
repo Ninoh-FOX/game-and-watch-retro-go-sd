@@ -180,24 +180,36 @@ static bool SaveStateStm(char *pathName) {
         }
     }
     assert(pos<76*1024);
-    store_save(ACTIVE_FILE->save_address, pce_save_buf, 76*1024);
+
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, pce_save_buf, 76*1024);
+    } else {
+#endif
+        store_save(ACTIVE_FILE->save_address, pce_save_buf, 76*1024);
+#if OFF_SAVESTATE==1
+    }
+#endif
     sprintf(pce_log,"%08lX",PCE.ROM_CRC);
     memset(emulator_framebuffer_pce,0,sizeof(emulator_framebuffer_pce));
     return false;
 }
 
-static bool LoadStateStm(char *pathName) {
-    uint8_t *pce_save_buf = (uint8_t *)ACTIVE_FILE->save_address;
+static bool LoadStateAddr(char *pathName, uint8_t *saveAddr) {
+    uint8_t *pce_save_buf = (uint8_t *)saveAddr;
     if (ACTIVE_FILE->save_size==0) return true;
     sprintf(pce_log,"%ld",ACTIVE_FILE->save_size);
 
     pce_save_buf+=sizeof(SAVESTATE_HEADER) + 1;
 
     uint32_t *crc_ptr = (uint32_t *)pce_save_buf;
+#pragma GCC diagnostic ignored "-Warray-bounds"
     sprintf(pce_log,"%08lX",crc_ptr[0]);
     if (crc_ptr[0]!=PCE.ROM_CRC) {
         return true;
     }
+#pragma GCC diagnostic pop
 
     pce_save_buf+=sizeof(uint32_t);
 
@@ -217,6 +229,10 @@ static bool LoadStateStm(char *pathName) {
     gfx_reset(true);
     osd_gfx_set_mode(IO_VDC_SCREEN_WIDTH, IO_VDC_SCREEN_HEIGHT);
     return true;
+}
+
+static bool LoadStateStm(char *pathName) {
+    return LoadStateAddr(pathName, (uint8_t *)ACTIVE_FILE->save_address);
 }
 
 static void
@@ -594,7 +610,7 @@ void pce_pcm_submit() {
     }
 }
 
-int app_main_pce(uint8_t load_state, uint8_t start_paused) {
+int app_main_pce(uint8_t load_state, uint8_t start_paused, uint8_t save_slot) {
 
     if (start_paused) {
         common_emu_state.pause_after_frames = 2;
@@ -651,8 +667,18 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused) {
     printf("PCE Core initialized\n");
 
     // If user select "RESUME" in main menu
-    if (load_state) LoadStateStm(NULL);
-
+    if (load_state) {
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            LoadStateAddr("",(uint8_t *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+        LoadStateStm(NULL);
+#if OFF_SAVESTATE==1
+        }
+#endif
+    }
     // Main emulator loop
     printf("Main emulator loop start\n");
     odroid_gamepad_state_t joystick = {0};

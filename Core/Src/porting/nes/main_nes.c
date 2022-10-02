@@ -24,6 +24,8 @@
 static uint samplesPerFrame;
 static uint32_t vsync_wait_ms = 0;
 
+static uint8_t save_slot_load = 0;
+
 static bool autoload = false;
 
 
@@ -40,7 +42,16 @@ static bool SaveState(char *pathName)
     printf("Saving state...\n");
 
     nes_state_save(nes_save_buffer, 24000);
-    store_save((uint8_t *) ACTIVE_FILE->save_address, nes_save_buffer, sizeof(nes_save_buffer));
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((uint8_t *) &__OFFSAVEFLASH_START__, nes_save_buffer, sizeof(nes_save_buffer));
+    } else {
+#endif
+        store_save((uint8_t *) ACTIVE_FILE->save_address, nes_save_buffer, sizeof(nes_save_buffer));
+#if OFF_SAVESTATE==1
+    }
+#endif
 
     return 0;
 }
@@ -524,14 +535,26 @@ void osd_loadstate()
 {
     if(autoload) {
         autoload = false;
-        LoadState("");
+
+#if OFF_SAVESTATE==1
+        if (save_slot_load == 1) {
+            // Load from common save slot if needed
+            nes_state_load((uint8_t *)&__OFFSAVEFLASH_START__, ACTIVE_FILE->save_size);
+        } else {
+#endif
+            LoadState("");
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
 }
 
 
-int app_main_nes(uint8_t load_state, uint8_t start_paused)
+int app_main_nes(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 {
     region_t nes_region;
+
+    save_slot_load = save_slot;
 
     memset(framebuffer1, 0x0, sizeof(framebuffer1));
     memset(framebuffer2, 0x0, sizeof(framebuffer2));

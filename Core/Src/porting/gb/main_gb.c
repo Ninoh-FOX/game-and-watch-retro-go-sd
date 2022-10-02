@@ -377,7 +377,16 @@ static bool SaveState(char *pathName)
     // as a temporary save buffer.
     memset(GB_ROM_SRAM_CACHE,  '\x00', STATE_SAVE_BUFFER_LENGTH);
     size_t size = gb_state_save(GB_ROM_SRAM_CACHE, STATE_SAVE_BUFFER_LENGTH);
-    store_save(ACTIVE_FILE->save_address, GB_ROM_SRAM_CACHE, size);
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, GB_ROM_SRAM_CACHE, size);
+    } else {
+#endif
+        store_save(ACTIVE_FILE->save_address, GB_ROM_SRAM_CACHE, size);
+#if OFF_SAVESTATE==1
+    }
+#endif
 
     // Restore the cache that was overwritten above.
     gb_loader_restore_cache();
@@ -504,7 +513,7 @@ void pcm_submit() {
     }
 }
 
-rg_app_desc_t * init(uint8_t load_state)
+rg_app_desc_t * init(uint8_t load_state, uint8_t save_slot)
 {
     odroid_system_init(APPID_GB, AUDIO_SAMPLE_RATE);
     odroid_system_emu_init(&LoadState, &SaveState, &netplay_callback);
@@ -556,15 +565,24 @@ rg_app_desc_t * init(uint8_t load_state)
     pal_set_dmg(odroid_settings_Palette_get());
 
     if (load_state) {
-        LoadState("");
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            gb_state_load((const uint8_t *)&__OFFSAVEFLASH_START__, ACTIVE_FILE->save_size);
+        } else {
+#endif
+            LoadState("");
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
 
     return app;
 }
 
-void app_main_gb(uint8_t load_state, uint8_t start_paused)
+void app_main_gb(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 {
-    init(load_state);
+    init(load_state, save_slot);
     odroid_gamepad_state_t joystick;
 
     if (start_paused) {

@@ -200,7 +200,16 @@ static bool SaveState(char *pathName)
     uint8_t *state_save_buffer = (uint8_t *)glob_bp_lut;
     memset(state_save_buffer, 0x00, 60 * 1024);
     system_save_state(state_save_buffer);
-    store_save(ACTIVE_FILE->save_address, state_save_buffer, 60 * 1024);
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, state_save_buffer, 60 * 1024);
+    } else {
+#endif
+        store_save(ACTIVE_FILE->save_address, state_save_buffer, 60 * 1024);
+#if OFF_SAVESTATE==1
+    }
+#endif
     /* restore the contents of _bp_lut */
     render_init();
     return false;
@@ -432,7 +441,7 @@ static void sms_update_keys( odroid_gamepad_state_t* joystick )
 
 
 int
-app_main_smsplusgx(uint8_t load_state, uint8_t start_paused, uint8_t is_coleco)
+app_main_smsplusgx(uint8_t load_state, uint8_t start_paused, uint8_t save_slot, uint8_t is_coleco)
 {
     if (start_paused) {
         common_emu_state.pause_after_frames = 2;
@@ -489,7 +498,18 @@ app_main_smsplusgx(uint8_t load_state, uint8_t start_paused, uint8_t is_coleco)
     memset(framebuffer1, 0, sizeof(framebuffer1));
     memset(framebuffer2, 0, sizeof(framebuffer2));
 
-    if (load_state) LoadState(NULL);
+    if (load_state) {
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            system_load_state((void *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            LoadState(NULL);
+#if OFF_SAVESTATE==1
+        }
+#endif
+    }
 
     while (true)
     {

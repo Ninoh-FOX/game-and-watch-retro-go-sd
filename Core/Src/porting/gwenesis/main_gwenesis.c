@@ -627,7 +627,16 @@ void gwenesis_load_local_data(void) {
 static bool gwenesis_system_SaveState(char *pathName) {
   int size = 0;
   printf("Saving state...\n");
-  size = saveGwenesisState((unsigned char *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+#if OFF_SAVESTATE==1
+  if (strcmp(pathName,"1") == 0) {
+    // Save in common save slot (during a power off)
+    size = saveGwenesisState((unsigned char *)&__OFFSAVEFLASH_START__,ACTIVE_FILE->save_size);
+  } else {
+#endif
+    size = saveGwenesisState((unsigned char *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+#if OFF_SAVESTATE==1
+  }
+#endif
   printf("Saved state size:%d\n", size);
   return true;
 }
@@ -638,7 +647,7 @@ static bool gwenesis_system_LoadState(char *pathName) {
 }
 
 /* Main */
-int app_main_gwenesis(uint8_t load_state, uint8_t start_paused)
+int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 {
 
     printf("Genesis start\n");
@@ -681,7 +690,16 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused)
     volatile unsigned int current_frame;
     
     if (load_state) {
-      loadGwenesisState((unsigned char *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+      if (save_slot == 1) {
+        // Load from common save slot if needed
+        loadGwenesisState((unsigned char *)&__OFFSAVEFLASH_START__);
+      } else {
+#endif
+        loadGwenesisState((unsigned char *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+      }
+#endif
     }
 
     /* Start at the same time DMAs audio & video */
