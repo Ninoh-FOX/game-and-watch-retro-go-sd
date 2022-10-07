@@ -42,6 +42,7 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.system = &{system},
 \t\t.region = {region},
 \t\t.mapper = {mapper},
+\t\t.controls_profile = {controls},
 #if GAME_GENIE == 1
 \t\t.game_genie_codes = {game_genie_codes},
 \t\t.game_genie_descs = {game_genie_descs},
@@ -530,6 +531,10 @@ class ROM:
         return int(subprocess.check_output([sys.executable, "./tools/findblueMsxMapper.py", "roms/msx_bios/msxromdb.xml", str(self.path)]))
 
     @property
+    def controls(self):
+        return int(subprocess.check_output([sys.executable, "./tools/findblueMsxControls.py", "roms/msx_bios/msxromdb.xml", str(self.path).replace('.dsk.cdk','.dsk')]))
+
+    @property
     def img_size(self):
         try:
             return self.img_path.stat().st_size
@@ -603,6 +608,7 @@ class ROMParser:
                 game_genie_descs=gg_desc_array_name if game_genie_codes_prefix else 0,
                 game_genie_count=gg_count_name if game_genie_codes_prefix else 0,
                 mapper=rom.mapper,
+                controls=rom.controls
             )
             body += "\n"
             pubcount += 1

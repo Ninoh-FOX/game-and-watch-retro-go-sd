@@ -482,7 +482,7 @@ struct msx_key_info {
 };
 
 struct msx_key_info msx_keyboard[] = {
-    {EC_F1,"F1",true},
+    {EC_F1,"F1",true}, // Index 0
     {EC_F2,"F2",true},
     {EC_F3,"F3",true},
     {EC_F4,"F4",true},
@@ -492,7 +492,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_CTRL,"Control",false},
     {EC_GRAPH,"Graph",true},
     {EC_BKSPACE,"BS",true},
-    {EC_TAB,"Tab",true},
+    {EC_TAB,"Tab",true}, // Index 10
     {EC_CAPS,"CapsLock",true},
     {EC_CODE,"Code",true},
     {EC_SELECT,"Select",true},
@@ -502,7 +502,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_STOP,"Stop",true},
     {EC_ESC,"Esc",true},
     {EC_1,"1/!",true},
-    {EC_2,"2/@",true},
+    {EC_2,"2/@",true}, // Index 20
     {EC_3,"3/#",true},
     {EC_4,"4/$",true},
     {EC_5,"5/\%",true},
@@ -512,7 +512,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_9,"9/(",true},
     {EC_0,"0/)",true},
     {EC_NUM0,"0",true},
-    {EC_NUM1,"1",true},
+    {EC_NUM1,"1",true}, // Index 30
     {EC_NUM2,"2",true},
     {EC_NUM3,"3",true},
     {EC_NUM4,"4",true},
@@ -522,7 +522,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_NUM8,"8",true},
     {EC_NUM9,"9",true},
     {EC_A,"a",true},
-    {EC_B,"b",true},
+    {EC_B,"b",true}, // Index 40
     {EC_C,"c",true},
     {EC_D,"d",true},
     {EC_E,"e",true},
@@ -532,7 +532,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_I,"i",true},
     {EC_J,"j",true},
     {EC_K,"k",true},
-    {EC_L,"l",true},
+    {EC_L,"l",true}, // Index 50
     {EC_M,"m",true},
     {EC_N,"n",true},
     {EC_O,"o",true},
@@ -542,7 +542,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_S,"s",true},
     {EC_T,"t",true},
     {EC_U,"u",true},
-    {EC_V,"v",true},
+    {EC_V,"v",true}, // Index 60
     {EC_W,"w",true},
     {EC_X,"x",true},
     {EC_Y,"y",true},
@@ -550,6 +550,8 @@ struct msx_key_info msx_keyboard[] = {
     {EC_COLON,":",true},
     {EC_UNDSCRE,"_",true},
     {EC_DIV,"/",true},
+    {EC_LBRACK,"[",true},
+    {EC_RBRACK,"]",true},
 };
 
 #define RELEASE_KEY_DELAY 5
@@ -968,7 +970,181 @@ static void createMsxMachine(int msxType) {
 
 static void insertGame() {
     char game_name[PROP_MAXPATH];
+    bool controls_found = true;
     sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
+    // Profiles
+    // 0 : Button A : Space, Button B : ctrl, Game = return, Time = ctrl, start = return, select = ctrl
+    // 1 : Button A : Space, Button B : n   , Game = F4, Time = F3, start = F1, select = F2 (Konami style)
+
+    switch (ACTIVE_FILE->controls_profile) {
+        case 0:
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 7; /* EC_CTRL index */
+            msx_button_game_key = EC_RETURN;
+            msx_button_time_key = EC_CTRL;
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_CTRL;
+        break;
+        case 1: // Konami
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 52; /* n key index */
+            msx_button_game_key = EC_F4;
+            msx_button_time_key = EC_F3;
+            msx_button_start_key = EC_F1;
+            msx_button_select_key = EC_F2;
+        break;
+        case 2: // Compile
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 6; /* Left Shift key index */
+            msx_button_game_key = EC_STOP;
+            msx_button_time_key = EC_Z;
+            msx_button_start_key = EC_STOP;
+            msx_button_select_key = EC_Z;
+        break;
+        case 3: // YS I
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 14; /* EC_RETURN key index */
+            msx_button_game_key = EC_S; // Status
+            msx_button_time_key = EC_I; // Inventory
+            msx_button_start_key = EC_RETURN; // Return
+            msx_button_select_key = EC_I; // Inventory
+        break;
+        case 4: // YS II
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 14; /* EC_RETURN key index */
+            msx_button_game_key = EC_E; // Equipment
+            msx_button_time_key = EC_I; // Inventory
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_S; // Status
+        break;
+        case 5: // YS III
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 62; /* X key index */
+            msx_button_game_key = EC_RETURN;
+            msx_button_time_key = EC_I; // Inventory
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_S; // Status
+        break;
+        case 6: // H.E.R.O.
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 5; /* EC_SPACE index */
+            msx_button_game_key = EC_1; // Start level 1
+            msx_button_time_key = EC_2; // Start level 5
+            msx_button_start_key = EC_1; // Start level 1
+            msx_button_select_key = EC_2; // Start level 5
+        break;
+        case 7: // SD Snatcher, Arsene Lupin 3rd, ...
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 8; /* EC_GRAPH index */
+            msx_button_game_key = EC_F1; // Pause
+            msx_button_time_key = EC_F1; // Pause
+            msx_button_start_key = EC_F1; // Pause
+            msx_button_select_key = EC_F1; // Pause
+        break;
+        case 8: // Konami key 2 = Keyboard
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 52; /* n key index */
+            msx_button_game_key = EC_2;
+            msx_button_time_key = EC_STOP;
+            msx_button_start_key = EC_2;
+            msx_button_select_key = EC_STOP;
+        break;
+        case 9: // Konami key 3 = Keyboard
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 52; /* n key index */
+            msx_button_game_key = EC_3;
+            msx_button_time_key = EC_STOP;
+            msx_button_start_key = EC_3;
+            msx_button_select_key = EC_STOP;
+        break;
+        case 10: // Konami Green Beret
+            msx_button_a_key_index = 6; /* Left Shift key index */
+            msx_button_b_key_index = 6; /* Left Shift key index */
+            msx_button_game_key = EC_STOP;
+            msx_button_time_key = EC_STOP;
+            msx_button_start_key = EC_STOP;
+            msx_button_select_key = EC_STOP;
+        break;
+        case 11: // Dragon Slayer 4
+            msx_button_a_key_index = 6; /* Left Shift key index / Jump */
+            msx_button_b_key_index = 64; /* Z key index / Magic */
+            msx_button_game_key = EC_RETURN; // Menu selection
+            msx_button_time_key = EC_ESC; // Inventory
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_ESC;
+        break;
+        case 12: // Dragon Slayer 6
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 6; /* Left Shift key index */
+            msx_button_game_key = EC_RETURN;
+            msx_button_time_key = EC_ESC;
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_ESC;
+        break;
+        case 13: // Dunk Shot
+            msx_button_a_key_index = 68; /* EC_LBRACK index */
+            msx_button_b_key_index = 14; /* Return key index */
+            msx_button_game_key = EC_SPACE;
+            msx_button_time_key = EC_SPACE;
+            msx_button_start_key = EC_SPACE;
+            msx_button_select_key = EC_SPACE;
+        break;
+        case 14: //Eggerland Mystery
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_game_key = EC_SPACE;
+            msx_button_time_key = EC_STOP; // Suicide
+            msx_button_start_key = EC_SPACE;
+            msx_button_select_key = EC_STOP;
+        break;
+        case 15: // Famicle Parodic
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 8; /* EC_GRAPH index */
+            msx_button_game_key = EC_STOP; // Pause
+            msx_button_time_key = EC_STOP; // Pause
+            msx_button_start_key = EC_STOP; // Pause
+            msx_button_select_key = EC_STOP; // Pause
+        break;
+        case 16: // Laydock 2
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 6; /* Left Shift key index */
+            msx_button_game_key = EC_RETURN;
+            msx_button_time_key = EC_STOP;
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_STOP;
+        break;
+        case 17: // Fray - In Magical Adventure
+            msx_button_a_key_index = 41; /* EC_C index */
+            msx_button_b_key_index = 62; /* EC_X key index */
+            msx_button_game_key = EC_LSHIFT;
+            msx_button_time_key = EC_SPACE;
+            msx_button_start_key = EC_LSHIFT;
+            msx_button_select_key = EC_SPACE;
+        break;
+        case 18: // XAK 1
+            // Note : If you press Space + Return, you enter main menu
+            // which is allowing to go to Equipment/Items/System menu
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 14; /* EC_RETURN key index */
+            msx_button_game_key = EC_F2; // Equipment
+            msx_button_time_key = EC_F3; // Items
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_F4; // System Menu
+        break;
+        case 19: // XAK 2/3
+            // Note : If you press Space + Return, you enter main menu
+            // which is allowing to go to Equipment/Items/System menu
+            msx_button_a_key_index = 41; /* EC_C index */
+            msx_button_b_key_index = 62; /* EC_X key index */
+            msx_button_game_key = EC_F2; // Equipment
+            msx_button_time_key = EC_F3; // Items
+            msx_button_start_key = EC_RETURN;
+            msx_button_select_key = EC_F4; // System Menu
+        break;
+        default:
+            controls_found = false;
+        break;
+    }
     switch (msx_game_type) {
         case MSX_GAME_ROM:
         {
@@ -977,19 +1153,21 @@ static void insertGame() {
             if (mapper == ROM_UNKNOWN) {
                 mapper = GuessROM(ACTIVE_FILE->address,ACTIVE_FILE->size);
             }
-            // If game is using konami mapper, we setup a Konami key mapping
-            switch (mapper)
-            {
-                case ROM_KONAMI5:
-                case ROM_KONAMI4:
-                case ROM_KONAMI4NF:
-                    msx_button_a_key_index = 5; /* EC_SPACE index */
-                    msx_button_b_key_index = 52; /* n key index */
-                    msx_button_game_key = EC_F4;
-                    msx_button_time_key = EC_F3;
-                    msx_button_start_key = EC_F1;
-                    msx_button_select_key = EC_F2;
-                    break;
+            if (!controls_found) {
+                // If game is using konami mapper, we setup a Konami key mapping
+                switch (mapper)
+                {
+                    case ROM_KONAMI5:
+                    case ROM_KONAMI4:
+                    case ROM_KONAMI4NF:
+                        msx_button_a_key_index = 5; /* EC_SPACE index */
+                        msx_button_b_key_index = 52; /* n key index */
+                        msx_button_game_key = EC_F4;
+                        msx_button_time_key = EC_F3;
+                        msx_button_start_key = EC_F1;
+                        msx_button_select_key = EC_F2;
+                        break;
+                }
             }
             printf("insertCartridge msx mapper %d\n",mapper);
             insertCartridge(properties, 0, game_name, NULL, mapper, -1);
@@ -1011,14 +1189,16 @@ static void insertGame() {
             }
             // We load SCC-I cartridge for disk games requiring it
             insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
-            // If game name contains konami, we setup a Konami key mapping
-            if (strcasestr(ACTIVE_FILE->name,"konami")) {
-                msx_button_a_key_index = 5; /* EC_SPACE index */
-                msx_button_b_key_index = 52; /* n key index */
-                msx_button_game_key = EC_F4;
-                msx_button_time_key = EC_F3;
-                msx_button_start_key = EC_F1;
-                msx_button_select_key = EC_F2;
+            if (!controls_found) {
+                // If game name contains konami, we setup a Konami key mapping
+                if (strcasestr(ACTIVE_FILE->name,"konami")) {
+                    msx_button_a_key_index = 5; /* EC_SPACE index */
+                    msx_button_b_key_index = 52; /* n key index */
+                    msx_button_game_key = EC_F4;
+                    msx_button_time_key = EC_F3;
+                    msx_button_start_key = EC_F1;
+                    msx_button_select_key = EC_F2;
+                }
             }
             break;
         }
