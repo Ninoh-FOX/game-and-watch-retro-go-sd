@@ -1097,7 +1097,7 @@ static void insertGame() {
             msx_button_start_key = EC_SPACE;
             msx_button_select_key = EC_STOP;
         break;
-        case 15: // Famicle Parodic
+        case 15: // Famicle Parodic, 1942
             msx_button_a_key_index = 5; /* EC_SPACE index */
             msx_button_b_key_index = 8; /* EC_GRAPH index */
             msx_button_game_key = EC_STOP; // Pause
@@ -1140,6 +1140,22 @@ static void insertGame() {
             msx_button_time_key = EC_F3; // Items
             msx_button_start_key = EC_RETURN;
             msx_button_select_key = EC_F4; // System Menu
+        break;
+        case 20: // Ghost
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 8; /* EC_GRAPH index */
+            msx_button_game_key = EC_F5; // Continue
+            msx_button_time_key = EC_F1; // Menu
+            msx_button_start_key = EC_F5; // Continue
+            msx_button_select_key = EC_F1; // Menu
+        break;
+        case 21: // Golvellius II
+            msx_button_a_key_index = 5; /* EC_SPACE index */
+            msx_button_b_key_index = 6; /* Left Shift key index */
+            msx_button_game_key = EC_STOP; // Continue
+            msx_button_time_key = EC_STOP; // Menu
+            msx_button_start_key = EC_STOP; // Continue
+            msx_button_select_key = EC_STOP; // Menu
         break;
         default:
             controls_found = false;

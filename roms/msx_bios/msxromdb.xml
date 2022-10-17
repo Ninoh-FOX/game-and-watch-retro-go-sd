@@ -87,6 +87,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Ascii</company>
 		<year>1986</year>
 		<country>JP</country>
+		<controls>15</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -1515,6 +1516,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Taito</company>
 		<year>1986</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="false" />
 			<rom>
@@ -3881,6 +3883,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Hal</company>
 		<year>1986</year>
 		<country>JP</country>
+		<controls>15</controls>
 		<dump>
 			<original value="false" />
 			<rom>
@@ -10054,6 +10057,20 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		</dump>
 	</software>
 	<software>
+		<title xml:lang="en">Ghost</title>
+		<system>MSX</system>
+		<company>Fran Games</company>
+		<year>2017</year>
+		<country>ES</country>
+		<controls>20</controls>
+		<dump>
+			<original value="false" />
+			<rom>
+				<hash algo="sha1">3be7500cdbe086c9c5e2e20c2f5a91958fe57985</hash>
+			</rom>
+		</dump>
+	</software>
+	<software>
 		<title xml:lang="en">Ghostbusters</title>
 		<system>MSX</system>
 		<company>Pony Canyon</company>
@@ -12408,6 +12425,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Hal</company>
 		<year>1984</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="false" />
 			<rom>
@@ -12451,6 +12469,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Hal</company>
 		<year>1985</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="false" />
 			<rom>
@@ -31272,6 +31291,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Ascii</company>
 		<year>1987</year>
 		<country>JP</country>
+		<controls>15</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -31436,6 +31456,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Compile</company>
 		<year>1988</year>
 		<country>JP</country>
+		<controls>2</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -31713,6 +31734,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Taito</company>
 		<year>1987</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -31758,6 +31780,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Toho</company>
 		<year>1988</year>
 		<country>JP</country>
+		<controls>7</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -31893,6 +31916,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>T&#38;E Soft</company>
 		<year>1987</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -31929,6 +31953,16 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 			<megarom>
 				<type>ASCII8</type>
 				<hash algo="sha1">28354d2ac06789d6b2cc88b40e79e378a9d97f16</hash>
+				<remark>
+					<text>English translation + stereo music</text>
+				</remark>
+			</megarom>
+		</dump>
+		<dump>
+			<original value="false" />
+			<megarom>
+				<type>ASCII8</type>
+				<hash algo="sha1">3967d78ad31b827ef6b8fe3fd6caf17299fea1c8</hash>
 				<remark>
 					<text>English translation + stereo music</text>
 				</remark>
@@ -33725,6 +33759,7 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<company>Hal</company>
 		<year>1987</year>
 		<country>JP</country>
+		<controls>0</controls>
 		<dump>
 			<original value="true">GoodMSX</original>
 			<megarom>
@@ -37468,6 +37503,26 @@ This MSX games database is conceived for blueMSX, although it's 99% compatible w
 		<dump>
 			<disk>
 				<hash algo="sha1">a0bd6d35c89fbf5edc438fac72b626c1f7d5983e</hash>
+			</disk>
+		</dump>
+	</software>
+	<software>
+		<title xml:lang="en">Golvellius II</title>
+		<system>MSX</system>
+		<company>Compile</company>
+		<year>1987</year>
+		<country>JP</country>
+		<controls>21</controls>
+		<dump>
+			<original value="false" />
+			<disk>
+				<hash algo="sha1">89d878369c4f9aed67133773f58811cb4aba6def</hash>
+			</disk>
+		</dump>
+		<dump>
+			<original value="false" />
+			<disk>
+				<hash algo="sha1">8b318d439180f59730aba404cd5b9e21c4b058d6</hash>
 			</disk>
 		</dump>
 	</software>
