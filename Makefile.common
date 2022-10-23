@@ -52,7 +52,7 @@ else
 endif
 
 # Configure overclocking
-OVERCLOCKING_LEVEL ?= 2
+OVERCLOCKING_LEVEL ?= 1
 
 # Configure external flash size in MB (Megabytes)
 EXTFLASH_SIZE_MB ?= 1
@@ -812,7 +812,7 @@ help:
 	@echo "  GNW_TARGET          - Game & Watch target, Valid values {mario,zelda} (default=mario)"
 	@echo "  GAME_GENIE          - Set to 1 to enable game genie support (default=0)"
 	@echo "  SHARED_HIBERNATE_SAVESTATE - Set to 1 to enable a separate savestate for off/on (default=0)"
-	@echo "  OVERCLOCKING_LEVEL  - Set OC level. 0 no OC, 1 intermediate OC, 2 maximum OC (default=2)"
+	@echo "  OVERCLOCKING_LEVEL  - Set OC level. 0 no OC, 1 intermediate OC, 2 maximum OC (default=1)"
 	@echo ""
 	@echo "Current configuration:"
 	@echo "  EXTFLASH_FORCE_SPI=$(EXTFLASH_FORCE_SPI)"
