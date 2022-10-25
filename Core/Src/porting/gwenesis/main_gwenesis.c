@@ -602,10 +602,6 @@ void gwenesis_save_local_data(void) {
     // Audio low pass filter "ON or OFF"
   saveGwenesisStateSetBuffer(state, "AudioFilter_str", &AudioFilter_str, sizeof(int));
   saveGwenesisStateSet(state, "gwenesis_lpfilter",gwenesis_lpfilter);
-  
-  // Video upscaler        "ON or OFF"
-  saveGwenesisStateSetBuffer(state, "VideoUpscaler_str", &VideoUpscaler_str, sizeof(int));
-  saveGwenesisStateSet(state, "gwenesis_H32upscaler",gwenesis_H32upscaler);
 }
 
 void gwenesis_load_local_data(void) {
@@ -620,10 +616,6 @@ void gwenesis_load_local_data(void) {
   // Audio low pass filter "ON or OFF"
   saveGwenesisStateGetBuffer(state, "AudioFilter_str", &AudioFilter_str, sizeof(int));
   gwenesis_lpfilter = saveGwenesisStateGet(state, "gwenesis_lpfilter");
-  
-  // Video upscaler        "ON or OFF"
-  saveGwenesisStateGetBuffer(state, "VideoUpscaler_str", &VideoUpscaler_str, sizeof(int));
-  gwenesis_H32upscaler = saveGwenesisStateGet(state, "gwenesis_H32upscaler");
 }
 
 static bool gwenesis_system_SaveState(char *pathName) {
