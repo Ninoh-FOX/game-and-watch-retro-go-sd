@@ -81,6 +81,7 @@ int msx_button_time_key = EC_CTRL;
 int msx_button_start_key = EC_RETURN;
 int msx_button_select_key = EC_CTRL;
 
+static bool show_disk_icon = false;
 static int selected_disk_index = 0;
 #define MSX_DISK_EXTENSION "cdk"
 
@@ -126,11 +127,24 @@ static int8_t msx_fps = FPS_PAL;
 
 #define AUDIO_MSX_SAMPLE_RATE 16000
 
+static const uint8_t IMG_DISKETTE[] = {
+    0x00, 0x00, 0x00, 0x3F, 0xFF, 0xE0, 0x7C, 0x00, 0x70, 0x7C, 0x03, 0x78,
+    0x7C, 0x03, 0x7C, 0x7C, 0x03, 0x7E, 0x7C, 0x00, 0x7E, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7E, 0x00, 0x7E, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E,
+    0x7D, 0xFF, 0xBE, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x7D, 0xFF, 0xBE,
+    0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x3F, 0xFF, 0xFC, 0x00, 0x00, 0x00,
+};
+
 static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count);
 static void createMsxMachine(int msxType);
 static void setPropertiesMsx(Machine *machine, int msxType);
 static void setupEmulatorRessources(int msxType);
 static void createProperties();
+
+void msxLedSetFdd1(int state) {
+    show_disk_icon = state;
+}
 
 static bool msx_system_LoadState(char *pathName)
 {
@@ -1462,6 +1476,7 @@ static inline void screen_blit_nn(uint8_t *msx_fb, uint16_t *framebuffer/*int32_
 static void blit(uint8_t *msx_fb, uint16_t *framebuffer)
 {
     odroid_display_scaling_t scaling = odroid_display_get_scaling_mode();
+    uint16_t offset = 274;
 
     switch (scaling) {
     case ODROID_DISPLAY_SCALING_OFF:
@@ -1472,6 +1487,7 @@ static void blit(uint8_t *msx_fb, uint16_t *framebuffer)
     // Full height, borders on the side
     case ODROID_DISPLAY_SCALING_FIT:
     case ODROID_DISPLAY_SCALING_FULL:
+        offset = GW_LCD_WIDTH-26;
         use_overscan = false;
         update_fb_info();
         screen_blit_nn(msx_fb, framebuffer);
@@ -1479,6 +1495,18 @@ static void blit(uint8_t *msx_fb, uint16_t *framebuffer)
     default:
         printf("Unsupported scaling mode %d\n", scaling);
         break;
+    }
+    if (show_disk_icon) {
+        uint16_t *dest = lcd_get_active_buffer();
+        uint16_t idx = 0;
+        for (uint8_t i = 0; i < 24; i++) {
+            for (uint8_t j = 0; j < 24; j++) {
+            if (IMG_DISKETTE[idx / 8] & (1 << (7 - idx % 8))) {
+                dest[offset + j + GW_LCD_WIDTH * (2 + i)] = 0xFFFF;
+            }
+            idx++;
+            }
+        }
     }
 }
 
@@ -1489,6 +1517,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
     bool drawFrame;
     dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
 
+    show_disk_icon = false;
     selected_disk_index = -1;
 
     // Create RGB8 to RGB565 table
