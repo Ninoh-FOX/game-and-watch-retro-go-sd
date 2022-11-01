@@ -560,7 +560,7 @@ class ROM:
             # b8 : Does the game require to press ctrl at boot ?
             sp_output = subprocess.check_output([sys.executable, "./tools/findblueMsxControls.py", "roms/msx_bios/msxromdb.xml", str(self.path).replace('.dsk.cdk','.dsk')]).splitlines()
             value = int(sp_output[0]) + (int(sp_output[1]) << 8)
-            if value == 0xff :
+            if int(sp_output[0]) == 0xff :
                 print(f"Warning : {self.name} has no controls configuration in roms/msx_bios/msxromdb.xml, default controls will be used")
         return value
 
