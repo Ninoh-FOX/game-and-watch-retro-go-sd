@@ -1034,8 +1034,9 @@ static void insertGame() {
     msx_button_time_key = EC_CTRL;
     msx_button_start_key = EC_RETURN;
     msx_button_select_key = EC_CTRL;
+    uint8_t controls_profile = ACTIVE_FILE->game_config&0xFF;
 
-    switch (ACTIVE_FILE->controls_profile) {
+    switch (controls_profile) {
         case 0: // Default configuration
         break;
         case 1: // Konami

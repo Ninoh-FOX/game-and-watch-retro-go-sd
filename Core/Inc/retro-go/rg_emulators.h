@@ -41,7 +41,7 @@ typedef struct {
     uint16_t mapper;
     rom_region_t region;
     const rom_system_t *system;
-    uint16_t controls_profile;
+    uint16_t game_config;
 #if GAME_GENIE == 1
     const char** game_genie_codes; // Game Genie codes to choose from
     const char** game_genie_descs; // Game Genie code descriptions

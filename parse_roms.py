@@ -42,7 +42,7 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.system = &{system},
 \t\t.region = {region},
 \t\t.mapper = {mapper},
-\t\t.controls_profile = {controls},
+\t\t.game_config = {game_config},
 #if GAME_GENIE == 1
 \t\t.game_genie_codes = {game_genie_codes},
 \t\t.game_genie_descs = {game_genie_descs},
@@ -409,6 +409,7 @@ class ROM:
         self.romdef.setdefault('enable_save', '0')
         self.publish = (self.romdef['publish'] == '1')
         self.enable_save = (self.romdef['enable_save'] == '1') or args.save
+        self.system_name = system_name
         self.name = self.romdef['name']
         print("Found rom " + self.filename +" will display name as: " + self.romdef['name'])
         if not (self.publish):
@@ -545,11 +546,23 @@ class ROM:
 
     @property
     def mapper(self):
-        return int(subprocess.check_output([sys.executable, "./tools/findblueMsxMapper.py", "roms/msx_bios/msxromdb.xml", str(self.path)]))
+        mapper = 0
+        if self.system_name == "MSX":
+            mapper = int(subprocess.check_output([sys.executable, "./tools/findblueMsxMapper.py", "roms/msx_bios/msxromdb.xml", str(self.path)]))
+        return mapper
 
     @property
-    def controls(self):
-        return int(subprocess.check_output([sys.executable, "./tools/findblueMsxControls.py", "roms/msx_bios/msxromdb.xml", str(self.path).replace('.dsk.cdk','.dsk')]))
+    def game_config(self):
+        value = 0xff
+        if self.system_name == "MSX":
+            # MSX game_config structure :
+            # b7-b0 : Controls profile
+            # b8 : Does the game require to press ctrl at boot ?
+            sp_output = subprocess.check_output([sys.executable, "./tools/findblueMsxControls.py", "roms/msx_bios/msxromdb.xml", str(self.path).replace('.dsk.cdk','.dsk')]).splitlines()
+            value = int(sp_output[0]) + (int(sp_output[1]) << 8)
+            if value == 0xff :
+                print(f"Warning : {self.name} has no controls configuration in roms/msx_bios/msxromdb.xml, default controls will be used")
+        return value
 
     @property
     def img_size(self):
@@ -625,7 +638,7 @@ class ROMParser:
                 game_genie_descs=gg_desc_array_name if game_genie_codes_prefix else 0,
                 game_genie_count=gg_count_name if game_genie_codes_prefix else 0,
                 mapper=rom.mapper,
-                controls=rom.controls
+                game_config=rom.game_config
             )
             body += "\n"
             pubcount += 1

@@ -5,7 +5,8 @@ import hashlib
 import xml.dom.minidom
 
 def getGameControls(collection,sha1):
-    controls = 65535
+    controls = "256"
+    ctrl = "0" # Does the game require to press ctrl at boot ?
     for software in collection.getElementsByTagName("software"):
         system = software.getElementsByTagName('system')[0]
         for dump in software.getElementsByTagName('dump'):
@@ -14,28 +15,30 @@ def getGameControls(collection,sha1):
                 if (hash == sha1string):
                     if (rom.getElementsByTagName('controls')):
                         controls = rom.getElementsByTagName('controls')[0].childNodes[0].data
-                    if (software.getElementsByTagName('controls')):
+                    elif (software.getElementsByTagName('controls')):
                         controls = software.getElementsByTagName('controls')[0].childNodes[0].data
-                    return controls
+                    return controls+"\n"+ctrl
             for megarom in dump.getElementsByTagName('megarom'):
                 hash = megarom.getElementsByTagName('hash')[0].childNodes[0].data
                 if sha1string == hash:
                     if (megarom.getElementsByTagName('controls')):
                         controls = megarom.getElementsByTagName('controls')[0].childNodes[0].data
-                        return controls
-                    if (software.getElementsByTagName('controls')):
+                    elif (software.getElementsByTagName('controls')):
                         controls = software.getElementsByTagName('controls')[0].childNodes[0].data
-                        return controls
+                    return controls+"\n"+ctrl
             for disk in dump.getElementsByTagName('disk'):
                 hash = disk.getElementsByTagName('hash')[0].childNodes[0].data
                 if sha1string == hash:
                     if (disk.getElementsByTagName('controls')):
                         controls = disk.getElementsByTagName('controls')[0].childNodes[0].data
-                        return controls
-                    if (software.getElementsByTagName('controls')):
+                    elif (software.getElementsByTagName('controls')):
                         controls = software.getElementsByTagName('controls')[0].childNodes[0].data
-                        return controls
-    return controls
+                    if (disk.getElementsByTagName('ctrl')):
+                        ctrl = disk.getElementsByTagName('ctrl')[0].childNodes[0].data
+                    elif (software.getElementsByTagName('ctrl')):
+                        ctrl = software.getElementsByTagName('ctrl')[0].childNodes[0].data
+                    return controls+"\n"+ctrl
+    return controls+"\n"+ctrl
 
 BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
 
