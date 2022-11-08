@@ -154,6 +154,17 @@ static bool msx_system_LoadState(char *pathName)
 
 static bool msx_system_SaveState(char *pathName)
 {
+    // Show disk icon when saving state
+    uint16_t *dest = lcd_get_inactive_buffer();
+    uint16_t idx = 0;
+    for (uint8_t i = 0; i < 24; i++) {
+        for (uint8_t j = 0; j < 24; j++) {
+        if (IMG_DISKETTE[idx / 8] & (1 << (7 - idx % 8))) {
+            dest[274 + j + GW_LCD_WIDTH * (2 + i)] = 0xFFFF;
+        }
+        idx++;
+        }
+    }
 #if OFF_SAVESTATE==1
     if (strcmp(pathName,"1") == 0) {
         // Save in common save slot (during a power off)
