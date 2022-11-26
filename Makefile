@@ -194,6 +194,8 @@ $(CORE_MSX)/Src/VideoChips/V9938.c \
 $(CORE_MSX)/Src/VideoChips/VideoManager.c \
 $(CORE_MSX)/Src/Z80/R800.c \
 $(CORE_MSX)/Src/Z80/R800SaveState.c \
+$(CORE_MSX)/Src/Input/JoystickPort.c \
+$(CORE_MSX)/Src/Input/MsxJoystick.c \
 $(CORE_MSX)/Src/IoDevice/Disk.c \
 $(CORE_MSX)/Src/IoDevice/HarddiskIDE.c \
 $(CORE_MSX)/Src/IoDevice/I8255.c \

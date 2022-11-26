@@ -597,6 +597,12 @@ struct msx_key_info msx_keyboard[] = {
     {EC_DOWN,"DOWN",true},
     {EC_LEFT,"LEFT",true},
     {EC_RIGHT,"RIGHT",true},
+    {EC_JOY1_UP,"JOY1 UP"},
+    {EC_JOY1_DOWN,"JOY1 DOWN"},
+    {EC_JOY1_LEFT,"JOY1 LEFT"},
+    {EC_JOY1_RIGHT,"JOY1 RIGHT"},
+    {EC_JOY1_BUTTON1,"JOY1 A"},
+    {EC_JOY1_BUTTON2,"JOY1 B"},
 };
 
 #define RELEASE_KEY_DELAY 5
@@ -1423,6 +1429,7 @@ static void insertGame() {
             }
             if (!controls_found) {
                 // If game is using konami mapper, we setup a Konami key mapping
+                // elseway we use joystick control
                 switch (mapper)
                 {
                     case ROM_KONAMI5:
@@ -1434,6 +1441,14 @@ static void insertGame() {
                         msx_button_time_key = EC_F3;
                         msx_button_start_key = EC_F1;
                         msx_button_select_key = EC_F2;
+                        break;
+                    default:
+                        msx_button_up_key = EC_JOY1_UP;
+                        msx_button_down_key = EC_JOY1_DOWN;
+                        msx_button_right_key = EC_JOY1_RIGHT;
+                        msx_button_left_key = EC_JOY1_LEFT;
+                        msx_button_a_key = EC_JOY1_BUTTON1;
+                        msx_button_b_key = EC_JOY1_BUTTON2;
                         break;
                 }
             }
@@ -1466,6 +1481,13 @@ static void insertGame() {
                     msx_button_time_key = EC_F3;
                     msx_button_start_key = EC_F1;
                     msx_button_select_key = EC_F2;
+                } else {
+                    msx_button_up_key = EC_JOY1_UP;
+                    msx_button_down_key = EC_JOY1_DOWN;
+                    msx_button_right_key = EC_JOY1_RIGHT;
+                    msx_button_left_key = EC_JOY1_LEFT;
+                    msx_button_a_key = EC_JOY1_BUTTON1;
+                    msx_button_b_key = EC_JOY1_BUTTON2;
                 }
             }
             break;
@@ -1502,6 +1524,9 @@ static void createProperties() {
     properties->sound.mixerChannel[MIXER_CHANNEL_PSG].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_MSXMUSIC].pan = 0;
     properties->sound.mixerChannel[MIXER_CHANNEL_SCC].pan = 0;
+
+    // Joystick Configuration
+    properties->joy1.typeId = JOYSTICK_PORT_JOYSTICK;
 }
 
 static void setupEmulatorRessources(int msxType)
