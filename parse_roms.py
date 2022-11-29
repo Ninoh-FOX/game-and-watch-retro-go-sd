@@ -494,47 +494,97 @@ class ROM:
         # Get game genie code file path
         gg_path = Path(self.path.parent, self.filename + ".ggcodes")
 
-        if not os.path.exists(gg_path):
+        if os.path.exists(gg_path):
+            codes_and_descs = []
+            for line in gg_path.read_text().splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(',', 1)
+                code = parts[0]
+                desc = None
+                if len(parts)>1:
+                    desc = parts[1]
+
+                # Remove whitespace
+                code = "".join(code.split())
+                # Remove empty lines
+                if code == "":
+                    continue
+                # Capitalize letters
+                code = code.upper()
+                # Remove invalid codes
+                if not is_valid_game_genie_code(code):
+                    continue
+
+                # Shorten description
+                if desc is not None:
+                    desc = desc[:40]
+                    desc = desc.replace('\\', r'\\\\')
+                    desc = desc.replace('"', r'\"')
+                    desc = desc.strip()
+
+                codes_and_descs.append((code, desc))
+
+            if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+                print(
+                    f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} Game Genie codes. Truncating..."
+                )
+                codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+
+            return codes_and_descs
+
+        pceplus = Path(self.path.parent, self.filename + ".pceplus")
+        if os.path.exists(pceplus):
             return self.get_rom_patchs()
 
-        codes_and_descs = []
-        for line in gg_path.read_text().splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split(',', 1)
-            code = parts[0]
-            desc = None
-            if len(parts)>1:
-                desc = parts[1]
+        mfc_path = Path(self.path.parent, self.filename + ".mcf")
+        if os.path.exists(mfc_path):
+            codes_and_descs = []
+            for line in mfc_path.read_text(encoding="cp1252").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                # Check if it's a comment
+                if line[0] == '!':
+                    continue
+                parts = line.split(',', 4)
 
-            # Remove whitespace
-            code = "".join(code.split())
-            # Remove empty lines
-            if code == "":
-                continue
-            # Capitalize letters
-            code = code.upper()
-            # Remove invalid codes
-            if not is_valid_game_genie_code(code):
-                continue
+                code = parts[1]+','+parts[2]
+                desc = None
+                if len(parts)>1:
+                    desc = parts[4]
 
-            # Shorten description
-            if desc is not None:
-                desc = desc[:40]
-                desc = desc.replace('\\', r'\\\\')
-                desc = desc.replace('"', r'\"')
-                desc = desc.strip()
+                # Remove whitespace
+                code = "".join(code.split())
+                # Remove empty lines
+                if code == "":
+                    continue
+                # Capitalize letters
+                code = code.upper()
+                # Remove invalid codes
+#                if not is_valid_game_genie_code(code):
+#                    continue
 
-            codes_and_descs.append((code, desc))
+                # Shorten description
+                if desc is not None:
+                    desc = desc[:40]
+                    desc = desc.replace('\\', r'\\\\')
+                    desc = desc.replace('"', r'\"')
+                    desc = desc.strip()
 
-        if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
-            print(
-                f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} Game Genie codes. Truncating..."
-            )
-            codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+                codes_and_descs.append((code, desc))
 
-        return codes_and_descs
+            if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+                print(
+                    f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} cheat codes. Truncating..."
+                )
+                codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+
+            return codes_and_descs
+
+        # No cheat file found
+        return []
 
     @property
     def ext(self):
@@ -756,7 +806,7 @@ class ROMParser:
         return f'uint8_t {name}[{save_size}]  __attribute__((section (".saveflash"))) __attribute__((aligned(4096)));\n'
 
     def generate_game_genie_entry(self, name: str, num: int, game_genie_codes_and_descs: []) -> str:
-        str = "";
+        str = ""
 
         codes = "{%s}" % ",".join(f'"{c}"' for (c,d) in game_genie_codes_and_descs)
         descs = "{%s}" % ",".join(f'NULL' if d is None else f'"{d}"' for (c,d) in game_genie_codes_and_descs)
@@ -1361,7 +1411,7 @@ class ROMParser:
             ["rom","mx1","mx2","dsk"],
             "SAVE_MSX_",
             romdef["msx"],
-            None,
+            "MCF_MSX_",
             current_id,
             args.compress
         )
