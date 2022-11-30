@@ -549,31 +549,64 @@ class ROM:
                 if line[0] == '!':
                     continue
                 parts = line.split(',', 4)
+                if len(parts) == 5:
+                    length = 1
+                    if int(parts[2]) > 0xff:
+                        length = 2
+                    elif int(parts[2]) > 0xffff:
+                        length = 4
+                    code = parts[1]+','+parts[2]+','+str(length)
+                    desc = None
+                    if len(parts)>4:
+                        desc = parts[4]
 
-                code = parts[1]+','+parts[2]
-                desc = None
-                if len(parts)>1:
-                    desc = parts[4]
+                    # Remove whitespace
+                    code = "".join(code.split())
+                    # Remove empty lines
+                    if code == "":
+                        continue
+                    # Capitalize letters
+                    code = code.upper()
 
-                # Remove whitespace
-                code = "".join(code.split())
-                # Remove empty lines
-                if code == "":
-                    continue
-                # Capitalize letters
-                code = code.upper()
-                # Remove invalid codes
-#                if not is_valid_game_genie_code(code):
-#                    continue
+                    # Shorten description
+                    if desc is not None:
+                        desc = desc[:40]
+                        desc = desc.replace('\\', r'\\\\')
+                        desc = desc.replace('"', r'\"')
+                        desc = desc.strip()
 
-                # Shorten description
-                if desc is not None:
-                    desc = desc[:40]
-                    desc = desc.replace('\\', r'\\\\')
-                    desc = desc.replace('"', r'\"')
-                    desc = desc.strip()
+                    codes_and_descs.append((code, desc))
+                elif len(parts) == 1:
+                    parts = line.split(':', 4)
+                    if int(parts[2]) == 0:
+                        length = 1
+                    elif int(parts[2]) == 1:
+                        length = 2
+                    elif int(parts[2]) == 2:
+                        length = 4
 
-                codes_and_descs.append((code, desc))
+                    code = str(int(parts[0], base=16))+','+str(int(parts[1], base=16))+','+str(length)
+                    desc = None
+                    if len(parts)>4:
+                        desc = parts[4]
+
+                    # Remove whitespace
+                    code = "".join(code.split())
+                    # Remove empty lines
+                    if code == "":
+                        continue
+                    # Capitalize letters
+                    code = code.upper()
+
+                    # Shorten description
+                    if desc is not None:
+                        desc = desc[:40]
+                        desc = desc.replace('\\', r'\\\\')
+                        desc = desc.replace('"', r'\"')
+                        desc = desc.strip()
+
+                    codes_and_descs.append((code, desc))
+
 
             if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
                 print(
