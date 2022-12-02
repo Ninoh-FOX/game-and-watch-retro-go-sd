@@ -44,9 +44,9 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.mapper = {mapper},
 \t\t.game_config = {game_config},
 #if CHEAT_CODES == 1
-\t\t.game_genie_codes = {game_genie_codes},
-\t\t.game_genie_descs = {game_genie_descs},
-\t\t.game_genie_count = {game_genie_count},
+\t\t.cheat_codes = {cheat_codes},
+\t\t.cheat_descs = {cheat_descs},
+\t\t.cheat_count = {cheat_count},
 #endif
 \t}},"""
 
@@ -490,7 +490,7 @@ class ROM:
 
         return codes_and_descs
 
-    def get_game_genie_codes(self):
+    def get_cheat_codes(self):
         # Get game genie code file path
         gg_path = Path(self.path.parent, self.filename + ".ggcodes")
 
@@ -680,7 +680,7 @@ class ROMParser:
         return found_roms
 
     def generate_rom_entries(
-        self, name: str, roms: [ROM], save_prefix: str, system: str, game_genie_codes_prefix: str
+        self, name: str, roms: [ROM], save_prefix: str, system: str, cheat_codes_prefix: str
     ) -> str:
         body = ""
         pubcount = 0
@@ -702,9 +702,9 @@ class ROMParser:
                 ]
             )
             region = "REGION_PAL" if is_pal else "REGION_NTSC"
-            gg_count_name = "%s%s_COUNT" % (game_genie_codes_prefix, i)
-            gg_code_array_name = "%sCODE_%s" % (game_genie_codes_prefix, i)
-            gg_desc_array_name = "%sDESC_%s" % (game_genie_codes_prefix, i)
+            gg_count_name = "%s%s_COUNT" % (cheat_codes_prefix, i)
+            gg_code_array_name = "%sCODE_%s" % (cheat_codes_prefix, i)
+            gg_desc_array_name = "%sDESC_%s" % (cheat_codes_prefix, i)
             body += ROM_ENTRY_TEMPLATE.format(
                 rom_id=rom.rom_id,
                 name=str(rom.name),
@@ -717,9 +717,9 @@ class ROMParser:
                 region=region,
                 extension=rom.ext,
                 system=system,
-                game_genie_codes=gg_code_array_name if game_genie_codes_prefix else "NULL",
-                game_genie_descs=gg_desc_array_name if game_genie_codes_prefix else 0,
-                game_genie_count=gg_count_name if game_genie_codes_prefix else 0,
+                cheat_codes=gg_code_array_name if cheat_codes_prefix else "NULL",
+                cheat_descs=gg_desc_array_name if cheat_codes_prefix else 0,
+                cheat_count=gg_count_name if cheat_codes_prefix else 0,
                 mapper=rom.mapper,
                 game_config=rom.game_config
             )
@@ -838,12 +838,12 @@ class ROMParser:
     def generate_save_entry(self, name: str, save_size: int) -> str:
         return f'uint8_t {name}[{save_size}]  __attribute__((section (".saveflash"))) __attribute__((aligned(4096)));\n'
 
-    def generate_game_genie_entry(self, name: str, num: int, game_genie_codes_and_descs: []) -> str:
+    def generate_cheat_entry(self, name: str, num: int, cheat_codes_and_descs: []) -> str:
         str = ""
 
-        codes = "{%s}" % ",".join(f'"{c}"' for (c,d) in game_genie_codes_and_descs)
-        descs = "{%s}" % ",".join(f'NULL' if d is None else f'"{d}"' for (c,d) in game_genie_codes_and_descs)
-        number_of_codes = len(game_genie_codes_and_descs)
+        codes = "{%s}" % ",".join(f'"{c}"' for (c,d) in cheat_codes_and_descs)
+        descs = "{%s}" % ",".join(f'NULL' if d is None else f'"{d}"' for (c,d) in cheat_codes_and_descs)
+        number_of_codes = len(cheat_codes_and_descs)
 
         count_name = "%s%s_COUNT" % (name, num)
         code_array_name = "%sCODE_%s" % (name, num)
@@ -1039,7 +1039,7 @@ class ROMParser:
         extensions: List[str],
         save_prefix: str,
         romdefs: dict,
-        game_genie_codes_prefix: str,
+        cheat_codes_prefix: str,
         current_id: int,
         compress: str = None,
         compress_gb_speed: bool = False,
@@ -1202,12 +1202,12 @@ class ROMParser:
                 if rom.enable_save:
                     f.write(self.generate_save_entry(save_prefix + str(i), save_size))
 
-                game_genie_codes_and_descs = rom.get_game_genie_codes();
-                if game_genie_codes_prefix:
-                    f.write(self.generate_game_genie_entry(game_genie_codes_prefix, i, game_genie_codes_and_descs))
+                cheat_codes_and_descs = rom.get_cheat_codes();
+                if cheat_codes_prefix:
+                    f.write(self.generate_cheat_entry(cheat_codes_prefix, i, cheat_codes_and_descs))
 
             rom_entries = self.generate_rom_entries(
-                folder + "_roms", roms, save_prefix, variable_name, game_genie_codes_prefix
+                folder + "_roms", roms, save_prefix, variable_name, cheat_codes_prefix
             )
             f.write(rom_entries)
 

@@ -43,9 +43,9 @@ typedef struct {
     const rom_system_t *system;
     uint16_t game_config;
 #if CHEAT_CODES == 1
-    const char** game_genie_codes; // Game Genie codes to choose from
-    const char** game_genie_descs; // Game Genie code descriptions
-    int game_genie_count;
+    const char** cheat_codes; // Cheat codes to choose from
+    const char** cheat_descs; // Cheat codes descriptions
+    int cheat_count;
 #endif
 } retro_emulator_file_t;
 

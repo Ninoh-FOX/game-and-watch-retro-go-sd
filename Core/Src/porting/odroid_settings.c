@@ -45,7 +45,7 @@ typedef struct app_config {
 #error MAX_CHEAT_CODES is assumed to be 32. Changing this value requires adjusting the type of active_cheat_codes below
 #endif
 typedef struct rom_config {
-    uint32_t active_cheat_codes; // A bit array for which game genie codes in retro_emulator_file_t.game_genie_codes are active for this rom
+    uint32_t active_cheat_codes; // A bit array for which cheat codes in retro_emulator_file_t.cheat_codes are active for this rom
 } rom_config_t;
 #endif
 

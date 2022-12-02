@@ -1035,7 +1035,7 @@ int odroid_overlay_game_debug_menu(void)
 }
 
 #if CHEAT_CODES == 1
-static bool game_genie_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+static bool cheat_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     bool is_on = odroid_settings_ActiveGameGenieCodes_is_enabled(CHOSEN_FILE->id, option->id);
     if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) 
@@ -1053,28 +1053,28 @@ static bool game_genie_update_cb(odroid_dialog_choice_t *option, odroid_dialog_e
     return event == ODROID_DIALOG_ENTER;
 }
 
-static bool show_game_genie_dialog()
+static bool show_cheat_dialog()
 {
     static odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
     
-    printf("count = %d\n",CHOSEN_FILE->game_genie_count);
+    printf("count = %d\n",CHOSEN_FILE->cheat_count);
     // +1 for the terminator sentinel
-    odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->game_genie_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
+    odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->cheat_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
     char svalues[MAX_CHEAT_CODES][10];
 
-    for(int i=0; i<CHOSEN_FILE->game_genie_count; i++) 
+    for(int i=0; i<CHOSEN_FILE->cheat_count; i++) 
     {
-        const char *label = CHOSEN_FILE->game_genie_descs[i];
+        const char *label = CHOSEN_FILE->cheat_descs[i];
         if (label == NULL) {
-            label = CHOSEN_FILE->game_genie_codes[i];
+            label = CHOSEN_FILE->cheat_codes[i];
         }
         choices[i].id = i;
         choices[i].label = label;
         choices[i].value = svalues[i];
         choices[i].enabled = 1;
-        choices[i].update_cb = game_genie_update_cb;
+        choices[i].update_cb = cheat_update_cb;
     }
-    choices[CHOSEN_FILE->game_genie_count] = last;
+    choices[CHOSEN_FILE->cheat_count] = last;
     odroid_overlay_dialog(curr_lang->s_Cheat_Codes_Title, choices, 0);
 
     rg_free(choices);
@@ -1124,7 +1124,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options)
     choices[index].enabled = 1;
     choices[index].update_cb = NULL;
     index++;
-    if ((ACTIVE_FILE->game_genie_count != 0) && (cheat_update_support)) {
+    if ((ACTIVE_FILE->cheat_count != 0) && (cheat_update_support)) {
         choices[index].id = 60;
         choices[index].label = curr_lang->s_Cheat_Codes;
         choices[index].value = "";
@@ -1221,7 +1221,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options)
         break;
 #if CHEAT_CODES == 1
     case 60:
-        show_game_genie_dialog();
+        show_cheat_dialog();
         break;
 #endif
     case 90:
