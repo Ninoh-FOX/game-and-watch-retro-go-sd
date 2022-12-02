@@ -7,8 +7,8 @@
 #if !defined(COVERFLOW)
 #define COVERFLOW 0
 #endif /* COVERFLOW */
-#if !defined (GAME_GENIE)
-#define GAME_GENIE 0
+#if !defined (CHEAT_CODES)
+#define CHEAT_CODES 0
 #endif
 
 typedef enum
@@ -20,7 +20,7 @@ typedef enum
 typedef struct rom_system_t rom_system_t;
 
 typedef struct {
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     uint32_t id;
 #endif
     const char *name;
@@ -42,7 +42,7 @@ typedef struct {
     rom_region_t region;
     const rom_system_t *system;
     uint16_t game_config;
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     const char** game_genie_codes; // Game Genie codes to choose from
     const char** game_genie_descs; // Game Genie code descriptions
     int game_genie_count;

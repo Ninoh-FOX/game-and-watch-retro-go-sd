@@ -72,7 +72,10 @@ endif
 # Screenshot support allocates 150kB of external flash. Disabled by default.
 ENABLE_SCREENSHOT ?= 0
 # Set to 1 to add game genie support
-GAME_GENIE ?= 0
+CHEAT_CODES ?= 0
+ifeq ($(GAME_GENIE),1)
+	CHEAT_CODES = 1
+endif
 
 # Compress supported ROMs by default. Set to 0 to disable.
 COMPRESS ?= lzma
@@ -369,7 +372,7 @@ C_DEFS +=  \
 -DENABLE_SCREENSHOT=$(ENABLE_SCREENSHOT) \
 -DGNW_TARGET_MARIO=$(GNW_TARGET_MARIO) \
 -DGNW_TARGET_ZELDA=$(GNW_TARGET_ZELDA) \
--DGAME_GENIE=$(GAME_GENIE) \
+-DCHEAT_CODES=$(CHEAT_CODES) \
 -DTARGET_GNW \
 -DOVERCLOCKING_LEVEL=$(OVERCLOCKING_LEVEL) \
 -DNO_EMBEDDED_SAMPLES \
@@ -810,7 +813,8 @@ help:
 	@echo "  JPG_QUALITY         - Set convert cover art image jpg quality (default = 90)"
 	@echo "  ENABLE_SCREENSHOT   - Set to 1 to enable screenshot support (default disabled if extflash is 1MB)"
 	@echo "  GNW_TARGET          - Game & Watch target, Valid values {mario,zelda} (default=mario)"
-	@echo "  GAME_GENIE          - Set to 1 to enable game genie support (default=0)"
+	@echo "  GAME_GENIE          - Set to 1 to enable game genie support (deprecated, use CHEAT_CODES instead)"
+	@echo "  CHEAT_CODES         - Set to 1 to enable cheat codes support (default=0)"
 	@echo "  SHARED_HIBERNATE_SAVESTATE - Set to 1 to enable a separate savestate for off/on (default=0)"
 	@echo "  OVERCLOCKING_LEVEL  - Set OC level. 0 no OC, 1 intermediate OC, 2 maximum OC (default=1)"
 	@echo ""
@@ -827,7 +831,7 @@ help:
 	@echo "  RESET_DBGMCU=$(RESET_DBGMCU)"
 	@echo "  ENABLE_SCREENSHOT=$(ENABLE_SCREENSHOT)"
 	@echo "  GNW_TARGET=$(GNW_TARGET)"
-	@echo "  GAME_GENIE=$(GAME_GENIE)"
+	@echo "  CHEAT_CODES=$(CHEAT_CODES)"
 	@echo "  GCC_PATH=$(GCC_PATH)"
 	@echo "  PREFIX=$(PREFIX)"
 	@echo "  CODEPAGE=$(CODEPAGE)"

@@ -42,7 +42,9 @@ int odroid_overlay_game_menu()
 #include "gui.h"
 #include "rg_rtc.h"
 #include "rg_i18n.h"
+#include "main_msx.h"
 
+static retro_emulator_file_t *CHOSEN_FILE = NULL;
 // static uint16_t *overlay_buffer = NULL;
 static uint16_t overlay_buffer[ODROID_SCREEN_WIDTH * 32 * 2] __attribute__((aligned(4)));
 static short dialog_open_depth = 0;
@@ -1032,8 +1034,134 @@ int odroid_overlay_game_debug_menu(void)
     return odroid_overlay_dialog("Debugging", options, 0);
 }
 
+#if CHEAT_CODES == 1
+static bool game_genie_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    bool is_on = odroid_settings_ActiveGameGenieCodes_is_enabled(CHOSEN_FILE->id, option->id);
+    if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) 
+    {
+        is_on = is_on ? false : true;
+        odroid_settings_ActiveGameGenieCodes_set(CHOSEN_FILE->id, option->id, is_on);
+    }
+    strcpy(option->value, is_on ? curr_lang->s_Cheat_Codes_ON : curr_lang->s_Cheat_Codes_OFF);
+    if (event == ODROID_DIALOG_ENTER) {
+        retro_emulator_t *emu = file_to_emu(CHOSEN_FILE);
+        if(strcmp(emu->system_name, "MSX") == 0) {
+            update_cheats_msx();
+        }
+    }
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static bool show_game_genie_dialog()
+{
+    static odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
+    
+    printf("count = %d\n",CHOSEN_FILE->game_genie_count);
+    // +1 for the terminator sentinel
+    odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->game_genie_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
+    char svalues[MAX_CHEAT_CODES][10];
+
+    for(int i=0; i<CHOSEN_FILE->game_genie_count; i++) 
+    {
+        const char *label = CHOSEN_FILE->game_genie_descs[i];
+        if (label == NULL) {
+            label = CHOSEN_FILE->game_genie_codes[i];
+        }
+        choices[i].id = i;
+        choices[i].label = label;
+        choices[i].value = svalues[i];
+        choices[i].enabled = 1;
+        choices[i].update_cb = game_genie_update_cb;
+    }
+    choices[CHOSEN_FILE->game_genie_count] = last;
+    odroid_overlay_dialog(curr_lang->s_Cheat_Codes_Title, choices, 0);
+
+    rg_free(choices);
+    odroid_settings_commit();
+    return false;
+}
+#endif
 int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options)
 {
+#if CHEAT_CODES == 1
+    odroid_dialog_choice_t choices[12];
+    bool cheat_update_support = false;
+    CHOSEN_FILE = ACTIVE_FILE;
+    retro_emulator_t *emu = file_to_emu(CHOSEN_FILE);
+    if(strcmp(emu->system_name, "MSX") == 0) {
+        cheat_update_support = true;
+    }
+
+    int index=0;
+    choices[index].id = 10;
+    choices[index].label = curr_lang->s_Save_Cont;
+    choices[index].value = "";
+    choices[index].enabled = (ACTIVE_FILE->save_address != 0);
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 20;
+    choices[index].label = curr_lang->s_Save_Quit;
+    choices[index].value = "";
+    choices[index].enabled = (ACTIVE_FILE->save_address != 0);
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 0x0F0F0F0E;
+    choices[index].label = "-";
+    choices[index].value = "-";
+    choices[index].enabled = -1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 30;
+    choices[index].label = curr_lang->s_Reload;
+    choices[index].value = "";
+    choices[index].enabled = 1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 40;
+    choices[index].label = curr_lang->s_Options;
+    choices[index].value = "";
+    choices[index].enabled = 1;
+    choices[index].update_cb = NULL;
+    index++;
+    if ((ACTIVE_FILE->game_genie_count != 0) && (cheat_update_support)) {
+        choices[index].id = 60;
+        choices[index].label = curr_lang->s_Cheat_Codes;
+        choices[index].value = "";
+        choices[index].enabled = 1;
+        choices[index].update_cb = NULL;
+        index++;
+    }
+    choices[index].id = 0x0F0F0F0E;
+    choices[index].label = "-";
+    choices[index].value = "-";
+    choices[index].enabled = -1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 90;
+    choices[index].label = curr_lang->s_Power_off;
+    choices[index].value = "";
+    choices[index].enabled = 1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 0x0F0F0F0E;
+    choices[index].label = "-";
+    choices[index].value = "-";
+    choices[index].enabled = -1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 100;
+    choices[index].label = curr_lang->s_Quit_to_menu;
+    choices[index].value = "";
+    choices[index].enabled = 1;
+    choices[index].update_cb = NULL;
+    index++;
+    choices[index].id = 0x0F0F0F0F;
+    choices[index].label = "LAST";
+    choices[index].value = "LAST";
+    choices[index].enabled = 0xFFFF;
+    choices[index].update_cb = NULL;
+#else
     odroid_dialog_choice_t choices[] = {
         // {0, "Continue", "",  1, NULL},
         {10, curr_lang->s_Save_Cont, "", (ACTIVE_FILE->save_address != 0), NULL},
@@ -1048,7 +1176,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options)
         {100, curr_lang->s_Quit_to_menu, "", 1, NULL},
         ODROID_DIALOG_CHOICE_LAST,
     };
-
+#endif
     //Del Some item
     if (ACTIVE_FILE->save_address == 0)
     {
@@ -1091,6 +1219,11 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options)
     case 50:
         odroid_overlay_game_debug_menu();
         break;
+#if CHEAT_CODES == 1
+    case 60:
+        show_game_genie_dialog();
+        break;
+#endif
     case 90:
 #if OFF_SAVESTATE == 1
         // Slot 1 is a common slot used only for power off/power on

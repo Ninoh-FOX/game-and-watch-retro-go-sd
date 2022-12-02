@@ -39,7 +39,7 @@ const lang_t lang_fr_fr LANG_DATA = {
 
     // Core\Src\porting\nes\main_nes.c =====================================
     //.s_Palette = "Palette" dul
-    .s_Default = "Par défaut",
+    .s_Default = "Par dï¿½faut",
     //=====================================================================
 
     // Core\Src\porting\gw\main_gw.c =======================================
@@ -52,7 +52,7 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Press_ALARM = "Presser ALARM [B+GAME]",
     .s_filter_0_none = "0-aucun",
     .s_filter_1_medium = "1-moyen",
-    .s_filter_2_high = "2-élevé",
+    .s_filter_2_high = "2-ï¿½levï¿½",
     //=====================================================================
 
     // Core\Src\porting\odroid_overlay.c ===================================
@@ -66,21 +66,21 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_PlsChose = "Question",
     .s_OK = "OK",
     .s_Confirm = "Confirmer",
-    .s_Brightness = "Luminosité",
+    .s_Brightness = "Luminositï¿½",
     .s_Volume = "Volume",
     .s_OptionsTit = "Options",
     .s_FPS = "FPS",
-    .s_BUSY = "Occupé",
+    .s_BUSY = "Occupï¿½",
     .s_Scaling = "Echelle",
     .s_SCalingOff = "Off",
-    .s_SCalingFit = "Adaptée",
+    .s_SCalingFit = "Adaptï¿½e",
     .s_SCalingFull = "Complete",
-    .s_SCalingCustom = "Personalisée",
+    .s_SCalingCustom = "Personalisï¿½e",
     .s_Filtering = "Filtrage",
     .s_FilteringNone = "Aucun",
     .s_FilteringOff = "Off",
-    .s_FilteringSharp = "Précis",
-    .s_FilteringSoft = "Léger",
+    .s_FilteringSharp = "Prï¿½cis",
+    .s_FilteringSoft = "Lï¿½ger",
     .s_Speed = "Vitesse",
     .s_Speed_Unit = "x",
     .s_Save_Cont = "Sauver & Continuer",
@@ -108,18 +108,18 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Size = "Taille",
     .s_ImgSize = "Taille image",
     .s_Close = "Fermer",
-    .s_GameProp = "Propriétés",
+    .s_GameProp = "Propriï¿½tï¿½s",
     .s_Resume_game = "Reprendre le jeu",
     .s_New_game = "Nouvelle partie",
     .s_Del_favorite = "Retirer des favoris",
     .s_Add_favorite = "Ajouter aux favoris",
     .s_Delete_save = "Supprimer la sauvegarde",
     .s_Confiem_del_save = "Supprimer la sauvegarde ?",
-#if GAME_GENIE == 1
-    .s_Game_Genie_Codes = "Game Genie Codes",
-    .s_Game_Genie_Codes_Title = "GG Options",
-    .s_Game_Genie_Codes_ON = "\x6",
-    .s_Game_Genie_Codes_OFF = "\x5",
+#if CHEAT_CODES == 1
+    .s_Cheat_Codes = "Codes de triche",
+    .s_Cheat_Codes_Title = "Options de triche",
+    .s_Cheat_Codes_ON = "\x6",
+    .s_Cheat_Codes_OFF = "\x5",
 #endif        
 
     //=====================================================================
@@ -130,13 +130,13 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Author = "De",
     .s_Author_ = "\t\t+",
     .s_UI_Mod = "UI Mod",
-    .s_Lang = "Français",
+    .s_Lang = "Franï¿½ais",
     .s_LangAuthor = "Narkoa",
     .s_Debug_menu = "Menu Debug",
-    .s_Reset_settings = "Restaurer les paramètres",
+    .s_Reset_settings = "Restaurer les paramï¿½tres",
     //.s_Close                   = "Fermer",
     .s_Retro_Go = "A propos de Retro-Go",
-    .s_Confirm_Reset_settings = "Restaurer les paramètres ?",
+    .s_Confirm_Reset_settings = "Restaurer les paramï¿½tres ?",
 
     .s_Flash_JEDEC_ID = "Id Flash JEDEC",
     .s_Flash_Name = "Nom Flash",
@@ -145,7 +145,7 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Smallest_erase = "Plus petite suppression",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
     .s_Enable_DBGMCU_CK = "Activer DBGMCU CK",
-    .s_Disable_DBGMCU_CK = "Désactiver DBGMCU CK",
+    .s_Disable_DBGMCU_CK = "Dï¿½sactiver DBGMCU CK",
     //.s_Close                   = "Fermer",
     .s_Debug_Title = "Debug",
     .s_Idle_power_off = "Temps avant veille",
@@ -159,13 +159,13 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Hour = "Heure",
     .s_Minute = "Minute",
     .s_Second = "Seconde",
-    .s_Time_setup = "Réglage",
+    .s_Time_setup = "Rï¿½glage",
 
     .s_Day = "Jour",
     .s_Month = "Mois",
-    .s_Year = "Année",
+    .s_Year = "Annï¿½e",
     .s_Weekday = "Jour de la semaine",
-    .s_Date_setup = "Réglage Date",
+    .s_Date_setup = "Rï¿½glage Date",
 
     .s_Weekday_Mon = "Lun",
     .s_Weekday_Tue = "Mar",

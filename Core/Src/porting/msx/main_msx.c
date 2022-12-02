@@ -24,6 +24,7 @@
 #include "ArchFile.h"
 #include "VideoRender.h"
 #include "AudioMixer.h"
+#include "SlotManager.h"
 #include "Casette.h"
 #include "PrinterIO.h"
 #include "UartIO.h"
@@ -529,6 +530,7 @@ struct msx_key_info msx_keyboard[] = {
     {EC_CODE,"Code",true},
     {EC_SELECT,"Select",true},
     {EC_RETURN,"Return",true},
+    {EC_CLS,"Home",true},
     {EC_DEL,"Delete",true},
     {EC_INS,"Insert",true},
     {EC_STOP,"Stop",true},
@@ -1415,6 +1417,14 @@ static void insertGame() {
             msx_button_start_key = EC_F1;
             msx_button_select_key = EC_F1;
         break;
+        case 43: // Firebird
+            msx_button_a_key = EC_SPACE;
+            msx_button_b_key = EC_N;
+            msx_button_game_key = EC_F1;
+            msx_button_time_key = EC_F5;
+            msx_button_start_key = EC_F1;
+            msx_button_select_key = EC_F5;
+        break;
         default:
             controls_found = false;
         break;
@@ -1794,5 +1804,11 @@ void archSoundCreate(Mixer* mixer, UInt32 sampleRate, UInt32 bufferSize, Int16 c
 }
 
 void archSoundDestroy(void) {}
+
+#if CHEAT_CODES == 1
+void update_cheats_msx() {
+    msxUpdateCheatInfo();
+}
+#endif
 
 #endif

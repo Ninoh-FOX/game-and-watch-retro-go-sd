@@ -336,7 +336,7 @@ void emulator_show_file_info(retro_emulator_file_t *file)
     odroid_overlay_dialog(curr_lang->s_GameProp, choices, -1);
 }
 
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
 static bool game_genie_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     bool is_on = odroid_settings_ActiveGameGenieCodes_is_enabled(CHOSEN_FILE->id, option->id);
@@ -345,7 +345,7 @@ static bool game_genie_update_cb(odroid_dialog_choice_t *option, odroid_dialog_e
         is_on = is_on ? false : true;
         odroid_settings_ActiveGameGenieCodes_set(CHOSEN_FILE->id, option->id, is_on);
     }
-    strcpy(option->value, is_on ? curr_lang->s_Game_Genie_Codes_ON : curr_lang->s_Game_Genie_Codes_OFF);
+    strcpy(option->value, is_on ? curr_lang->s_Cheat_Codes_ON : curr_lang->s_Cheat_Codes_OFF);
     return event == ODROID_DIALOG_ENTER;
 }
 
@@ -355,7 +355,7 @@ static bool show_game_genie_dialog()
 
     // +1 for the terminator sentinel
     odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->game_genie_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
-    char svalues[MAX_GAME_GENIE_CODES][10];
+    char svalues[MAX_CHEAT_CODES][10];
     for(int i=0; i<CHOSEN_FILE->game_genie_count; i++) 
     {
         const char *label = CHOSEN_FILE->game_genie_descs[i];
@@ -369,7 +369,7 @@ static bool show_game_genie_dialog()
         choices[i].update_cb = game_genie_update_cb;
     }
     choices[CHOSEN_FILE->game_genie_count] = last;
-    odroid_overlay_dialog(curr_lang->s_Game_Genie_Codes_Title, choices, 0);
+    odroid_overlay_dialog(curr_lang->s_Cheat_Codes_Title, choices, 0);
 
     rg_free(choices);
     odroid_settings_commit();
@@ -390,9 +390,9 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     bool has_sram = 0;
     bool force_redraw = false;
 
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
-    odroid_dialog_choice_t game_genie_row = {4, curr_lang->s_Game_Genie_Codes, "", 1, NULL};
+    odroid_dialog_choice_t game_genie_row = {4, curr_lang->s_Cheat_Codes, "", 1, NULL};
     odroid_dialog_choice_t game_genie_choice = last; 
     if (CHOSEN_FILE->game_genie_count != 0) {
         game_genie_choice = game_genie_row;
@@ -407,14 +407,14 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         //{3, is_fav ? s_Del_favorite : s_Add_favorite, "", 1, NULL},
 		//ODROID_DIALOG_CHOICE_SEPARATOR,
         {2, curr_lang->s_Delete_save, "", (has_save || has_sram) && (file->save_address != 0), NULL},
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
         ODROID_DIALOG_CHOICE_SEPARATOR,
         game_genie_choice,
 #endif
 
         ODROID_DIALOG_CHOICE_LAST
     };
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     if (CHOSEN_FILE->game_genie_count == 0)
         choices[4] = last;
 #endif
@@ -423,7 +423,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     if (file->save_address == 0)
     {
         choices[0] = choices[1];
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
         choices[1] = choices[2];
         choices[2] = choices[3];
         choices[3] = choices[6];
@@ -450,7 +450,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         //     favorite_add(file);
     }
     else if (sel == 4) {
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
         if (CHOSEN_FILE->game_genie_count != 0)
             show_game_genie_dialog();
         force_redraw = true;
@@ -468,14 +468,6 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 {
     printf("Retro-Go: Starting game: %s\n", file->name);
     rom_manager_set_active_file(file);
-
-#if GAME_GENIE == 1
-    if (file->game_genie_count > 0){
-        CHOSEN_FILE = file;
-        show_game_genie_dialog();
-        CHOSEN_FILE = NULL;
-    }
-#endif
 
     // odroid_settings_StartAction_set(load_state ? ODROID_START_ACTION_RESUME : ODROID_START_ACTION_NEWGAME);
     // odroid_settings_RomFilePath_set(path);

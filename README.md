@@ -93,8 +93,8 @@ Supported emulators:
   - [Build and flash using Docker](#build-and-flash-using-docker)
   - [Backing up and restoring save state files](#backing-up-and-restoring-save-state-files)
   - [Screenshots](#screenshots)
-  - [Game Genie](#game-genie)
-    - [Game Genie on PCE System](#game-genie-on-pce-system)
+  - [Cheat codes](#cheat-codes)
+    - [Cheat codes on PCE System](#cheat-codes-on-pce-system)
   - [Upgrading the flash](#upgrading-the-flash)
   - [Advanced Flash Examples](#advanced-flash-examples)
     - [Custom Firmware (CFW)](#custom-firmware-cfw)
@@ -250,11 +250,15 @@ Screenshots can be captured by pressing `PAUSE/SET` + `GAME`. This feature is di
 
 Screenshots can be downloaded by running `make dump_screenshot`, and will be saved as a 24-bit RGB PNG.
 
-## Game Genie
+## Cheat codes
 
-Note: Currently Game Genie codes are only working with NES games.
+Note: Currently cheat codes are only working with NES, PCE and MSX games.
 
-To enable, add GAME_GENIE=1 to your make command. If you have already compiled without GAME_GENIE=1, I recommend running make clean first.
+To enable, add CHEAT_CODES=1 to your make command. If you have already compiled without CHEAT_CODES=1, I recommend running make clean first.
+To enable or disable cheats, select a game then select "Cheat Codes". You will be able to select cheats you want to enable/disable. Then you can start/resume a game and selected cheats will be applied.
+On MSX system, you can enable/disable cheats during game.
+
+### Cheat codes on NES System
 
 To add Game Genie codes, create a file ending in .ggcodes in the same directory as your rom with the same name as your rom. For instance, for 
 "roms/nes/Super Mario Bros.nes" make a file called "roms/nes/Super Mario Bros.ggcodes". In that file, each line can have up to 3 Game Genie codes and a maximum
@@ -272,7 +276,7 @@ When you re-flash, you can enable / disable each of your codes in the game selec
 
 A collection of codes can be found here: [https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes](https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes).
 
-### Game Genie on PCE System
+### Cheat codes on PCE System
 
 Now you can define rom patch for PCE Roms. You can found patch info from [Here](https://krikzz.com/forum/index.php?topic=1004.0).
 To add PCE rom patcher, create a file ending in .pceplus in the same directory as your rom with the same name as your rom. For instance, for 
@@ -297,7 +301,11 @@ _
        |bytes data to patched from start address
 
 ```
+### Cheat codes on MSX System
 
+You can use blueMSX MCF cheat files with your Game & Watch. A nice collection of patch files is available [Here](http://bluemsx.msxblue.com/rel_download/Cheats.zip).
+Just copy the wanted MCF files in your roms/msx folder with the same name as the corresponding rom/dsk file.
+On MSX system, you can enable/disable cheats while playing. Just press the Pause/Set button and choose "Cheat Codes" menu to choose which cheats you want to enable or disable.
 
 ## Upgrading the flash
 
@@ -336,7 +344,8 @@ What is supported :
 - MSX1/2/2+ system are supported. MSX Turbo-R will probably not work on the G&W.
 - ROM cartridges images : roms have to be named with rom, mx1 or mx2 extension.
 - Disks images : disks images have to be named with dsk extension. Due to memory constraints, disks images are read only. Multiple disks games are supported and user can change the current disk using the "Pause/Options/Change Dsk" menu. Note : Savestates on the MSX are taking a lot of space (260kBytes) due to all the system memory to save, and one savestate slot is allocated for each dsk file. In the case of multiple disks games, only the first disk needs to have a savestate allocation, for this reason it is possible to disable savestate allocation for disk2/3/... of a multiple disk game by adding the _no_save suffix to disk name. Example : "SD Snatcher Disk 1.dsk" will have the savestate memory allocated, and "SD Snatcher Disk 2_no_save.dsk" will not have save state memory allocated. To prevent wasting flash memory for savestates that will never be used, it's a good practice to keep original name for first disk of a game (the one you are selecting to start the game) and to add _no_save suffix to other disks of the game.
-- The file roms/msx_bios/msxromdb.xml contrains control profiles for some games, it allows to configure controls in the best way for some games. If a game has no control profile defined in msxromdb.xml, then a default configuration will be used : the button A is associated to space key and button B is associated to n key, which is the correct configuration for most Konami games. In "Pause/Options/Button A & Button B" menu, you can change the keys associated to A/B buttons.
+- Cheat codes support (MCF files in old or new format as described [Here](http://www.msxblue.com/manual/trainermcf_c.htm))
+- The file roms/msx_bios/msxromdb.xml contains control profiles for some games, it allows to configure controls in the best way for some games. If a game has no control profile defined in msxromdb.xml, then controls will be configured as joystick emulation mode.
 - Sometimes games require the user to enter his name using the keyboard, and some games like Metal Gear 1/2 are using F1-F5 keys to acces items/radio/... menus. It is possible to virtually press these keys using the "Pause/Options/Press Key" menu.
 
 Note that the MSX support is done using blueMsx 2.8.2, any game that is not working correctly using this emulator will not work on the Game & Watch. To fit in the G&W, a some features have been removed, so it's possible that some games running on blueMSX will not work in the G&W port. The emulator port is still in progress, consider it as a preview version.

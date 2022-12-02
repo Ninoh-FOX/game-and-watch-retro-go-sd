@@ -645,17 +645,17 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused, uint8_t save_slot) {
     // Init PCE Core
     pce_init();
 
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     int game_genie_count = 0;
     const char **active_game_genie_codes = NULL;
-    for(int i=0; i<MAX_GAME_GENIE_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
+    for(int i=0; i<MAX_CHEAT_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
         if (odroid_settings_ActiveGameGenieCodes_is_enabled(ACTIVE_FILE->id, i)) {
             game_genie_count++;
         }
     }
 
     active_game_genie_codes = rg_alloc(game_genie_count * sizeof(char**), MEM_ANY);
-    for(int i=0, j=0; i<MAX_GAME_GENIE_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
+    for(int i=0, j=0; i<MAX_CHEAT_CODES && i<ACTIVE_FILE->game_genie_count; i++) {
         if (odroid_settings_ActiveGameGenieCodes_is_enabled(ACTIVE_FILE->id, i)) {
             active_game_genie_codes[j] = ACTIVE_FILE->game_genie_codes[i];
             j++;
@@ -719,7 +719,7 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused, uint8_t save_slot) {
         PCE.MaxCycles -= Cycles;
         Cycles = 0;
     }
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
     rg_free(active_game_genie_codes); // No need to clean up the objects in the array as they're allocated in read only space
 #endif
 }

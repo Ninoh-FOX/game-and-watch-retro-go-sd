@@ -1,6 +1,6 @@
 #pragma once
-#if !defined (GAME_GENIE)
-#define GAME_GENIE 0
+#if !defined (CHEAT_CODES)
+#define CHEAT_CODES 0
 #endif
 typedef struct
 {
@@ -83,11 +83,11 @@ typedef struct
     const char *s_Add_favorite;
     const char *s_Delete_save;
     const char *s_Confiem_del_save;
-#if GAME_GENIE == 1
-    const char *s_Game_Genie_Codes;
-    const char *s_Game_Genie_Codes_Title;
-    const char *s_Game_Genie_Codes_ON;
-    const char *s_Game_Genie_Codes_OFF;
+#if CHEAT_CODES == 1
+    const char *s_Cheat_Codes;
+    const char *s_Cheat_Codes_Title;
+    const char *s_Cheat_Codes_ON;
+    const char *s_Cheat_Codes_OFF;
 #endif    
     //=====================================================================
     // Core\Src\retro-go\rg_main.c =========================================

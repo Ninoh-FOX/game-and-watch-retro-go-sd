@@ -23,10 +23,10 @@ const uint32_t {name}_count = {rom_count};
 """
 
 # Note: this value is not easily changed as it's assumed in some memory optimizations
-MAX_GAME_GENIE_CODES = 16
+MAX_CHEAT_CODES = 16
 
 ROM_ENTRY_TEMPLATE = """\t{{
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
 \t\t.id = {rom_id},
 #endif
 \t\t.name = "{name}",
@@ -43,7 +43,7 @@ ROM_ENTRY_TEMPLATE = """\t{{
 \t\t.region = {region},
 \t\t.mapper = {mapper},
 \t\t.game_config = {game_config},
-#if GAME_GENIE == 1
+#if CHEAT_CODES == 1
 \t\t.game_genie_codes = {game_genie_codes},
 \t\t.game_genie_descs = {game_genie_descs},
 \t\t.game_genie_count = {game_genie_count},
@@ -482,11 +482,11 @@ class ROM:
 
             codes_and_descs.append((cmd_str, desc))
 
-        if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+        if len(codes_and_descs) > MAX_CHEAT_CODES:
             print(
-                f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} Game Genie codes. Truncating..."
+                f"INFO: {self.name} has more than {MAX_CHEAT_CODES} cheat codes. Truncating..."
             )
-            codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+            codes_and_descs = codes_and_descs[:MAX_CHEAT_CODES]
 
         return codes_and_descs
 
@@ -526,11 +526,11 @@ class ROM:
 
                 codes_and_descs.append((code, desc))
 
-            if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+            if len(codes_and_descs) > MAX_CHEAT_CODES:
                 print(
-                    f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} Game Genie codes. Truncating..."
+                    f"INFO: {self.name} has more than {MAX_CHEAT_CODES} cheat codes. Truncating..."
                 )
-                codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+                codes_and_descs = codes_and_descs[:MAX_CHEAT_CODES]
 
             return codes_and_descs
 
@@ -608,11 +608,11 @@ class ROM:
                     codes_and_descs.append((code, desc))
 
 
-            if len(codes_and_descs) > MAX_GAME_GENIE_CODES:
+            if len(codes_and_descs) > MAX_CHEAT_CODES:
                 print(
-                    f"INFO: {self.name} has more than {MAX_GAME_GENIE_CODES} cheat codes. Truncating..."
+                    f"INFO: {self.name} has more than {MAX_CHEAT_CODES} cheat codes. Truncating..."
                 )
-                codes_and_descs = codes_and_descs[:MAX_GAME_GENIE_CODES]
+                codes_and_descs = codes_and_descs[:MAX_CHEAT_CODES]
 
             return codes_and_descs
 
@@ -848,7 +848,7 @@ class ROMParser:
         count_name = "%s%s_COUNT" % (name, num)
         code_array_name = "%sCODE_%s" % (name, num)
         desc_array_name = "%sDESC_%s" % (name, num)
-        str += f'#if GAME_GENIE == 1\n'
+        str += f'#if CHEAT_CODES == 1\n'
         str += f'const char* {code_array_name}[{number_of_codes}] = {codes};\n'
         str += f'const char* {desc_array_name}[{number_of_codes}] = {descs};\n'
         str += f'const int {count_name} = {number_of_codes};\n'
@@ -1547,7 +1547,7 @@ class ROMParser:
             exit(-1)
 
         build_config += "#define ROM_COUNT %d\n" % current_id
-        build_config += "#define MAX_GAME_GENIE_CODES %d\n" % MAX_GAME_GENIE_CODES
+        build_config += "#define MAX_CHEAT_CODES %d\n" % MAX_CHEAT_CODES
 
         self.write_if_changed(
             "build/saveflash.ld", f"__SAVEFLASH_LENGTH__ = {total_save_size};\n"
