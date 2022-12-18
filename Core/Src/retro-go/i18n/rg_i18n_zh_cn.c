@@ -7,12 +7,12 @@
 #if !defined (INCLUDED_ZH_CN)
 #define INCLUDED_ZH_CN 0
 #endif
-#if !defined (CHEAT_CODES)
-#define CHEAT_CODES 0
+#if !defined (GAME_GENIE)
+#define GAME_GENIE 0
 #endif
 #if INCLUDED_ZH_CN==1
 
-// Stand ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// Stand ¼òÌåÖÐÎÄ
 
 int zh_cn_fmt_Title_Date_Format(char *outstr, const char *datefmt, uint16_t day, uint16_t month, const char *weekday, uint16_t hour, uint16_t minutes, uint16_t seconds)
 {
@@ -32,155 +32,155 @@ int zh_cn_fmt_Time(char *outstr, const char *timefmt, uint16_t hour, uint16_t mi
 const lang_t lang_zh_cn LANG_DATA = {
     .codepage = 936,
     .extra_font = cjk_zh_cn,
-    .s_LangUI = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_LangTitle = "ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½",
+    .s_LangUI = "½çÃæÓïÑÔ",
+    .s_LangTitle = "ÓÎÏ·±êÌâ",
     .s_LangName = "S_Chinese",
     
     // Core\Src\porting\gb\main_gb.c =======================================
-    .s_Palette = "ï¿½ï¿½É«ï¿½ï¿½",
+    .s_Palette = "µ÷É«°å",
     //=====================================================================
 
     // Core\Src\porting\nes\main_nes.c =====================================
-    //.s_Palette= "ï¿½ï¿½É«ï¿½ï¿½" dul
-    .s_Default = "Ä¬ï¿½ï¿½",
+    //.s_Palette= "µ÷É«°å" dul
+    .s_Default = "Ä¬ÈÏ",
     //=====================================================================
 
     // Core\Src\porting\gw\main_gw.c =======================================
-    .s_copy_RTC_to_GW_time = "ï¿½ï¿½ÏµÍ³Ê±ï¿½ï¿½Í¬ï¿½ï¿½",
-    .s_copy_GW_time_to_RTC = "Í¬ï¿½ï¿½Ê±ï¿½äµ½ÏµÍ³",
-    .s_LCD_filter = "ï¿½ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Display_RAM = "ï¿½ï¿½Ê¾ï¿½Ú´ï¿½ï¿½ï¿½Ï¢",
-    .s_Press_ACL = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·",
-    .s_Press_TIME = "Ä£ï¿½ï¿½ TIME  ï¿½ï¿½ [B+TIME]",
-    .s_Press_ALARM = "Ä£ï¿½ï¿½ ALARM ï¿½ï¿½ [B+GAME]",
-    .s_filter_0_none = "ï¿½ï¿½",
-    .s_filter_1_medium = "ï¿½ï¿½",
-    .s_filter_2_high = "ï¿½ï¿½",
+    .s_copy_RTC_to_GW_time = "´ÓÏµÍ³Ê±¼äÍ¬²½",
+    .s_copy_GW_time_to_RTC = "Í¬²½Ê±¼äµ½ÏµÍ³",
+    .s_LCD_filter = "ÆÁÄ»¿¹¾â³Ý",
+    .s_Display_RAM = "ÏÔÊ¾ÄÚ´æÐÅÏ¢",
+    .s_Press_ACL = "ÖØÖÃÓÎÏ·",
+    .s_Press_TIME = "Ä£Äâ TIME  ¼ü [B+TIME]",
+    .s_Press_ALARM = "Ä£Äâ ALARM ¼ü [B+GAME]",
+    .s_filter_0_none = "¹Ø",
+    .s_filter_1_medium = "ÖÐ",
+    .s_filter_2_high = "¸ß",
     //=====================================================================
 
     // Core\Src\porting\odroid_overlay.c ===================================
     .s_Full = "\x7",
     .s_Fill = "\x8",
 
-    .s_No_Cover = "ï¿½Þ·ï¿½ï¿½ï¿½",
+    .s_No_Cover = "ÎÞ·âÃæ",
 
-    .s_Yes = "ï¿½ï¿½ ï¿½ï¿½",
-    .s_No = "ï¿½ï¿½ ï¿½ï¿½",
-    .s_PlsChose = "ï¿½ï¿½Ñ¡ï¿½ï¿½",
-    .s_OK = "ï¿½ï¿½ È·ï¿½ï¿½",
-    .s_Confirm = "ï¿½ï¿½Ï¢È·ï¿½ï¿½",
-    .s_Brightness = "ï¿½ï¿½ï¿½ï¿½",
-    .s_Volume = "ï¿½ï¿½ï¿½ï¿½",
-    .s_OptionsTit = "ÏµÍ³ï¿½ï¿½ï¿½ï¿½",
-    .s_FPS = "Ö¡ï¿½ï¿½",
-    .s_BUSY = "ï¿½ï¿½ï¿½Ø£ï¿½CPUï¿½ï¿½",
-    .s_Scaling = "ï¿½ï¿½ï¿½ï¿½",
-    .s_SCalingOff = "ï¿½Ø±ï¿½",
-    .s_SCalingFit = "ï¿½ï¿½ï¿½ï¿½Ó¦",
-    .s_SCalingFull = "È«ï¿½ï¿½",
-    .s_SCalingCustom = "ï¿½Ô¶ï¿½ï¿½ï¿½",
-    .s_Filtering = "ï¿½ï¿½ï¿½ï¿½",
-    .s_FilteringNone = "ï¿½ï¿½",
-    .s_FilteringOff = "ï¿½Ø±ï¿½",
-    .s_FilteringSharp = "ï¿½ï¿½ï¿½ï¿½",
-    .s_FilteringSoft = "ï¿½ï¿½ï¿½",
-    .s_Speed = "ï¿½Ù¶ï¿½",
-    .s_Speed_Unit = "ï¿½ï¿½",
-    .s_Save_Cont = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Save_Quit = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ë³ï¿½",
-    .s_Reload = "ï¿½ï¿½ ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½",
-    .s_Options = "ï¿½ï¿½ ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½",
-    .s_Power_off = "ï¿½ï¿½ ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Quit_to_menu = "ï¿½ï¿½ ï¿½Ë³ï¿½ï¿½ï¿½Ï·",
-    .s_Retro_Go_options = "ï¿½ï¿½Ï·Ñ¡ï¿½ï¿½",
+    .s_Yes = "¡ð ÊÇ",
+    .s_No = "¡Á ·ñ",
+    .s_PlsChose = "ÇëÑ¡Ôñ£º",
+    .s_OK = "¡ð È·¶¨",
+    .s_Confirm = "ÐÅÏ¢È·ÈÏ",
+    .s_Brightness = "ÁÁ¶È",
+    .s_Volume = "ÒôÁ¿",
+    .s_OptionsTit = "ÏµÍ³ÉèÖÃ",
+    .s_FPS = "Ö¡ÂÊ",
+    .s_BUSY = "¸ºÔØ£¨CPU£©",
+    .s_Scaling = "Ëõ·Å",
+    .s_SCalingOff = "¹Ø±Õ",
+    .s_SCalingFit = "×ÔÊÊÓ¦",
+    .s_SCalingFull = "È«ÆÁ",
+    .s_SCalingCustom = "×Ô¶¨Òå",
+    .s_Filtering = "¹ýÂË",
+    .s_FilteringNone = "ÎÞ",
+    .s_FilteringOff = "¹Ø±Õ",
+    .s_FilteringSharp = "ÈñÀû",
+    .s_FilteringSoft = "ÈáºÍ",
+    .s_Speed = "ËÙ¶È",
+    .s_Speed_Unit = "±¶",
+    .s_Save_Cont = "¡ö ±£´æ½ø¶È",
+    .s_Save_Quit = "¡ø ±£´æÍË³ö",
+    .s_Reload = "¡Þ ÖØÐÂ¼ÓÔØ",
+    .s_Options = "¡ò ÓÎÏ·ÉèÖÃ",
+    .s_Power_off = "¦Ø ¹Ø»úÐÝÃß",
+    .s_Quit_to_menu = "¡Á ÍË³öÓÎÏ·",
+    .s_Retro_Go_options = "ÓÎÏ·Ñ¡Ïî",
 
-    .s_Font = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½",
-    .s_Colors = "É«ï¿½Ê·ï¿½ï¿½ï¿½",
+    .s_Font = "×ÖÌåÑùÊ½",
+    .s_Colors = "É«²Ê·½°¸",
 
-    .s_Theme_Title = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½",
-    .s_Theme_sList = "ï¿½ï¿½ï¿½Ð±ï¿½",
-    .s_Theme_CoverV = "ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½", // vertical
-    .s_Theme_CoverH = "Ë®Æ½ï¿½ï¿½ï¿½ï¿½", // horizontal
-    .s_Theme_CoverLightV = "ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½",
-    .s_Theme_CoverLightH = "Ë®Æ½ï¿½ï¿½ï¿½ï¿½",
+    .s_Theme_Title = "½çÃæÑùÊ½",
+    .s_Theme_sList = "¼òµ¥ÁÐ±í",
+    .s_Theme_CoverV = "´¹Ö±¹ö¶¯", // vertical
+    .s_Theme_CoverH = "Ë®Æ½¹ö¶¯", // horizontal
+    .s_Theme_CoverLightV = "´¹Ö±»¶¹ö",
+    .s_Theme_CoverLightH = "Ë®Æ½»¶¹ö",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================
 
-    .s_File = "ï¿½ï¿½ï¿½Æ£ï¿½",
-    .s_Type = "ï¿½ï¿½ï¿½Í£ï¿½",
-    .s_Size = "ï¿½ï¿½Ð¡ï¿½ï¿½",
-    .s_ImgSize = "Í¼ï¿½ï¿½",
-    .s_Close = "ï¿½ï¿½ ï¿½Ø±ï¿½",
-    .s_GameProp = "ï¿½ï¿½Ï·ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Resume_game = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·",
-    .s_New_game = "ï¿½ï¿½ ï¿½ï¿½Ê¼ï¿½ï¿½Ï·",
-    .s_Del_favorite = "ï¿½ï¿½ ï¿½Æ³ï¿½ï¿½Õ²ï¿½",
-    .s_Add_favorite = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ²ï¿½",
-    .s_Delete_save = "ï¿½ï¿½ É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Confiem_del_save = "ï¿½ï¿½È·ï¿½ï¿½ÒªÉ¾ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½È£ï¿½",
+    .s_File = "Ãû³Æ£º",
+    .s_Type = "ÀàÐÍ£º",
+    .s_Size = "´óÐ¡£º",
+    .s_ImgSize = "Í¼Ïñ£º",
+    .s_Close = "¡Á ¹Ø±Õ",
+    .s_GameProp = "ÓÎÏ·ÎÄ¼þÊôÐÔ",
+    .s_Resume_game = "£¾ ¼ÌÐøÓÎÏ·",
+    .s_New_game = "¡ó ¿ªÊ¼ÓÎÏ·",
+    .s_Del_favorite = "¡î ÒÆ³ýÊÕ²Ø",
+    .s_Add_favorite = "¡ï Ìí¼ÓÊÕ²Ø",
+    .s_Delete_save = "¡õ É¾³ý½ø¶È",
+    .s_Confiem_del_save = "ÄúÈ·ÈÏÒªÉ¾³ýÒÑ±£´æµÄÓÎÏ·½ø¶È£¿",
 #if CHEAT_CODES == 1
-    .s_Cheat_Codes = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½",
-    .s_Cheat_Codes_Title = "ï¿½ï¿½ï¿½ï¿½Ö¸",
+    .s_Cheat_Codes = "Cheat Codes",
+    .s_Cheat_Codes_Title = "Cheat Options",
     .s_Cheat_Codes_ON = "\x6",
     .s_Cheat_Codes_OFF = "\x5",
-#endif        
+#endif
 
     //=====================================================================
 
     // Core\Src\retro-go\rg_main.c =========================================
-    .s_Second_Unit = "ï¿½ï¿½",
-    .s_Version = "ï¿½æ¡¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Author = "ï¿½Ø±ï¿½ï¿½×£ï¿½",
-    .s_Author_ = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_UI_Mod = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Lang = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½",
-    .s_LangAuthor = "ï¿½Ó½ï¿½ï¿½ï¿½ï¿½ï¿½",
-    .s_Debug_menu = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢",
-    .s_Reset_settings = "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½è¶¨",
+    .s_Second_Unit = "Ãë",
+    .s_Version = "°æ¡¡¡¡±¾£º",
+    .s_Author = "ÌØ±ð¹±Ï×£º",
+    .s_Author_ = "¡¡¡¡¡¡¡¡£º",
+    .s_UI_Mod = "½çÃæÃÀ»¯£º",
+    .s_Lang = "¼òÌåÖÐÎÄ£º",
+    .s_LangAuthor = "ÄÓ½¬ºýµÄ",
+    .s_Debug_menu = "¡Ö µ÷ÊÔÐÅÏ¢",
+    .s_Reset_settings = "¡Ô ÖØÖÃÉè¶¨",
     //.s_Close                  = "Close",
-    .s_Retro_Go = "ï¿½ï¿½ï¿½ï¿½ Retro-Go",
-    .s_Confirm_Reset_settings = "ï¿½ï¿½È·ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è¶¨ï¿½ï¿½Ï¢ï¿½ï¿½",
+    .s_Retro_Go = "¹ØÓÚ Retro-Go",
+    .s_Confirm_Reset_settings = "ÄúÈ·¶¨ÒªÖØÖÃËùÓÐÉè¶¨ÐÅÏ¢£¿",
 
-    .s_Flash_JEDEC_ID = "ï¿½æ´¢ JEDEC ID",
-    .s_Flash_Name = "ï¿½æ´¢Ð¾Æ¬",
-    .s_Flash_SR = "ï¿½æ´¢×´Ì¬",
-    .s_Flash_CR = "ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½",
-    .s_Smallest_erase = "ï¿½ï¿½Ð¡ï¿½ï¿½Î»",
+    .s_Flash_JEDEC_ID = "´æ´¢ JEDEC ID",
+    .s_Flash_Name = "´æ´¢Ð¾Æ¬",
+    .s_Flash_SR = "´æ´¢×´Ì¬",
+    .s_Flash_CR = "´æ´¢ÅäÖÃ",
+    .s_Smallest_erase = "×îÐ¡µ¥Î»",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
-    .s_Enable_DBGMCU_CK = "ï¿½ï¿½ï¿½ï¿½ DBGMCU CK",
-    .s_Disable_DBGMCU_CK = "ï¿½ï¿½ï¿½ï¿½ DBGMCU CK",
+    .s_Enable_DBGMCU_CK = "ÆôÓÃ DBGMCU CK",
+    .s_Disable_DBGMCU_CK = "½ûÓÃ DBGMCU CK",
     //.s_Close                  = "Close",
-    .s_Debug_Title = "ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½",
-    .s_Idle_power_off = "ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½",
-    .s_Splash_Option = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
+    .s_Debug_Title = "µ÷ÊÔÑ¡Ïî",
+    .s_Idle_power_off = "¿ÕÏÐ´ý»ú",
+    .s_Splash_Option = "Æô¶¯¶¯»­",
     .s_Splash_On = "\x6",
     .s_Splash_Off = "\x5",
 
-    .s_Time = "Ê±ï¿½ä£º",
-    .s_Date = "ï¿½ï¿½ï¿½Ú£ï¿½",
-    .s_Time_Title = "Ê±ï¿½ï¿½",
-    .s_Hour = "Ê±ï¿½ï¿½",
-    .s_Minute = "ï¿½Ö£ï¿½",
-    .s_Second = "ï¿½ë£º",
-    .s_Time_setup = "Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
+    .s_Time = "Ê±¼ä£º",
+    .s_Date = "ÈÕÆÚ£º",
+    .s_Time_Title = "Ê±¼ä",
+    .s_Hour = "Ê±£º",
+    .s_Minute = "·Ö£º",
+    .s_Second = "Ãë£º",
+    .s_Time_setup = "Ê±¼äÉèÖÃ",
 
-    .s_Day = "ï¿½ï¿½  ï¿½ï¿½",
-    .s_Month = "ï¿½ï¿½  ï¿½ï¿½",
-    .s_Year = "ï¿½ï¿½  ï¿½ï¿½",
-    .s_Weekday = "ï¿½ï¿½ï¿½Ú£ï¿½",
-    .s_Date_setup = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
+    .s_Day = "ÈÕ  £º",
+    .s_Month = "ÔÂ  £º",
+    .s_Year = "Äê  £º",
+    .s_Weekday = "ÐÇÆÚ£º",
+    .s_Date_setup = "ÈÕÆÚÉèÖÃ",
 
     .s_Weekday_Mon = "Ò»",
-    .s_Weekday_Tue = "ï¿½ï¿½",
-    .s_Weekday_Wed = "ï¿½ï¿½",
-    .s_Weekday_Thu = "ï¿½ï¿½",
-    .s_Weekday_Fri = "ï¿½ï¿½",
-    .s_Weekday_Sat = "ï¿½ï¿½",
-    .s_Weekday_Sun = "ï¿½ï¿½",
+    .s_Weekday_Tue = "¶þ",
+    .s_Weekday_Wed = "Èý",
+    .s_Weekday_Thu = "ËÄ",
+    .s_Weekday_Fri = "Îå",
+    .s_Weekday_Sat = "Áù",
+    .s_Weekday_Sun = "ÈÕ",
 
-    .s_Date_Format = "20%02dï¿½ï¿½%02dï¿½ï¿½%02dï¿½ï¿½ ï¿½ï¿½%s",
-    .s_Title_Date_Format = "%02d-%02d ï¿½ï¿½%s %02d:%02d:%02d",
+    .s_Date_Format = "20%02dÄê%02dÔÂ%02dÈÕ ÖÜ%s",
+    .s_Title_Date_Format = "%02d-%02d ÖÜ%s %02d:%02d:%02d",
     .s_Time_Format = "%02d:%02d:%02d",
 
     .fmt_Title_Date_Format = zh_cn_fmt_Title_Date_Format,
