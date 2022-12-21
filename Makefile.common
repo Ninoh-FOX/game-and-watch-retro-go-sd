@@ -19,14 +19,12 @@ LARGE_FLASH ?= 0
 # setting EXTFLASH_OFFSET. Useful if the first 1MB are to be preserved.
 EXTFLASH_OFFSET ?= 0
 
-# Configure Game & Watch target device mario|zelda
-GNW_TARGET ?= mario
-
 OFF_SAVESTATE = 0
 ifeq ($(SHARED_HIBERNATE_SAVESTATE),1)
 	OFF_SAVESTATE = 1
 endif
 
+# Configure Game & Watch target device mario|zelda
 # Set the preprocessor options
 ifeq ($(GNW_TARGET),mario)
 	GNW_TARGET_ZELDA = 0
@@ -35,7 +33,7 @@ else ifeq ($(GNW_TARGET),zelda)
 	GNW_TARGET_ZELDA = 1
 	GNW_TARGET_MARIO = 0
 else
-$(error Invalid GNW_TARGET. Valid values {mario|zelda})
+$(error Missing or invalid GNW_TARGET option. Valid values {mario|zelda})
 endif
 
 # Configure external flash size by setting EXTFLASH_SIZE
