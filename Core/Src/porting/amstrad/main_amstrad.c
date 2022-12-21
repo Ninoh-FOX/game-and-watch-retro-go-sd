@@ -1,0 +1,898 @@
+#include <odroid_system.h>
+
+#include <assert.h>
+#include "gw_lcd.h"
+#include "gw_linker.h"
+#include "gw_buttons.h"
+#include "rom_manager.h"
+#include "common.h"
+#include "lz4_depack.h"
+#include "miniz.h"
+#include "lzma.h"
+#include "appid.h"
+#include "bilinear.h"
+#include "rg_i18n.h"
+#include "cap32.h"
+#include "main_amstrad.h"
+#include "amstrad_loader.h"
+#include "save_amstrad.h"
+
+#define AMSTRAD_FPS 50
+#define AMSTRAD_SAMPLE_RATE 22050
+
+#define AMSTRAD_DISK_EXTENSION "cdk"
+
+uint8_t amstrad_framebuffer[CPC_SCREEN_WIDTH*CPC_SCREEN_HEIGHT];
+
+char loader_buffer[512];
+
+static const uint8_t IMG_DISKETTE[] = {
+    0x00, 0x00, 0x00, 0x3F, 0xFF, 0xE0, 0x7C, 0x00, 0x70, 0x7C, 0x03, 0x78,
+    0x7C, 0x03, 0x7C, 0x7C, 0x03, 0x7E, 0x7C, 0x00, 0x7E, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7E, 0x00, 0x7E, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E,
+    0x7D, 0xFF, 0xBE, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x7D, 0xFF, 0xBE,
+    0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x3F, 0xFF, 0xFC, 0x00, 0x00, 0x00,
+};
+
+static bool auto_key = false;
+static int16_t soundBuffer[AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS];
+extern void amstrad_set_volume(uint8_t volume);
+static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
+    0,
+    3,
+    6,
+    15,
+    23,
+    35,
+    46,
+    60,
+    80,
+    100,
+};
+
+typedef enum
+{
+    CPC_0,
+    CPC_1,
+    CPC_2,
+    CPC_3,
+    CPC_4,
+    CPC_5,
+    CPC_6,
+    CPC_7,
+    CPC_8,
+    CPC_9,
+    CPC_A,
+    CPC_B,
+    CPC_C,
+    CPC_D,
+    CPC_E,
+    CPC_F,
+    CPC_G,
+    CPC_H,
+    CPC_I,
+    CPC_J,
+    CPC_K,
+    CPC_L,
+    CPC_M,
+    CPC_N,
+    CPC_O,
+    CPC_P,
+    CPC_Q,
+    CPC_R,
+    CPC_S,
+    CPC_T,
+    CPC_U,
+    CPC_V,
+    CPC_W,
+    CPC_X,
+    CPC_Y,
+    CPC_Z,
+    CPC_a,
+    CPC_b,
+    CPC_c,
+    CPC_d,
+    CPC_e,
+    CPC_f,
+    CPC_g,
+    CPC_h,
+    CPC_i,
+    CPC_j,
+    CPC_k,
+    CPC_l,
+    CPC_m,
+    CPC_n,
+    CPC_o,
+    CPC_p,
+    CPC_q,
+    CPC_r,
+    CPC_s,
+    CPC_t,
+    CPC_u,
+    CPC_v,
+    CPC_w,
+    CPC_x,
+    CPC_y,
+    CPC_z,
+    CPC_AMPERSAND,
+    CPC_ASTERISK,
+    CPC_AT,
+    CPC_BACKQUOTE,
+    CPC_BACKSLASH,
+    CPC_CAPSLOCK,
+    CPC_CLR,
+    CPC_COLON,
+    CPC_COMMA,
+    CPC_CONTROL,
+    CPC_COPY,
+    CPC_CPY_DOWN,
+    CPC_CPY_LEFT,
+    CPC_CPY_RIGHT,
+    CPC_CPY_UP,
+    CPC_CUR_DOWN,
+    CPC_CUR_LEFT,
+    CPC_CUR_RIGHT,
+    CPC_CUR_UP,
+    CPC_CUR_ENDBL,
+    CPC_CUR_HOMELN,
+    CPC_CUR_ENDLN,
+    CPC_CUR_HOMEBL,
+    CPC_DBLQUOTE,
+    CPC_DEL,
+    CPC_DOLLAR,
+    CPC_ENTER,
+    CPC_EQUAL,
+    CPC_ESC,
+    CPC_EXCLAMATN,
+    CPC_F0,
+    CPC_F1,
+    CPC_F2,
+    CPC_F3,
+    CPC_F4,
+    CPC_F5,
+    CPC_F6,
+    CPC_F7,
+    CPC_F8,
+    CPC_F9,
+    CPC_FPERIOD,
+    CPC_GREATER,
+    CPC_HASH,
+    CPC_LBRACKET,
+    CPC_LCBRACE,
+    CPC_LEFTPAREN,
+    CPC_LESS,
+    CPC_LSHIFT,
+    CPC_MINUS,
+    CPC_PERCENT,
+    CPC_PERIOD,
+    CPC_PIPE,
+    CPC_PLUS,
+    CPC_POUND,
+    CPC_POWER,
+    CPC_QUESTION,
+    CPC_QUOTE,
+    CPC_RBRACKET,
+    CPC_RCBRACE,
+    CPC_RETURN,
+    CPC_RIGHTPAREN,
+    CPC_RSHIFT,
+    CPC_SEMICOLON,
+    CPC_SLASH,
+    CPC_SPACE,
+    CPC_TAB,
+    CPC_UNDERSCORE,
+    CPC_J0_UP,
+    CPC_J0_DOWN,
+    CPC_J0_LEFT,
+    CPC_J0_RIGHT,
+    CPC_J0_FIRE1,
+    CPC_J0_FIRE2,
+    CPC_J1_UP,
+    CPC_J1_DOWN,
+    CPC_J1_LEFT,
+    CPC_J1_RIGHT,
+    CPC_J1_FIRE1,
+    CPC_J1_FIRE2,
+    CPC_ES_NTILDE,
+    CPC_ES_nTILDE,
+    CPC_ES_PESETA,
+    CPC_FR_eACUTE,
+    CPC_FR_eGRAVE,
+    CPC_FR_cCEDIL,
+    CPC_FR_aGRAVE,
+    CPC_FR_uGRAVE,
+    CAP32_FPS,
+    CAP32_JOY,
+    CAP32_INCY,
+    CAP32_DECY,
+    CAP32_RENDER,
+    CAP32_LOAD,
+    CAP32_SAVE,
+    CAP32_RESET,
+    CAP32_AUTOFIRE,
+    CAP32_INCFIRE,
+    CAP32_DECFIRE,
+    CAP32_SCREEN,
+} CPC_KEYS;
+
+static bool amstrad_system_loadState(char *pathName)
+{
+    loadAmstradState((uint8_t *)ACTIVE_FILE->save_address);
+    return 0;
+}
+
+static bool amstrad_system_saveState(char *pathName)
+{
+    // Show disk icon when saving state
+    uint16_t *dest = lcd_get_inactive_buffer();
+    uint16_t idx = 0;
+    for (uint8_t i = 0; i < 24; i++) {
+        for (uint8_t j = 0; j < 24; j++) {
+        if (IMG_DISKETTE[idx / 8] & (1 << (7 - idx % 8))) {
+            dest[274 + j + GW_LCD_WIDTH * (2 + i)] = 0xFFFF;
+        }
+        idx++;
+        }
+    }
+#if OFF_SAVESTATE==1
+    if (strcmp(pathName,"1") == 0) {
+        // Save in common save slot (during a power off)
+        saveAmstradState((uint8_t *)&__OFFSAVEFLASH_START__,ACTIVE_FILE->save_size);
+    } else {
+#endif
+        saveAmstradState((uint8_t *)ACTIVE_FILE->save_address,ACTIVE_FILE->save_size);
+#if OFF_SAVESTATE==1
+    }
+#endif
+    return true;
+}
+
+static char palette_name[6];
+static int selected_palette_index = 0;
+static char *palette_names[] = {
+    "Color", "Green", "Grey"
+};
+
+static char controls_name[10];
+static int selected_controls_index = 0;
+static char *controls_names[] = {
+    "Joystick", "Keyboard"
+};
+
+static char disk_name[128];
+static int selected_disk_index = 0;
+
+char DISKA_NAME[16] = "\0";
+char DISKB_NAME[16] = "\0";
+char cart_name[16] = "\0";
+int emu_status;
+
+unsigned int *amstrad_getScreenPtr()
+{
+    return (unsigned int *)amstrad_framebuffer;
+}
+
+struct amstrad_key_info
+{
+    int key_id;
+    const char *name;
+    bool auto_release;
+};
+
+struct amstrad_key_info amstrad_keyboard[] = {
+    {CPC_F0, "F0", true},
+    {CPC_F1, "F1", true},
+    {CPC_F2, "F2", true},
+    {CPC_F3, "F3", true},
+    {CPC_F4, "F4", true},
+    {CPC_F5, "F5", true},
+    {CPC_F6, "F6", true},
+    {CPC_F7, "F7", true},
+    {CPC_F8, "F8", true},
+    {CPC_F9, "F9", true},
+    {CPC_SPACE, "Space", true},
+    {CPC_LSHIFT, "Shift", false},
+    {CPC_CONTROL, "Control", false},
+    {CPC_1, "1/!", true},
+    {CPC_2, "2/\"", true},
+    {CPC_3, "3/#", true},
+    {CPC_4, "4/$", true},
+    {CPC_5, "5/\%", true},
+    {CPC_6, "6/&", true},
+    {CPC_7, "7/'", true},
+    {CPC_8, "8/(", true},
+    {CPC_9, "9/)", true},
+    {CPC_0, "0/_", true},
+    {CPC_a, "a", true},
+    {CPC_b, "b", true},
+    {CPC_c, "c", true},
+    {CPC_d, "d", true},
+    {CPC_e, "e", true},
+    {CPC_f, "f", true},
+    {CPC_g, "g", true},
+    {CPC_h, "h", true},
+    {CPC_i, "i", true},
+    {CPC_j, "j", true},
+    {CPC_k, "k", true},
+    {CPC_l, "l", true},
+    {CPC_m, "m", true},
+    {CPC_n, "n", true},
+    {CPC_o, "o", true},
+    {CPC_p, "p", true},
+    {CPC_q, "q", true},
+    {CPC_r, "r", true},
+    {CPC_s, "s", true},
+    {CPC_t, "t", true},
+    {CPC_u, "u", true},
+    {CPC_v, "v", true},
+    {CPC_w, "w", true},
+    {CPC_x, "x", true},
+    {CPC_y, "y", true},
+    {CPC_z, "z", true},
+    {CPC_FPERIOD, ".", true},
+    {CPC_PIPE, "ù", true},
+};
+
+static odroid_gamepad_state_t previous_joystick_state;
+int amstrad_button_left_key = CPC_J0_LEFT;
+int amstrad_button_right_key = CPC_J0_RIGHT;
+int amstrad_button_up_key = CPC_J0_UP;
+int amstrad_button_down_key = CPC_J0_DOWN;
+int amstrad_button_a_key = CPC_J0_FIRE1;
+int amstrad_button_b_key = CPC_J0_FIRE2;
+int amstrad_button_game_key = CPC_SPACE;
+int amstrad_button_time_key = CPC_RETURN;
+int amstrad_button_start_key = CPC_SPACE;
+int amstrad_button_select_key = CPC_RETURN;
+
+#define RELEASE_KEY_DELAY 5
+static int selected_key_index = 0;
+static char key_name[10];
+static struct amstrad_key_info *pressed_key = NULL;
+static struct amstrad_key_info *release_key = NULL;
+static int release_key_delay = RELEASE_KEY_DELAY;
+int SHIFTON = 0;
+static bool update_keyboard_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    int max_index = sizeof(amstrad_keyboard) / sizeof(amstrad_keyboard[0]) - 1;
+
+    if (event == ODROID_DIALOG_PREV)
+    {
+        selected_key_index = selected_key_index > 0 ? selected_key_index - 1 : max_index;
+    }
+    if (event == ODROID_DIALOG_NEXT)
+    {
+        selected_key_index = selected_key_index < max_index ? selected_key_index + 1 : 0;
+    }
+
+    //    if (eventMap[amstrad_keyboard[selected_key_index].key_id]) {
+    // If key is pressed, add a * in front of key name
+    //        option->value[0] = '*';
+    //        strcpy(option->value+1, amstrad_keyboard[selected_key_index].name);
+    //    } else {
+    strcpy(option->value, amstrad_keyboard[selected_key_index].name);
+    //    }
+
+    if (event == ODROID_DIALOG_ENTER)
+    {
+        pressed_key = &amstrad_keyboard[selected_key_index];
+    }
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    char game_name[128];
+    int disk_count = 0;
+    int max_index = 0;
+    retro_emulator_file_t *disk_file = NULL;
+    const rom_system_t *amstrad_system = rom_manager_system(&rom_mgr, "Amstrad CPC");
+    disk_count = rom_get_ext_count(amstrad_system, AMSTRAD_DISK_EXTENSION);
+    if (disk_count > 0)
+    {
+        max_index = disk_count - 1;
+    }
+    else
+    {
+        max_index = 0;
+    }
+
+    if (event == ODROID_DIALOG_PREV)
+    {
+        selected_disk_index = selected_disk_index > 0 ? selected_disk_index - 1 : max_index;
+    }
+    if (event == ODROID_DIALOG_NEXT)
+    {
+        selected_disk_index = selected_disk_index < max_index ? selected_disk_index + 1 : 0;
+    }
+
+    disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(amstrad_system, AMSTRAD_DISK_EXTENSION, selected_disk_index);
+    if (disk_count > 0)
+    {
+        sprintf(game_name, "%s.%s", disk_file->name, disk_file->ext);
+        detach_disk(0);
+        attach_disk_buffer((char *)disk_file->address, 0);
+    }
+    strcpy(option->value, disk_file->name);
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static bool update_palette_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    int max = 2;
+
+    if (event == ODROID_DIALOG_PREV) selected_palette_index = selected_palette_index > 0 ? selected_palette_index - 1 : max;
+    if (event == ODROID_DIALOG_NEXT) selected_palette_index = selected_palette_index < max ? selected_palette_index + 1 : 0;
+
+    if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+        cap32_set_palette(selected_palette_index);
+    }
+
+    strcpy(option->value, palette_names[selected_palette_index]);
+
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static bool update_controls_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    int max = 1;
+
+    if (event == ODROID_DIALOG_PREV) selected_controls_index = selected_controls_index > 0 ? selected_controls_index - 1 : max;
+    if (event == ODROID_DIALOG_NEXT) selected_controls_index = selected_controls_index < max ? selected_controls_index + 1 : 0;
+
+    if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+        switch (selected_controls_index)
+        {
+        case 0: // Joystick
+            amstrad_button_left_key = CPC_J0_LEFT;
+            amstrad_button_right_key = CPC_J0_RIGHT;
+            amstrad_button_up_key = CPC_J0_UP;
+            amstrad_button_down_key = CPC_J0_DOWN;
+            amstrad_button_a_key = CPC_J0_FIRE1;
+            amstrad_button_b_key = CPC_J0_FIRE2;
+            amstrad_button_game_key = CPC_SPACE;
+            amstrad_button_time_key = CPC_RETURN;
+            amstrad_button_start_key = CPC_SPACE;
+            amstrad_button_select_key = CPC_RETURN;
+            break;
+        case 1: // Keyboard
+            amstrad_button_left_key = CPC_z;
+            amstrad_button_right_key = CPC_x;
+            amstrad_button_up_key = CPC_o;
+            amstrad_button_down_key = CPC_k;
+            amstrad_button_a_key = CPC_SPACE;
+            amstrad_button_b_key = CPC_RETURN;
+            amstrad_button_game_key = CPC_1;
+            amstrad_button_time_key = CPC_2;
+            amstrad_button_start_key = CPC_3;
+            amstrad_button_select_key = CPC_4;
+            break;
+        }
+    }
+
+    strcpy(option->value, controls_names[selected_controls_index]);
+
+    return event == ODROID_DIALOG_ENTER;
+}
+
+static void createOptionMenu(odroid_dialog_choice_t *options)
+{
+    int index = 0;
+    options[index].id = 100;
+    options[index].label = curr_lang->s_Palette;
+    options[index].value = palette_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_palette_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "Change Dsk";
+    options[index].value = disk_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_disk_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "Controls";
+    options[index].value = controls_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_controls_cb;
+    index++;
+    options[index].id = 100;
+    options[index].label = "Press Key";
+    options[index].value = key_name;
+    options[index].enabled = 1;
+    options[index].update_cb = &update_keyboard_cb;
+    index++;
+    options[index].id = 0x0F0F0F0F;
+    options[index].label = "LAST";
+    options[index].value = "LAST";
+    options[index].enabled = 0xFFFF;
+    options[index].update_cb = NULL;
+}
+
+static void amstrad_input_update(odroid_gamepad_state_t *joystick)
+{
+    if ((joystick->values[ODROID_INPUT_LEFT]) && !previous_joystick_state.values[ODROID_INPUT_LEFT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_left_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_LEFT]) && previous_joystick_state.values[ODROID_INPUT_LEFT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_left_key], 0);
+    }
+    if ((joystick->values[ODROID_INPUT_RIGHT]) && !previous_joystick_state.values[ODROID_INPUT_RIGHT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_right_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_RIGHT]) && previous_joystick_state.values[ODROID_INPUT_RIGHT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_right_key], 0);
+    }
+    if ((joystick->values[ODROID_INPUT_UP]) && !previous_joystick_state.values[ODROID_INPUT_UP])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_up_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_UP]) && previous_joystick_state.values[ODROID_INPUT_UP])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_up_key], 0);
+    }
+    if ((joystick->values[ODROID_INPUT_DOWN]) && !previous_joystick_state.values[ODROID_INPUT_DOWN])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_down_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_DOWN]) && previous_joystick_state.values[ODROID_INPUT_DOWN])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_down_key], 0);
+    }
+    if ((joystick->values[ODROID_INPUT_A]) && !previous_joystick_state.values[ODROID_INPUT_A])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_a_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_A]) && previous_joystick_state.values[ODROID_INPUT_A])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_a_key], 0);
+    }
+    if ((joystick->values[ODROID_INPUT_B]) && !previous_joystick_state.values[ODROID_INPUT_B])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_b_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_B]) && previous_joystick_state.values[ODROID_INPUT_B])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_b_key], 0);
+    }
+    // Game button on G&W
+    if ((joystick->values[ODROID_INPUT_START]) && !previous_joystick_state.values[ODROID_INPUT_START])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_game_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_START]) && previous_joystick_state.values[ODROID_INPUT_START])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_game_key], 0);
+    }
+    // Time button on G&W
+    if ((joystick->values[ODROID_INPUT_SELECT]) && !previous_joystick_state.values[ODROID_INPUT_SELECT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_time_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_SELECT]) && previous_joystick_state.values[ODROID_INPUT_SELECT])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_time_key], 0);
+    }
+    // Start button on Zelda G&W
+    if ((joystick->values[ODROID_INPUT_X]) && !previous_joystick_state.values[ODROID_INPUT_X])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_start_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_X]) && previous_joystick_state.values[ODROID_INPUT_X])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_start_key], 0);
+    }
+    // Select button on Zelda G&W
+    if ((joystick->values[ODROID_INPUT_Y]) && !previous_joystick_state.values[ODROID_INPUT_Y])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_select_key], 1);
+    }
+    else if (!(joystick->values[ODROID_INPUT_Y]) && previous_joystick_state.values[ODROID_INPUT_Y])
+    {
+        vkbd_key(cpc_kbd[amstrad_button_select_key], 0);
+    }
+
+    // Handle keyboard emulation
+    if (pressed_key != NULL)
+    {
+        vkbd_key(cpc_kbd[pressed_key->key_id], 1);
+        if (pressed_key->auto_release)
+        {
+            release_key = pressed_key;
+        }
+        pressed_key = NULL;
+    }
+    else if (release_key != NULL)
+    {
+        if (release_key_delay == 0)
+        {
+            vkbd_key(cpc_kbd[release_key->key_id], 0);
+            release_key = NULL;
+            release_key_delay = RELEASE_KEY_DELAY;
+        }
+        else
+        {
+            release_key_delay--;
+        }
+    }
+
+    memcpy(&previous_joystick_state, joystick, sizeof(odroid_gamepad_state_t));
+}
+
+static bool show_disk_icon = false;
+static uint16_t palette565[256];
+int image_buffer_current_width = 384;
+
+// No scaling
+__attribute__((optimize("unroll-loops"))) static inline void blit_normal(uint8_t *src_fb, uint16_t *framebuffer)
+{
+    const int w1 = CPC_SCREEN_WIDTH;
+    const int w2 = GW_LCD_WIDTH;
+    const int h2 = GW_LCD_HEIGHT;
+    const int hpad = 0;
+    uint8_t *src_row;
+    uint16_t *dest_row;
+
+    for (int y = 0; y < h2; y++)
+    {
+        src_row = &src_fb[(y + 24) * w1 + 32];
+        dest_row = &framebuffer[y * w2 + hpad];
+        for (int x = 0; x < w2; x++)
+        {
+            dest_row[x] = palette565[src_row[x]];
+        }
+    }
+}
+
+__attribute__((optimize("unroll-loops"))) static inline void screen_blit_nn(uint8_t *msx_fb, uint16_t *framebuffer /*int32_t dest_width, int32_t dest_height*/)
+{
+    int src_x_offset = 0;
+    int src_y_offset = 0;
+
+    int x_ratio = (int)((CPC_SCREEN_WIDTH << 16) / GW_LCD_WIDTH) + 1;
+    int y_ratio = (int)((CPC_SCREEN_HEIGHT << 16) / GW_LCD_HEIGHT) + 1;
+    int hpad = 0;
+    int wpad = 0;
+
+    int x2;
+    int y2;
+
+    for (int i = 0; i < GW_LCD_HEIGHT; i++)
+    {
+        for (int j = 0; j < GW_LCD_WIDTH; j++)
+        {
+            x2 = ((j * x_ratio) >> 16);
+            y2 = ((i * y_ratio) >> 16);
+            uint8_t b2 = msx_fb[((y2 + src_y_offset) * image_buffer_current_width) + x2 + src_x_offset];
+            framebuffer[((i + wpad) * WIDTH) + j + hpad] = palette565[b2];
+        }
+    }
+}
+
+static void blit(uint8_t *src_fb, uint16_t *framebuffer)
+{
+    odroid_display_scaling_t scaling = odroid_display_get_scaling_mode();
+    uint16_t offset = GW_LCD_WIDTH-26;
+
+    switch (scaling)
+    {
+    case ODROID_DISPLAY_SCALING_OFF:
+        blit_normal(src_fb, framebuffer);
+        break;
+    // Full height, borders on the side
+    case ODROID_DISPLAY_SCALING_FIT:
+    case ODROID_DISPLAY_SCALING_FULL:
+        screen_blit_nn(src_fb, framebuffer);
+        break;
+    default:
+        printf("Unsupported scaling mode %d\n", scaling);
+        blit_normal(src_fb, framebuffer);
+        break;
+    }
+
+    if (show_disk_icon) {
+        uint16_t *dest = lcd_get_active_buffer();
+        uint16_t idx = 0;
+        for (uint8_t i = 0; i < 24; i++) {
+            for (uint8_t j = 0; j < 24; j++) {
+            if (IMG_DISKETTE[idx / 8] & (1 << (7 - idx % 8))) {
+                dest[offset + j + GW_LCD_WIDTH * (2 + i)] = 0xFFFF;
+            }
+            idx++;
+            }
+        }
+    }
+    common_ingame_overlay();
+    lcd_swap();
+}
+
+void amstrad_pcm_submit()
+{
+    // update sound volume in emulator
+    amstrad_set_volume(volume_table[odroid_audio_volume_get()]);
+
+    size_t offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS;
+    memcpy(&audiobuffer_dma[offset],soundBuffer,2 * AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS);
+}
+
+bool amstrad_is_cpm;
+
+static int autorun_delay = 50;
+static int wait_computer = 1;
+
+bool autorun_command()
+{
+    if (autorun_delay)
+    {
+        autorun_delay--;
+        return false;
+    }
+
+    // wait one loop for the key be pressed
+    wait_computer ^= 1;
+    if (wait_computer)
+        return false;
+
+    if (kbd_buf_update())
+    {
+        auto_key = false;
+        // prepare next autorun
+        autorun_delay = 50;
+        wait_computer = 1;
+    }
+
+    return true;
+}
+
+void amstrad_ui_set_led(bool state) {
+    show_disk_icon = state;
+}
+
+static void computer_autoload()
+{
+    amstrad_is_cpm = false;
+    // if name contains [CPM] then it's CPM file
+    //    if (file_check_flag(ACTIVE_FILE->name, size, FLAG_BIOS_CPM, 5))
+    //    {
+    //        amstrad_is_cpm = true;
+    //    }
+
+    //   if (game_configuration.has_btn && retro_computer_cfg.use_internal_remap)
+    //   {
+    //      printf("[DB] game remap applied.\n");
+    //      memcpy(btnPAD[0].buttons, game_configuration.btn_config.buttons, sizeof(t_button_cfg));
+    //   }
+
+    //   if (game_configuration.has_command)
+    //   {
+    //      strncpy(loader_buffer, game_configuration.loader_command, LOADER_MAX_SIZE);
+    //   } else {
+    loader_run(loader_buffer);
+    //   }
+
+    strcat(loader_buffer, "\n");
+    printf("[core] DSK autorun: %s", loader_buffer);
+    kbd_buf_feed(loader_buffer);
+    auto_key = true;
+    //   if (amstrad_is_cpm)
+    //   {
+    //      cpm_boot(loader_buffer);
+    //   }
+    //   else
+    //   {
+    //      ev_autorun_prepare(loader_buffer);
+    //   }
+}
+
+extern uint8_t *pbSndBuffer;
+
+void app_main_amstrad(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
+{
+    pixel_t *fb;
+    static dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
+    odroid_gamepad_state_t joystick;
+    odroid_dialog_choice_t options[10];
+    int disk_load_result = 0;
+    int load_result = 0;
+
+    // Create RGB8 to RGB565 table
+    for (int i = 0; i < 256; i++)
+    {
+        // RGB 8bits to RGB 565 (RRR|GGG|BB -> RRRRR|GGGGGG|BBBBB)
+        palette565[i] = (((i >> 5) * 31 / 7) << 11) |
+                        ((((i & 0x1C) >> 2) * 63 / 7) << 5) |
+                        ((i & 0x3) * 31 / 3);
+    }
+
+    if (start_paused)
+    {
+        common_emu_state.pause_after_frames = 2;
+        odroid_audio_mute(true);
+    }
+    else
+    {
+        common_emu_state.pause_after_frames = 0;
+    }
+    common_emu_state.frame_time_10us = (uint16_t)(100000 / AMSTRAD_FPS + 0.5f);
+
+    memset(framebuffer1, 0, sizeof(framebuffer1));
+    memset(framebuffer2, 0, sizeof(framebuffer2));
+
+    odroid_system_init(APPID_AMSTRAD, AMSTRAD_SAMPLE_RATE);
+    odroid_system_emu_init(&amstrad_system_loadState, &amstrad_system_saveState, NULL);
+
+    // Init Sound
+    memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
+    HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS * 2);
+
+    capmain(0, NULL);
+    amstrad_set_audio_buffer((int8_t *)soundBuffer, AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS * 2);
+
+    if (0 == strcmp(ACTIVE_FILE->ext, AMSTRAD_DISK_EXTENSION))
+    {
+        const rom_system_t *amstrad_system = rom_manager_system(&rom_mgr, "Amstrad CPC");
+        selected_disk_index = rom_get_index_for_file_ext(amstrad_system, ACTIVE_FILE);
+        disk_load_result = attach_disk_buffer((char *)ROM_DATA, 0);
+        printf("attach_disk_buffer %d\n", disk_load_result);
+    }
+
+    if (load_state)
+    {
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            load_result = loadAmstradState((uint8_t *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            load_result = loadAmstradState((uint8_t *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+        }
+#endif
+    }
+    // If disk loaded and no save state loaded, enter autoload command
+    if ((disk_load_result == 0) && (load_result == 0)) {
+        computer_autoload();
+    }
+
+    createOptionMenu(options);
+
+    while (1)
+    {
+        fb = lcd_get_active_buffer();
+        wdog_refresh();
+        bool drawFrame = common_emu_frame_loop();
+
+        odroid_input_read_gamepad(&joystick);
+        common_emu_input_loop(&joystick, options);
+
+        if (auto_key) {
+            autorun_command();
+        } else {
+            amstrad_input_update(&joystick);
+        }
+
+        caprice_retro_loop();
+        if (drawFrame) {
+            blit(amstrad_framebuffer, fb);
+        }
+        amstrad_pcm_submit();
+        amstrad_set_audio_buffer((int8_t *)soundBuffer, AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS * 2);
+
+        if (!common_emu_state.skip_frames)
+        {
+            for (uint8_t p = 0; p < common_emu_state.pause_frames + 1; p++)
+            {
+                while (dma_state == last_dma_state)
+                {
+                    cpumon_sleep();
+                }
+                last_dma_state = dma_state;
+            }
+        }
+    }
+}

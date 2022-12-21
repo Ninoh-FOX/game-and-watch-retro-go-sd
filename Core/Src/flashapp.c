@@ -230,6 +230,8 @@ const uint32_t tests[][2] = {
     { 384 * 1024, 508 * 1024 }, // 124k = 64k + 32k + 7 * 4k
 };
 
+// We copy data to emulators ram as it's not used at this point.
+#define MAX_COPY_LENGTH 128*1024
 static uint32_t test_read(uint32_t addr, uint32_t len)
 {
     const uint8_t *flash_ptr = (const uint8_t *) 0x90000000;
@@ -238,8 +240,8 @@ static uint32_t test_read(uint32_t addr, uint32_t len)
 
     t0 = HAL_GetTick();
     while (len != 0) {
-        uint32_t chunk_len = (len > sizeof(emulator_framebuffer)) ? sizeof(emulator_framebuffer) : len;
-        memcpy(emulator_framebuffer, flash_ptr, chunk_len);
+        uint32_t chunk_len = (len > MAX_COPY_LENGTH) ? MAX_COPY_LENGTH : len;
+        memcpy(&__RAM_EMU_START__, flash_ptr, chunk_len);
         flash_ptr += chunk_len;
         len -= chunk_len;
     }

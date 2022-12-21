@@ -39,6 +39,8 @@ static odroid_video_frame_t *currentUpdate = &update1;
 static bool saveSRAM = false;
 static int  saveSRAM_Timer = 0;
 
+static uint8_t gb_framebuffer[GB_WIDTH*GB_HEIGHT*sizeof(uint16_t)];
+
 // --- MAIN
 
 
@@ -522,11 +524,11 @@ rg_app_desc_t * init(uint8_t load_state, uint8_t save_slot)
     odroid_system_emu_init(&LoadState, &SaveState, &netplay_callback);
 
     // bzhxx : fix LCD glitch at the start by cleaning up the buffer emulator
-    memset(emulator_framebuffer, 0x0, sizeof(emulator_framebuffer));
+    memset(gb_framebuffer, 0x0, sizeof(gb_framebuffer));
 
     // Hack: Use the same buffer twice
-    update1.buffer = emulator_framebuffer;
-    update2.buffer = emulator_framebuffer;
+    update1.buffer = gb_framebuffer;
+    update2.buffer = gb_framebuffer;
 
     //saveSRAM = odroid_settings_app_int32_get(NVS_KEY_SAVE_SRAM, 0);
     saveSRAM = false;

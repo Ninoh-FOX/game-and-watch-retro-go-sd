@@ -68,7 +68,7 @@ __NULLPTR_LENGTH__  = 0x0;
 __ITCMRAM_LENGTH__  = 64K;
 __DTCMRAM_LENGTH__  = 128K;
 __RAM_UC_LENGTH__   = 300K;
-__RAM_CORE_LENGTH__ = 68K;
+__RAM_CORE_LENGTH__ = 0K;
 __RAM_EMU_LENGTH__  = 1024K - __RAM_UC_LENGTH__ - __RAM_CORE_LENGTH__;
 __AHBRAM_LENGTH__   = 128K;
 __FLASH_LENGTH__    = DEFINED(__FLASH_LENGTH__) ? __FLASH_LENGTH__ : 128k;
@@ -266,7 +266,7 @@ SECTIONS
   .overlay_nes __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_nes_start__ = .;
-    build/nes/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/nes/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_NES_LOAD_END = .;
   } AT> EXTFLASH
@@ -315,7 +315,7 @@ SECTIONS
   .overlay_sms __RAM_EMU_START__ : {
       . = ALIGN(4);
     __ram_emu_sms_start__ = .;
-      build/smsplusgx/*.o (.data. data* .text .text* .rodata .rodata*)
+      build/smsplusgx/*.o (.data .data* .text .text* .rodata .rodata*)
       . = ALIGN(4);
       _OVERLAY_SMS_LOAD_END = .;
   } AT> EXTFLASH
@@ -337,7 +337,7 @@ SECTIONS
    .overlay_pce __RAM_EMU_START__ : {
       . = ALIGN(4);
     __ram_emu_pce_start__ = .;
-      build/pce/*.o (.data. data* .text .text* .rodata .rodata*)
+      build/pce/*.o (.data .data* .text .text* .rodata .rodata*)
       . = ALIGN(4);
       _OVERLAY_PCE_LOAD_END = .;
   } AT> EXTFLASH
@@ -363,7 +363,7 @@ SECTIONS
   .overlay_msx __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_msx_start__ = .;
-    build/msx/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/msx/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_MSX_LOAD_END = .;
   } AT> EXTFLASH
@@ -384,7 +384,7 @@ SECTIONS
   .overlay_wsv __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_wsv_start__ = .;
-    build/wsv/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/wsv/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_WSV_LOAD_END = .;
   } AT> EXTFLASH
@@ -405,7 +405,7 @@ SECTIONS
   .overlay_gw __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_gw_start__ = .;
-    build/gw/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/gw/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_GW_LOAD_END = .;
   } AT> EXTFLASH
@@ -427,7 +427,7 @@ SECTIONS
   .overlay_md __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_md_start__ = .;
-    build/md/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/md/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_MD_LOAD_END = .;
   } AT> EXTFLASH
@@ -449,7 +449,7 @@ SECTIONS
   .overlay_a7800 __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_a7800_start__ = .;
-    build/a7800/*.o (.data. data* .text .text* .rodata .rodata*)
+    build/a7800/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_A7800_LOAD_END = .;
   } AT> EXTFLASH
@@ -467,6 +467,29 @@ SECTIONS
     ASSERT(ABSOLUTE(_OVERLAY_A7800_BSS_END) < __RAM_EMU_END__, "Error: A7800 BSS overflow");
   }
   _OVERLAY_A7800_BSS_SIZE = SIZEOF(.overlay_a7800_bss);
+
+  .overlay_amstrad __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_amstrad_start__ = .;
+    build/amstrad/*.o (.data .data* .text .text* .rodata .rodata*)
+    . = ALIGN(4);
+    _OVERLAY_AMSTRAD_LOAD_END = .;
+  } AT> EXTFLASH
+  _OVERLAY_AMSTRAD_LOAD_START = LOADADDR(.overlay_amstrad);
+  _OVERLAY_AMSTRAD_SIZE = SIZEOF(.overlay_amstrad);
+
+  .overlay_amstrad_bss _OVERLAY_AMSTRAD_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_AMSTRAD_BSS_START = .;
+    build/amstrad/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/amstrad/*.o (COMMON)
+    __ram_emu_amstrad_end__ = .;
+    _OVERLAY_AMSTRAD_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_AMSTRAD_BSS_END) < __RAM_EMU_END__, "Error: AMSTRAD BSS overflow");
+  }
+  _OVERLAY_AMSTRAD_BSS_SIZE = SIZEOF(.overlay_amstrad_bss);
+
 
   /* Place this symbol after the last overlay definition */
   .overlay_end : {

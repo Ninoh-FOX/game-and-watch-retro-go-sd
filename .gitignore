@@ -13,6 +13,7 @@ saveflash.ld
 
 rom_hashes.txt
 
+Core/Src/retro-go/amstrad_roms.c
 Core/Src/retro-go/col_roms.c
 Core/Src/retro-go/gb_roms.c
 Core/Src/retro-go/gg_roms.c

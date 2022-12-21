@@ -112,6 +112,7 @@ static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
 };
 
 /* Framebuffer management */
+uint8_t msx_framebuffer[272*240];
 static unsigned image_buffer_base_width;
 static unsigned image_buffer_current_width;
 static unsigned image_buffer_height;
@@ -224,7 +225,7 @@ static void update_fb_info() {
 
 Pixel* frameBufferGetLine(FrameBuffer* frameBuffer, int y)
 {
-   return (emulator_framebuffer +  (y * image_buffer_current_width));
+   return (msx_framebuffer +  (y * image_buffer_current_width));
 }
 
 Pixel16* frameBufferGetLine16(FrameBuffer* frameBuffer, int y)
@@ -234,12 +235,12 @@ Pixel16* frameBufferGetLine16(FrameBuffer* frameBuffer, int y)
 
 FrameBuffer* frameBufferGetDrawFrame(void)
 {
-   return (void*)emulator_framebuffer;
+   return (void*)msx_framebuffer;
 }
 
 FrameBuffer* frameBufferFlipDrawFrame(void)
 {
-   return (void*)emulator_framebuffer;
+   return (void*)msx_framebuffer;
 }
 
 static int fbScanLine = 0;
@@ -256,12 +257,12 @@ int frameBufferGetScanline(void)
 
 FrameBufferData* frameBufferDataCreate(int maxWidth, int maxHeight, int defaultHorizZoom)
 {
-   return (void*)emulator_framebuffer;
+   return (void*)msx_framebuffer;
 }
 
 FrameBufferData* frameBufferGetActive()
 {
-    return (void*)emulator_framebuffer;
+    return (void*)msx_framebuffer;
 }
 
 void frameBufferSetLineCount(FrameBuffer* frameBuffer, int val)
@@ -1704,7 +1705,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 
     memset(lcd_get_active_buffer(), 0, sizeof(framebuffer1));
     memset(lcd_get_inactive_buffer(), 0, sizeof(framebuffer1));
-    memset(emulator_framebuffer, 0, sizeof(emulator_framebuffer));
+    memset(msx_framebuffer, 0, sizeof(msx_framebuffer));
     
     memset(audiobuffer_dma, 0, 2*(AUDIO_MSX_SAMPLE_RATE/FPS_PAL)*sizeof(Int16));
 
@@ -1754,7 +1755,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
             // framebuffer (scaling is not possible for these screen modes), elseway apply
             // current scaling mode
             if ((vdpGetScreenMode() != 10) && (vdpGetScreenMode() != 12)) {
-                blit(emulator_framebuffer, fb);
+                blit(msx_framebuffer, fb);
             }
             common_ingame_overlay();
             lcd_swap();

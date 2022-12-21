@@ -90,6 +90,7 @@ SAVE_SIZES = {
     "wsv": 28 * 1024,
     "md": 144 * 1024,
     "a7800": 36 * 1024,
+    "amstrad": 132 * 1024,
 }
 
 
@@ -646,7 +647,6 @@ class ROM:
             if int(sp_output[0]) == 0xff :
                 print(f"Warning : {self.name} has no controls configuration in roms/msx_bios/msxromdb.xml, default controls will be used")
         return value
-
     @property
     def img_size(self):
         try:
@@ -721,7 +721,7 @@ class ROMParser:
                 cheat_descs=gg_desc_array_name if cheat_codes_prefix else 0,
                 cheat_count=gg_count_name if cheat_codes_prefix else 0,
                 mapper=rom.mapper,
-                game_config=rom.game_config
+                game_config=rom.game_config,
             )
             body += "\n"
             pubcount += 1
@@ -1027,8 +1027,11 @@ class ROMParser:
         if compress is None:
             compress="none"
 
-        if "msx_system" in variable_name:  # MSX
+        if "msx_system" in variable_name:  # MSX disk compression
             subprocess.check_output("python3 tools/dsk2lzma.py \""+str(dsk.path)+"\" "+compress, shell=True)
+
+        if "amstrad_system" in variable_name:  # Amstrad disk compression
+            subprocess.check_output("python3 tools/amdsk2lzma.py \""+str(dsk.path)+"\" "+compress, shell=True)
 
     def generate_system(
         self,
@@ -1273,6 +1276,7 @@ class ROMParser:
         romdef.setdefault('msx_bios', {})
         romdef.setdefault('wsv', {})
         romdef.setdefault('a7800', {})
+        romdef.setdefault('amstrad', {})
 
         system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
             "Core/Src/retro-go/gb_roms.c",
@@ -1519,6 +1523,23 @@ class ROMParser:
         total_save_size += save_size
         total_rom_size += rom_size
         build_config += "#define ENABLE_EMULATOR_A7800\n" if rom_size > 0 else ""
+        if system_save_size > larger_save_size : larger_save_size = system_save_size
+
+        system_save_size, save_size, rom_size, img_size, current_id, larger_rom_size = self.generate_system(
+            "Core/Src/retro-go/amstrad_roms.c",
+            "Amstrad CPC",
+            "amstrad_system",
+            "amstrad",
+            ["dsk"],
+            "SAVE_AMSTRAD_",
+            romdef["amstrad"],
+            None,
+            current_id,
+            args.compress
+        )
+        total_save_size += save_size
+        total_rom_size += rom_size
+        build_config += "#define ENABLE_EMULATOR_AMSTRAD\n" if rom_size > 0 else ""
         if system_save_size > larger_save_size : larger_save_size = system_save_size
 
         total_size = total_save_size + total_rom_size + total_img_size

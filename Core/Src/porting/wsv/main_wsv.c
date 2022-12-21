@@ -25,6 +25,7 @@
 #define WIDTH 320
 #define WSV_WIDTH (160)
 #define WSV_HEIGHT (160)
+static uint8_t wsv_framebuffer[WSV_WIDTH*WSV_HEIGHT*2];
 
 static odroid_video_frame_t video_frame = {WSV_WIDTH, WSV_HEIGHT, WSV_WIDTH * 2, 2, 0xFF, -1, NULL, NULL, 0, {}};
 
@@ -44,9 +45,9 @@ static bool LoadState(char *pathName) {
     return 0;
 }
 static bool SaveState(char *pathName) {
-    int size = supervision_save_state(emulator_framebuffer);
+    int size = supervision_save_state(wsv_framebuffer);
     assert(size<ACTIVE_FILE->save_size);
-    store_save(ACTIVE_FILE->save_address, emulator_framebuffer, size);
+    store_save(ACTIVE_FILE->save_address, wsv_framebuffer, size);
     return 0;
 }
 
@@ -400,7 +401,7 @@ void wsv_render_image() {
     }
     for (y=40;y<200;y++) {
         memset(framebuffer_active+y*GW_LCD_WIDTH,0x00,80*2);
-        memcpy(framebuffer_active+y*GW_LCD_WIDTH+80,emulator_framebuffer+offset,160*2);
+        memcpy(framebuffer_active+y*GW_LCD_WIDTH+80,wsv_framebuffer+offset,160*2);
         memset(framebuffer_active+y*GW_LCD_WIDTH+80+160,0x00,80*2);
         offset+=320;
     }
@@ -508,7 +509,7 @@ int app_main_wsv(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
     }
     common_emu_state.frame_time_10us = (uint16_t)(100000 / WSV_FPS + 0.5f);
 
-    video_frame.buffer = emulator_framebuffer;
+    video_frame.buffer = wsv_framebuffer;
     memset(framebuffer1, 0, sizeof(framebuffer1));
     memset(framebuffer2, 0, sizeof(framebuffer2));
 
@@ -539,7 +540,7 @@ int app_main_wsv(uint8_t load_state, uint8_t start_paused, uint8_t save_slot)
 
         wsv_input_read(&joystick);
 
-        supervision_exec((uint16 *)emulator_framebuffer);
+        supervision_exec((uint16 *)wsv_framebuffer);
         if (drawFrame) {
             blit();
         }

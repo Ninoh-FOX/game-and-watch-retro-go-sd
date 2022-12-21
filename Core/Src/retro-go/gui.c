@@ -9,6 +9,7 @@
 #include "gui.h"
 #include "gw_lcd.h"
 #include "bitmaps.h"
+#include "gw_linker.h"
 #include "main.h"
 #include "rg_i18n.h"
 
@@ -47,7 +48,7 @@
 #include "hw_jpeg_decoder.h"
 
 // reuse existing buffer from gw_lcd.h
-#define JPEG_BUFFER_SIZE ((uint32_t)sizeof(emulator_framebuffer) - 4)
+#define JPEG_BUFFER_SIZE 256*1024
 
 #define NOCOVER_HEIGHT ((uint32_t)(68))
 #define NOCOVER_WIDTH ((uint32_t)(68))
@@ -154,10 +155,10 @@ void gui_init_tab(tab_t *tab)
     /* setup JPEG decoder instance with 32bits aligned address */
     // reuse emulator buffer for JPEG decoder & DMA2 buffering
     // Direct access to DTCM is not allowed for DMA2D :(
-    pJPEG_Buffer = (uint8_t *)((uint32_t)&emulator_framebuffer + 4 - ((uint32_t)&emulator_framebuffer) % 4);
+    // We use emulator ram (__RAM_EMU_START__) which is not used at that point.
+    pJPEG_Buffer = (uint8_t *)((uint32_t)__RAM_EMU_START__ + 4 - ((uint32_t)__RAM_EMU_START__) % 4);
     pCover_Buffer = (uint16_t *)(pJPEG_Buffer + COVER_420_SIZE + 4 - COVER_420_SIZE % 4);
     assert(JPEG_DecodeToBufferInit((uint32_t)pJPEG_Buffer, JPEG_BUFFER_SIZE) == 0);
-    assert((COVER_420_SIZE + COVER_16BITS_SIZE + 12) <= sizeof(emulator_framebuffer));
     //printf("JPEG init done\n");
     /* -------------------------- */
 

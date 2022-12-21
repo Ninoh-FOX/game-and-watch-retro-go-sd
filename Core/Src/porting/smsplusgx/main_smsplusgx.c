@@ -224,7 +224,7 @@ static bool LoadState(char *pathName)
     return true;
 }
 
-uint8_t *fb_buffer = emulator_framebuffer;
+static uint8_t fb_buffer[COL_WIDTH*COL_HEIGHT];
 
 #define CONV(_b0) ((0b11111000000000000000000000&_b0)>>10) | ((0b000001111110000000000&_b0)>>5) | ((0b0000000000011111&_b0));
 

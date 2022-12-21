@@ -27,8 +27,8 @@ static bool isLastFlashWrite = 0;
 static void SaveFlashSaveData(UInt8 *dest, UInt8 *src, int size) {
     int blockNumber = 0;
     for (int i = 0; i < size; i++) {
-        // We use emulator_framebuffer as a temporary buffer as we are not using it
-        emulator_framebuffer[flashBlockOffset] = src[i];
+        // We use msx_framebuffer as a temporary buffer
+        msx_framebuffer[flashBlockOffset] = src[i];
         flashBlockOffset++;
         if ((flashBlockOffset == WORK_BLOCK_SIZE) || (isLastFlashWrite && (i == size-1))) {
             // Write block in flash
@@ -36,7 +36,7 @@ static void SaveFlashSaveData(UInt8 *dest, UInt8 *src, int size) {
             intDest = intDest & ~(WORK_BLOCK_SIZE-1);
             unsigned char *newDest = (unsigned char *)intDest;
             OSPI_DisableMemoryMappedMode();
-            OSPI_Program((uint32_t)newDest,(const uint8_t *)emulator_framebuffer,WORK_BLOCK_SIZE);
+            OSPI_Program((uint32_t)newDest,(const uint8_t *)msx_framebuffer,WORK_BLOCK_SIZE);
             OSPI_EnableMemoryMappedMode();
             flashBlockOffset = 0;
             blockNumber++;
@@ -48,7 +48,7 @@ static void SaveFlashSaveData(UInt8 *dest, UInt8 *src, int size) {
         intDest = intDest & ~(WORK_BLOCK_SIZE-1);
         unsigned char *newDest = (unsigned char *)intDest;
         OSPI_DisableMemoryMappedMode();
-        OSPI_Program((uint32_t)newDest,(const uint8_t *)emulator_framebuffer,WORK_BLOCK_SIZE);
+        OSPI_Program((uint32_t)newDest,(const uint8_t *)msx_framebuffer,WORK_BLOCK_SIZE);
         OSPI_EnableMemoryMappedMode();
         flashBlockOffset = 0;
         blockNumber++;

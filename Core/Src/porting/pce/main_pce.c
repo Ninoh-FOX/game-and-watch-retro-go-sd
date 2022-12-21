@@ -48,7 +48,7 @@
 static uint16_t mypalette[256];
 static int current_height, current_width;
 static short audioBuffer_pce[ AUDIO_BUFFER_LENGTH_PCE * 2];
-static uint8_t emulator_framebuffer_pce[XBUF_WIDTH * XBUF_HEIGHT * 2];
+static uint8_t pce_framebuffer[XBUF_WIDTH * XBUF_HEIGHT * 2];
 static uint8_t PCE_EXRAM_BUF[0x8000];
 static int framePerSecond=0;
 
@@ -117,7 +117,7 @@ static const struct
 };
 
 uint8_t *osd_gfx_framebuffer(void){
-    return emulator_framebuffer_pce + FB_INTERNAL_OFFSET;
+    return pce_framebuffer + FB_INTERNAL_OFFSET;
 }
 
 void set_color(int index, uint8_t r, uint8_t g, uint8_t b) {
@@ -163,7 +163,7 @@ static void netplay_callback(netplay_event_t event, void *arg) {
 
 static bool SaveStateStm(char *pathName) {
     int pos=0;
-    uint8_t *pce_save_buf = emulator_framebuffer_pce;
+    uint8_t *pce_save_buf = pce_framebuffer;
     memset(pce_save_buf, 0x00, 76*1024); // 76K save size
 
     uint8_t *pce_save_header=(uint8_t *)SAVESTATE_HEADER;
@@ -195,7 +195,7 @@ static bool SaveStateStm(char *pathName) {
     }
 #endif
     sprintf(pce_log,"%08lX",PCE.ROM_CRC);
-    memset(emulator_framebuffer_pce,0,sizeof(emulator_framebuffer_pce));
+    memset(pce_framebuffer,0,sizeof(pce_framebuffer));
     return false;
 }
 
@@ -520,7 +520,7 @@ void pce_osd_gfx_blit(bool drawFrame) {
     static uint32_t lastFPSTime = 0;
     static uint32_t frames = 0;
     if (!drawFrame) {
-        memset(emulator_framebuffer_pce,0,sizeof(emulator_framebuffer_pce));
+        memset(pce_framebuffer,0,sizeof(pce_framebuffer));
         return;
     }
 
@@ -592,7 +592,7 @@ void pce_osd_gfx_blit(bool drawFrame) {
     common_ingame_overlay();
     lcd_swap();
 
-    memset(emulator_framebuffer_pce,0,sizeof(emulator_framebuffer_pce));
+    memset(pce_framebuffer,0,sizeof(pce_framebuffer));
 }
 
 void pce_pcm_submit() {

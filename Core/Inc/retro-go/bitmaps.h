@@ -27,6 +27,7 @@ extern const retro_logo_image header_msx;
 extern const retro_logo_image header_wsv;
 extern const retro_logo_image header_gen;
 extern const retro_logo_image header_a7800;
+extern const retro_logo_image header_amstrad;
 extern const retro_logo_image pad_sg1000;
 extern const retro_logo_image pad_col;
 extern const retro_logo_image pad_gb;
@@ -39,6 +40,7 @@ extern const retro_logo_image pad_msx;
 extern const retro_logo_image pad_wsv;
 extern const retro_logo_image pad_gen;
 extern const retro_logo_image pad_a7800;
+extern const retro_logo_image pad_amstrad;
 
 extern const retro_logo_image logo_coleco;
 extern const retro_logo_image logo_nitendo;
@@ -47,6 +49,7 @@ extern const retro_logo_image logo_pce;
 extern const retro_logo_image logo_microsoft;
 extern const retro_logo_image logo_watara;
 extern const retro_logo_image logo_atari;
+extern const retro_logo_image logo_amstrad;
 
 
 extern const unsigned char IMG_SPEAKER[];

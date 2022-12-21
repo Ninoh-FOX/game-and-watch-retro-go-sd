@@ -275,6 +275,23 @@ prosystem-go/core/Sally.c \
 prosystem-go/core/Tia.c \
 Core/Src/porting/a7800/main_a7800.c
 
+AMSTRAD_C_SOURCES = \
+caprice32-go/cap32/cap32.c \
+caprice32-go/cap32/crtc.c \
+caprice32-go/cap32/fdc.c \
+caprice32-go/cap32/kbdauto.c \
+caprice32-go/cap32/psg.c \
+caprice32-go/cap32/slots.c \
+caprice32-go/cap32/cap32_z80.c \
+Core/Src/porting/amstrad/main_amstrad.c \
+Core/Src/porting/amstrad/save_amstrad.c \
+Core/Src/porting/amstrad/amstrad_catalog.c \
+Core/Src/porting/amstrad/amstrad_format.c \
+Core/Src/porting/amstrad/amstrad_loader.c \
+Core/Src/porting/amstrad/amstrad_video8bpp.c
+
+#caprice32-go/cap32/tape.c \
+
 GNUBOY_C_INCLUDES +=  \
 -ICore/Inc \
 -ICore/Src/porting/lib \
@@ -405,12 +422,20 @@ A7800_C_INCLUDES += \
 -Iprosystem-go/core \
 -I./
 
+AMSTRAD_C_INCLUDES +=  \
+-ICore/Inc \
+-ICore/Src/porting/lib \
+-ICore/Src/porting/lib/lzma \
+-Iretro-go-stm32/components/odroid \
+-Icaprice32-go/cap32 \
+-I./
+
 include Makefile.common
 
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md -j .overlay_a7800 $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_gb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md -j .overlay_a7800 -j .overlay_amstrad $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)

@@ -46,6 +46,7 @@ static uint8_t keyboard_data[17]       = {0};
 #define AUDIO_SAMPLE_BUFFER_SIZE ((TIA_BUFFER_SIZE + 0x7F) & ~0x7F)
 static uint8_t *pokeyMixBuffer         = NULL;
 
+static uint8_t save_buffer[32796];
 
 static bool LoadState(char *pathName) {
     if ((ACTIVE_FILE->save_address[0] == '7') &&
@@ -75,19 +76,19 @@ static bool LoadA7800State(int8_t *srcBuffer) {
 
 
 static bool SaveState(char *pathName) {
-    emulator_framebuffer[0] = '7';
-    emulator_framebuffer[1] = '8';
-    emulator_framebuffer[2] = '0';
-    emulator_framebuffer[3] = '0';
-    prosystem_Save((char *)emulator_framebuffer+4, false);
+    save_buffer[0] = '7';
+    save_buffer[1] = '8';
+    save_buffer[2] = '0';
+    save_buffer[3] = '0';
+    prosystem_Save((char *)save_buffer+4, false);
     uint32_t size = 32833;
 #if OFF_SAVESTATE==1
     if (strcmp(pathName,"1") == 0) {
         // Save in common save slot (during a power off)
-        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, emulator_framebuffer, size);
+        store_save((const uint8_t *)&__OFFSAVEFLASH_START__, save_buffer, size);
     } else {
 #endif
-        store_save(ACTIVE_FILE->save_address, emulator_framebuffer, size);
+        store_save(ACTIVE_FILE->save_address, save_buffer, size);
 #if OFF_SAVESTATE==1
     }
 #endif
