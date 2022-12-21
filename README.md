@@ -79,7 +79,7 @@ Supported emulators:
 - Sega SG-1000 (sg)
 - MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)
 - Watara Supervision (wsv)
-
+- Amstrad CPC6128 *beta* (amstrad) (check [Amstrad CPC6128 Emulator](#amstrad-cpc6128-emulator) section for details about the Amstrad CPC6128 emulator)
 ## Table of Contents
 - [Emulator collection for Nintendo® Game & Watch™](#emulator-collection-for-nintendo-game--watch)
   - [Table of Contents](#table-of-contents)
@@ -351,6 +351,19 @@ What is supported :
 - Sometimes games require the user to enter his name using the keyboard, and some games like Metal Gear 1/2 are using F1-F5 keys to acces items/radio/... menus. It is possible to virtually press these keys using the "Pause/Options/Press Key" menu.
 
 Note that the MSX support is done using blueMsx 2.8.2, any game that is not working correctly using this emulator will not work on the Game & Watch. To fit in the G&W, a some features have been removed, so it's possible that some games running on blueMSX will not work in the G&W port. The emulator port is still in progress, consider it as a preview version.
+
+## Amstrad CPC6128 Emulator
+
+Amstrad CPC6128 system is a computer with a keyboard and disk drive.
+
+What is supported :
+- Amstrad CPC6128 system is the only supported system. CPC464 could be added if there is any interest in doing this. Note that CPC464+/6128+ systems are not supported (running a around 40% of their normal speed so it has been removed)
+- Disks images : disks images have to be named with dsk extension. Due to memory constraints, disks images are read only. Multiple disks games are supported and user can change the current disk using the "Pause/Options/Change Dsk" menu. In the case of multiple disks games, only the first disk needs to have a savestate allocation, for this reason it is possible to disable savestate allocation for disk2/3/... of a multiple disk game by adding the _no_save suffix to disk name. To prevent wasting flash memory for savestates that will never be used, it's a good practice to keep original name for first disk of a game (the one you are selecting to start the game) and to add _no_save suffix to other disks of the game. Both standard and extended dsk format are supported, moreover a compression mecanism specific to the G&W has been implemented to reduce the size of disk images. Disk compression is automatically handled during the build process.
+- Sometimes games require the user to enter his name using the keyboard. It is possible to virtually press these keys using the "Pause/Options/Press Key" menu.
+
+Tape support has not been ported, if there is any interest in adding this, it could be considered.
+
+Note that the Amstrad CPC6128 support is done using caprice32 emulator, any game that is not working correctly using this emulator will not work on the Game & Watch. To fit in the G&W, a some features have been removed, so it's possible that some games running on caprice32 will not work in the G&W port. The emulator port is still in progress, consider it as a preview version.
 
 ## Discord, support and discussion
 
