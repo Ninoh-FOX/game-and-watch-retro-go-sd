@@ -30,8 +30,8 @@ int pt_pt_fmt_Time(char *outstr, const char *timefmt, uint16_t hour, uint16_t mi
 const lang_t lang_pt_pt LANG_DATA = {
     .codepage = 1252,
     .extra_font = NULL,
-    .s_LangUI = "UI Lï¿½ngua",
-    .s_LangTitle = "Lï¿½ngua",
+    .s_LangUI = "UI Língua",
+    .s_LangTitle = "Língua",
     .s_LangName = "Portuguese",
 
     // Core\Src\porting\gb\main_gb.c =======================================
@@ -39,7 +39,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     //=====================================================================
     // Core\Src\porting\nes\main_nes.c =====================================
     //.s_Palette= "Palette" dul
-    .s_Default = "Padrï¿½o",
+    .s_Default = "Padrão",
     //=====================================================================
     // Core\Src\porting\gw\main_gw.c =======================================
     .s_copy_RTC_to_GW_time = "copiar RTC para hora G&W",
@@ -50,7 +50,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Press_TIME = "Pressione TIME [B+TIME]",
     .s_Press_ALARM = "Pressione ALARM [B+GAME]",
     .s_filter_0_none = "0-nenhum",
-    .s_filter_1_medium = "1-mï¿½dio",
+    .s_filter_1_medium = "1-médio",
     .s_filter_2_high = "2-alto",
     //=====================================================================
     // Core\Src\porting\odroid_overlay.c ===================================
@@ -58,13 +58,13 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Fill = "\x8",
     .s_No_Cover = "sem capa",
     .s_Yes = "Sim",
-    .s_No = "Nï¿½o",
+    .s_No = "Não",
     .s_PlsChose = "Pergunta",
     .s_OK = "OK",
     .s_Confirm = "Confirmar",
     .s_Brightness = "Brilho",
     .s_Volume = "Volume",
-    .s_OptionsTit = "Opï¿½ï¿½es",
+    .s_OptionsTit = "Opções",
     .s_FPS = "FPS",
     .s_BUSY = "OCUPADO",
     .s_Scaling = "Escala",
@@ -82,7 +82,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Save_Cont = "Gravar & Continuar",
     .s_Save_Quit = "Gravar & Sair",
     .s_Reload = "Recarregar",
-    .s_Options = "Opï¿½ï¿½es",
+    .s_Options = "Opções",
     .s_Power_off = "Desligar",
     .s_Quit_to_menu = "Sair para o menu",
     .s_Retro_Go_options = "Retro-Go",
@@ -112,7 +112,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Cheat_Codes_Title = "Cheat Options",
     .s_Cheat_Codes_ON = "\x6",
     .s_Cheat_Codes_OFF = "\x5",
-#endif        
+#endif
 
     //=====================================================================
     // Core\Src\retro-go\rg_main.c =========================================
@@ -121,13 +121,13 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Author = "Por",
     .s_Author_ = "\t\t+",
     .s_UI_Mod = "UI Mod",
-    .s_Lang = "Portuguï¿½s",
+    .s_Lang = "Português",
     .s_LangAuthor = "DefKorns",
-    .s_Debug_menu = "Menu Depuraï¿½ï¿½o",
-    .s_Reset_settings = "Reiniciar configuraï¿½ï¿½es",
+    .s_Debug_menu = "Menu Depuração",
+    .s_Reset_settings = "Reiniciar configurações",
     //.s_Close                  = "Fechar",
     .s_Retro_Go = "Sobre Retro-Go",
-    .s_Confirm_Reset_settings = "Reiniciar todas as configuraï¿½ï¿½es?",
+    .s_Confirm_Reset_settings = "Reiniciar todas as configurações?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",
     .s_Flash_Name = "Flash Name",
     .s_Flash_SR = "Flash SR",
@@ -137,9 +137,9 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Enable_DBGMCU_CK = "Ativar DBGMCU CK",
     .s_Disable_DBGMCU_CK = "Desativar DBGMCU CK",
     //.s_Close                  = "Fechar",
-    .s_Debug_Title = "Depuraï¿½ï¿½o",
+    .s_Debug_Title = "Depuração",
     .s_Idle_power_off = "Desligamento inativo",
-    .s_Splash_Option = "Animaï¿½ï¿½o inicial",
+    .s_Splash_Option = "Animação inicial",
     .s_Splash_On = "\x6",
     .s_Splash_Off = "\x5",
     .s_Time = "Horas",
@@ -150,7 +150,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Second = "Segundos",
     .s_Time_setup = "Acertar horas",
     .s_Day = "Dia",
-    .s_Month = "Mï¿½s",
+    .s_Month = "Mês",
     .s_Year = "Ano",
     .s_Weekday = "Dia da semana",
     .s_Date_setup = "Acertar Data",
@@ -159,7 +159,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Weekday_Wed = "Qua",
     .s_Weekday_Thu = "Qui",
     .s_Weekday_Fri = "Sex",
-    .s_Weekday_Sat = "Sï¿½b",
+    .s_Weekday_Sat = "Sáb",
     .s_Weekday_Sun = "Dom",
     .s_Title_Date_Format = "%02d-%02d %s %02d:%02d:%02d",
     .s_Date_Format = "%02d.%02d.20%02d %s",

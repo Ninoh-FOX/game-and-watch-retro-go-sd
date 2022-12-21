@@ -62,12 +62,12 @@ const lang_t lang_it_it LANG_DATA = {
 
     .s_No_Cover = "Senza immagine",
 
-    .s_Yes = "Sï¿½",
+    .s_Yes = "Sì",
     .s_No = "No",
     .s_PlsChose = "Seleziona",
     .s_OK = "OK",
     .s_Confirm = "Conferma",
-    .s_Brightness = "Luminositï¿½",
+    .s_Brightness = "Luminosità",
     .s_Volume = "Volume",
     .s_OptionsTit = "Opzioni",
     .s_FPS = "FPS",
@@ -82,14 +82,14 @@ const lang_t lang_it_it LANG_DATA = {
     .s_FilteringOff = "Off",
     .s_FilteringSharp = "Nitido",
     .s_FilteringSoft = "Leggero",
-    .s_Speed = "Velocitï¿½",
+    .s_Speed = "Velocità",
     .s_Speed_Unit = "x",
     .s_Save_Cont = "Salva e Continua",
     .s_Save_Quit = "Salva ed Esci",
     .s_Reload = "Ricarica",
     .s_Options = "Opzioni",
     .s_Power_off = "Spegni",
-    .s_Quit_to_menu = "Esci e torna al menï¿½",
+    .s_Quit_to_menu = "Esci e torna al menù",
     .s_Retro_Go_options = "Retro-Go",
 
     .s_Font = "Carattere",
@@ -109,7 +109,7 @@ const lang_t lang_it_it LANG_DATA = {
     .s_Size = "Dimensione",
     .s_ImgSize = "Dimensione immagine",
     .s_Close = "Chiudi",
-    .s_GameProp = "Proprietï¿½",
+    .s_GameProp = "Proprietà",
     .s_Resume_game = "Riprendi gioco",
     .s_New_game = "Nuova partita",
     .s_Del_favorite = "Rimuovi dai preferiti",
@@ -117,11 +117,11 @@ const lang_t lang_it_it LANG_DATA = {
     .s_Delete_save = "Elimina il salvataggio",
     .s_Confiem_del_save = "Eliminare il salvataggio?",
 #if CHEAT_CODES == 1
-    .s_Cheat_Codes = "codici cheat",
-    .s_Cheat_Codes_Title = "codici cheat",
+    .s_Cheat_Codes = "Codici Cheat",
+    .s_Cheat_Codes_Title = "Codici Cheat",
     .s_Cheat_Codes_ON = "\x6",
     .s_Cheat_Codes_OFF = "\x5",
-#endif        
+#endif
 
     //=====================================================================
 
@@ -133,7 +133,7 @@ const lang_t lang_it_it LANG_DATA = {
     .s_UI_Mod = "Mod UI",
     .s_Lang = "Italiano",
     .s_LangAuthor = "SantX27",
-    .s_Debug_menu = "Menï¿½ di Debug",
+    .s_Debug_menu = "Menù di Debug",
     .s_Reset_settings = "Ripristina configurazione",
     //.s_Close = "Fermer",
     .s_Retro_Go = "Riguardo Retro-Go",
