@@ -35,6 +35,9 @@
  *
  ****************************************************************************************/
 
+#include "build/config.h"
+
+#ifdef ENABLE_EMULATOR_AMSTRAD
 #include "cap32.h"
 
 extern t_GateArray GateArray;
@@ -66,3 +69,4 @@ unsigned int rgb2color_8bpp(unsigned int r, unsigned int g, unsigned int b)
 {
    return RGB2COLOR(r, g, b);
 }
+#endif

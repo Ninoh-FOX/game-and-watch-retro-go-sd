@@ -1,3 +1,6 @@
+#include "build/config.h"
+
+#ifdef ENABLE_EMULATOR_AMSTRAD
 #include "cap32.h"
 #include "amstrad_catalog.h"
 
@@ -429,3 +432,5 @@ int catalog_probe(t_drive *drive, unsigned char user)
    _prepare_catalog(drive, user);
    return catalogue.last_entry;
 }
+
+#endif
