@@ -19,6 +19,11 @@ LARGE_FLASH ?= 0
 # setting EXTFLASH_OFFSET. Useful if the first 1MB are to be preserved.
 EXTFLASH_OFFSET ?= 0
 
+# Configure Game & Watch target device mario|zelda
+ifneq ($(findstring flash,$(MAKECMDGOALS)),flash)
+	GNW_TARGET ?= mario
+endif
+
 OFF_SAVESTATE = 0
 ifeq ($(SHARED_HIBERNATE_SAVESTATE),1)
 	OFF_SAVESTATE = 1
