@@ -93,7 +93,7 @@ uint32_t saveAmstradState(uint8_t *destBuffer, uint32_t save_size) {
     amstradSaveState.offset += 8+sizeof(amstradSaveState.sections[0])*MAX_SECTIONS;
     // Start saving data
     cap32_save_state();
-//    save_gnw_amstrad_data();
+    save_amstrad_data();
 
     // Write dummy data to force writing last block of data
     SaveFlashSaveData(amstradSaveState.buffer+amstradSaveState.offset,NULL,0);
@@ -128,6 +128,18 @@ SaveState* amstradSaveStateOpenForWrite(const char* fileName)
 }
 
 /* Loadstate functions */
+bool initLoadAmstradState(uint8_t *srcBuffer) {
+    amstradSaveState.offset = 0;
+    // Check for header
+    if (memcmp(headerString,srcBuffer,8) == 0) {
+        amstradSaveState.buffer = srcBuffer;
+        // Copy sections header in structure
+        memcpy(amstradSaveState.sections,amstradSaveState.buffer+8,sizeof(amstradSaveState.sections[0])*MAX_SECTIONS);
+        return true;
+    }
+    return false;
+}
+
 uint32_t loadAmstradState(uint8_t *srcBuffer) {
     amstradSaveState.offset = 0;
     // Check for header
@@ -137,7 +149,7 @@ uint32_t loadAmstradState(uint8_t *srcBuffer) {
         memcpy(amstradSaveState.sections,amstradSaveState.buffer+8,sizeof(amstradSaveState.sections[0])*MAX_SECTIONS);
         cap32_load_state();
 
-//        load_gnw_amstrad_data(srcBuffer);
+        load_amstrad_data(srcBuffer);
     }
     return amstradSaveState.offset;
 }

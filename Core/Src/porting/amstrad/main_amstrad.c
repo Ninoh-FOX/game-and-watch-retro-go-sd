@@ -25,35 +25,6 @@
 
 #define AMSTRAD_DISK_EXTENSION "cdk"
 
-uint8_t amstrad_framebuffer[CPC_SCREEN_WIDTH*CPC_SCREEN_HEIGHT];
-
-char loader_buffer[512];
-
-static const uint8_t IMG_DISKETTE[] = {
-    0x00, 0x00, 0x00, 0x3F, 0xFF, 0xE0, 0x7C, 0x00, 0x70, 0x7C, 0x03, 0x78,
-    0x7C, 0x03, 0x7C, 0x7C, 0x03, 0x7E, 0x7C, 0x00, 0x7E, 0x7F, 0xFF, 0xFE,
-    0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE,
-    0x7F, 0xFF, 0xFE, 0x7E, 0x00, 0x7E, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E,
-    0x7D, 0xFF, 0xBE, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x7D, 0xFF, 0xBE,
-    0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x3F, 0xFF, 0xFC, 0x00, 0x00, 0x00,
-};
-
-static bool auto_key = false;
-static int16_t soundBuffer[AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS];
-extern void amstrad_set_volume(uint8_t volume);
-static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
-    0,
-    3,
-    6,
-    15,
-    23,
-    35,
-    46,
-    60,
-    80,
-    100,
-};
-
 typedef enum
 {
     CPC_0,
@@ -219,10 +190,100 @@ typedef enum
     CAP32_SCREEN,
 } CPC_KEYS;
 
+static char palette_name[7];
+static int selected_palette_index = 0;
+static char *palette_names[] = {
+    "Color", "Green", "Grey"
+};
+
+static char controls_name[10];
+static int selected_controls_index = 0;
+static char *controls_names[] = {
+    "Joystick", "Keyboard"
+};
+
+static char disk_name[128];
+static int selected_disk_index = 0;
+
+char DISKA_NAME[16] = "\0";
+char DISKB_NAME[16] = "\0";
+char cart_name[16] = "\0";
+int emu_status;
+
+static odroid_gamepad_state_t previous_joystick_state;
+int amstrad_button_left_key = CPC_J0_LEFT;
+int amstrad_button_right_key = CPC_J0_RIGHT;
+int amstrad_button_up_key = CPC_J0_UP;
+int amstrad_button_down_key = CPC_J0_DOWN;
+int amstrad_button_a_key = CPC_J0_FIRE1;
+int amstrad_button_b_key = CPC_J0_FIRE2;
+int amstrad_button_game_key = CPC_SPACE;
+int amstrad_button_time_key = CPC_RETURN;
+int amstrad_button_start_key = CPC_SPACE;
+int amstrad_button_select_key = CPC_RETURN;
+
+#define RELEASE_KEY_DELAY 5
+static int selected_key_index = 0;
+static char key_name[10];
+static struct amstrad_key_info *pressed_key = NULL;
+static struct amstrad_key_info *release_key = NULL;
+static int release_key_delay = RELEASE_KEY_DELAY;
+int SHIFTON = 0;
+
+uint8_t amstrad_framebuffer[CPC_SCREEN_WIDTH*CPC_SCREEN_HEIGHT];
+
+char loader_buffer[512];
+
+static const uint8_t IMG_DISKETTE[] = {
+    0x00, 0x00, 0x00, 0x3F, 0xFF, 0xE0, 0x7C, 0x00, 0x70, 0x7C, 0x03, 0x78,
+    0x7C, 0x03, 0x7C, 0x7C, 0x03, 0x7E, 0x7C, 0x00, 0x7E, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE,
+    0x7F, 0xFF, 0xFE, 0x7E, 0x00, 0x7E, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E,
+    0x7D, 0xFF, 0xBE, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x7D, 0xFF, 0xBE,
+    0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x3F, 0xFF, 0xFC, 0x00, 0x00, 0x00,
+};
+
+static bool auto_key = false;
+static int16_t soundBuffer[AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS];
+extern void amstrad_set_volume(uint8_t volume);
+static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
+    0,
+    3,
+    6,
+    15,
+    23,
+    35,
+    46,
+    60,
+    80,
+    100,
+};
+
+void load_amstrad_data(uint8_t *address) {
+    SaveState* state = NULL;
+    if (initLoadAmstradState(address)) {
+        state = amstradSaveStateOpenForRead("main_amstrad");
+        printf("state = %x\n",(int)state);
+        selected_palette_index = amstradSaveStateGet(state, "selected_palette_index");
+        selected_disk_index = amstradSaveStateGet(state, "selected_disk_index");
+        selected_controls_index = amstradSaveStateGet(state, "selected_controls_index");
+        selected_key_index = amstradSaveStateGet(state, "selected_key_index");
+    }
+}
+
 static bool amstrad_system_loadState(char *pathName)
 {
     loadAmstradState((uint8_t *)ACTIVE_FILE->save_address);
     return 0;
+}
+
+void save_amstrad_data() {
+    SaveState* state;
+    state = amstradSaveStateOpenForWrite("main_amstrad");
+    amstradSaveStateSet(state, "selected_palette_index", selected_palette_index);
+    amstradSaveStateSet(state, "selected_disk_index", selected_disk_index);
+    amstradSaveStateSet(state, "selected_controls_index", selected_controls_index);
+    amstradSaveStateSet(state, "selected_key_index", selected_key_index);
 }
 
 static bool amstrad_system_saveState(char *pathName)
@@ -250,26 +311,6 @@ static bool amstrad_system_saveState(char *pathName)
 #endif
     return true;
 }
-
-static char palette_name[6];
-static int selected_palette_index = 0;
-static char *palette_names[] = {
-    "Color", "Green", "Grey"
-};
-
-static char controls_name[10];
-static int selected_controls_index = 0;
-static char *controls_names[] = {
-    "Joystick", "Keyboard"
-};
-
-static char disk_name[128];
-static int selected_disk_index = 0;
-
-char DISKA_NAME[16] = "\0";
-char DISKB_NAME[16] = "\0";
-char cart_name[16] = "\0";
-int emu_status;
 
 unsigned int *amstrad_getScreenPtr()
 {
@@ -338,25 +379,6 @@ struct amstrad_key_info amstrad_keyboard[] = {
     {CPC_FPERIOD, ".", true},
 };
 
-static odroid_gamepad_state_t previous_joystick_state;
-int amstrad_button_left_key = CPC_J0_LEFT;
-int amstrad_button_right_key = CPC_J0_RIGHT;
-int amstrad_button_up_key = CPC_J0_UP;
-int amstrad_button_down_key = CPC_J0_DOWN;
-int amstrad_button_a_key = CPC_J0_FIRE1;
-int amstrad_button_b_key = CPC_J0_FIRE2;
-int amstrad_button_game_key = CPC_SPACE;
-int amstrad_button_time_key = CPC_RETURN;
-int amstrad_button_start_key = CPC_SPACE;
-int amstrad_button_select_key = CPC_RETURN;
-
-#define RELEASE_KEY_DELAY 5
-static int selected_key_index = 0;
-static char key_name[10];
-static struct amstrad_key_info *pressed_key = NULL;
-static struct amstrad_key_info *release_key = NULL;
-static int release_key_delay = RELEASE_KEY_DELAY;
-int SHIFTON = 0;
 static bool update_keyboard_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     int max_index = sizeof(amstrad_keyboard) / sizeof(amstrad_keyboard[0]) - 1;
@@ -804,6 +826,8 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, uint8_t save_slo
     int disk_load_result = 0;
     int load_result = 0;
 
+    selected_disk_index = -1;
+
     // Create RGB8 to RGB565 table
     for (int i = 0; i < 256; i++)
     {
@@ -811,6 +835,19 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, uint8_t save_slo
         palette565[i] = (((i >> 5) * 31 / 7) << 11) |
                         ((((i & 0x1C) >> 2) * 63 / 7) << 5) |
                         ((i & 0x3) * 31 / 3);
+    }
+
+    if (load_state) {
+#if OFF_SAVESTATE==1
+        if (save_slot == 1) {
+            // Load from common save slot if needed
+            load_amstrad_data((uint8_t *)&__OFFSAVEFLASH_START__);
+        } else {
+#endif
+            load_amstrad_data((uint8_t *)ACTIVE_FILE->save_address);
+#if OFF_SAVESTATE==1
+        }
+#endif
     }
 
     if (start_paused)
@@ -839,11 +876,21 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, uint8_t save_slo
 
     if (0 == strcmp(ACTIVE_FILE->ext, AMSTRAD_DISK_EXTENSION))
     {
-        const rom_system_t *amstrad_system = rom_manager_system(&rom_mgr, "Amstrad CPC");
-        selected_disk_index = rom_get_index_for_file_ext(amstrad_system, ACTIVE_FILE);
-        disk_load_result = attach_disk_buffer((char *)ROM_DATA, 0);
-        printf("attach_disk_buffer %d\n", disk_load_result);
+        if (selected_disk_index == -1) {
+            const rom_system_t *amstrad_system = rom_manager_system(&rom_mgr, "Amstrad CPC");
+            selected_disk_index = rom_get_index_for_file_ext(amstrad_system, ACTIVE_FILE);
+            disk_load_result = attach_disk_buffer((char *)ROM_DATA, 0);
+            printf("attach_disk_buffer %d\n", disk_load_result);
+        } else {
+            retro_emulator_file_t *disk_file = NULL;
+            const rom_system_t *amstrad_system = rom_manager_system(&rom_mgr, "Amstrad CPC");
+            disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(amstrad_system,AMSTRAD_DISK_EXTENSION,selected_disk_index);
+            disk_load_result = attach_disk_buffer((char *)disk_file->address, 0);
+            printf("attach_disk_buffer %d\n", disk_load_result);
+        }
     }
+
+    cap32_set_palette(selected_palette_index);
 
     if (load_state)
     {
