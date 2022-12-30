@@ -68,18 +68,20 @@ This is a port of the [retro-go](https://github.com/ducalex/retro-go) emulator c
 
 Supported emulators:
 
+- Amstrad CPC6128 *beta* (amstrad) (check [Amstrad CPC6128 Emulator](#amstrad-cpc6128-emulator) section for details about the Amstrad CPC6128 emulator)
+- Atari 7800 (a7800)
 - ColecoVision (col)
 - Gameboy / Gameboy Color (gb/gbc)
 - Game & Watch / LCD Games (gw)
+- MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)
 - Nintendo Entertainment System (nes)
 - PC Engine / TurboGrafx-16 (pce)
 - Sega Game Gear (gg)
 - Sega Genesis / Megadrive (md)
 - Sega Master System (sms)
 - Sega SG-1000 (sg)
-- MSX1/2/2+ (msx) (check [MSX Emulator](#msx-emulator) section for details about MSX emulator)
 - Watara Supervision (wsv)
-- Amstrad CPC6128 *beta* (amstrad) (check [Amstrad CPC6128 Emulator](#amstrad-cpc6128-emulator) section for details about the Amstrad CPC6128 emulator)
+
 ## Table of Contents
 - [Emulator collection for Nintendo® Game & Watch™](#emulator-collection-for-nintendo-game--watch)
   - [Table of Contents](#table-of-contents)
