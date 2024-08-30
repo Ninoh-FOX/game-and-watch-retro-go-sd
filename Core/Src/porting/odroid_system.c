@@ -5,7 +5,6 @@
 #include "gw_linker.h"
 #include "gui.h"
 #include "main.h"
-#include "filesystem.h"
 
 static rg_app_desc_t currentApp;
 static runtime_stats_t statistics;
@@ -115,6 +114,8 @@ void odroid_system_get_sram_path(char *path, size_t size, int slot)
  * */
 bool odroid_system_emu_load_state(int slot)
 {
+   return false;
+/*
     char savePath[FS_MAX_PATH_SIZE];
     char gnwDataPath[FS_MAX_PATH_SIZE];
     char sramPath[FS_MAX_PATH_SIZE];
@@ -147,10 +148,13 @@ bool odroid_system_emu_load_state(int slot)
         }
     }
     return true;
+*/
 };
 
 bool odroid_system_emu_save_state(int slot)
 {
+        return true;
+/*
     char savePath[FS_MAX_PATH_SIZE];
     char sramPath[FS_MAX_PATH_SIZE];
     if (currentApp.saveState == NULL)
@@ -161,6 +165,7 @@ bool odroid_system_emu_save_state(int slot)
     printf("Savestating to [%s]\n", savePath);
     (*currentApp.saveState)(savePath, sramPath, slot);
     return true;
+*/
 };
 
 IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTime)

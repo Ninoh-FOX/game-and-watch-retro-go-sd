@@ -11,7 +11,6 @@
 #include "gw_linker.h"
 #include "odroid_audio.h"
 #include "rg_i18n.h"
-#include "filesystem.h"
 #include "gw_malloc.h"
 
 static void set_ingame_overlay(ingame_overlay_t type);
@@ -157,6 +156,7 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
             }
             else if(joystick->values[ODROID_INPUT_START]){ // GAME button
 #if ENABLE_SCREENSHOT
+/*
                 printf("Capturing screenshot...\n");
                 odroid_audio_mute(true);
                 lcd_sleep_while_swap_pending();
@@ -166,7 +166,7 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
                 set_ingame_overlay(INGAME_OVERLAY_SC);
                 odroid_audio_mute(false);
                 common_emu_state.startup_frames = 0;
-                printf("Screenshot captured\n");
+                printf("Screenshot captured\n");*/
 #else
                 printf("Screenshot support is disabled\n");
 #endif

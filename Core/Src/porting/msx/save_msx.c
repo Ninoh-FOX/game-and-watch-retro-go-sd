@@ -23,6 +23,7 @@ static char *headerString  = "bMSX0001";
 extern BoardInfo boardInfo;
 static SaveState *msxSaveState = NULL;  // This is really a fs_file_t
 
+/*
 uint16_t saveMsxGetVersion(char *pathName) {
     char header[8];
     msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
@@ -34,21 +35,26 @@ uint16_t saveMsxGetVersion(char *pathName) {
         return 1;
     }
 }
+*/
 
 /* Savestate functions */
 UInt32 saveMsxState(char *pathName) {
+/*
     msxSaveState = fs_open(pathName, FS_WRITE, FS_COMPRESS);
     fs_write(msxSaveState, (unsigned char *)headerString, 8);
     boardSaveState("mem0",0);
     fs_close(msxSaveState);
+*/
     return 0;
 }
 
 UInt32 saveGnwMsxData(char *pathName) {
+/*
     msxSaveState = fs_open(pathName, FS_WRITE, FS_COMPRESS);
     fs_write(msxSaveState, (unsigned char *)headerString, 8);
     save_gnw_msx_data();
     fs_close(msxSaveState);
+*/
     return 0;
 }
 
@@ -60,13 +66,13 @@ void saveStateCreateForWrite(const char* fileName)
 void saveStateSet(SaveState* state, const char* tagName, UInt32 value)
 {
     wdog_refresh();
-    fs_write(state, (unsigned char *)&value, 4);
+//    fs_write(state, (unsigned char *)&value, 4);
 }
 
 void saveStateSetBuffer(SaveState* state, const char* tagName, void* buffer, UInt32 length)
 {
     wdog_refresh();
-    fs_write(state, buffer, length);
+//    fs_write(state, buffer, length);
 }
 
 SaveState* saveStateOpenForWrite(const char* fileName)
@@ -87,6 +93,7 @@ void saveStateClose(SaveState* state)
 
 /* Loadstate v0 functions */
 UInt32 loadMsxStateV0(char *pathName) {
+/*
     char header[8];
     msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
     fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
@@ -95,11 +102,13 @@ UInt32 loadMsxStateV0(char *pathName) {
         load_gnw_msx_data();
     }
     fs_close(msxSaveState);
+*/
     return 0;
 }
 
 /* Loadstate functions */
 UInt32 loadMsxState(char *pathName) {
+/*
     char header[8];
     msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
     fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
@@ -107,10 +116,12 @@ UInt32 loadMsxState(char *pathName) {
         boardInfo.loadState();
     }
     fs_close(msxSaveState);
+*/
     return 0;
 }
 
 UInt32 loadGnwMsxData(char *pathName) {
+/*
     char header[8];
     msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
     fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
@@ -118,6 +129,7 @@ UInt32 loadGnwMsxData(char *pathName) {
         load_gnw_msx_data();
     }
     fs_close(msxSaveState);
+*/
     return 0;
 }
 
@@ -129,16 +141,19 @@ SaveState* saveStateOpenForRead(const char* fileName)
 
 UInt32 saveStateGet(SaveState* state, const char* tagName, UInt32 defValue)
 {
+/*
     UInt32 value;
     wdog_refresh();
     fs_read(state, (unsigned char *)&value, 4);
     return value;
+*/
+    return 0;
 }
 
 void saveStateGetBuffer(SaveState* state, const char* tagName, void* buffer, UInt32 length)
 {
     wdog_refresh();
-    fs_read(state, buffer, length);
+//    fs_read(state, buffer, length);
 }
 
 void saveStateCreateForRead(const char* fileName)

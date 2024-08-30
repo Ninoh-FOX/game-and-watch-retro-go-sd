@@ -386,6 +386,7 @@ static bool show_cheat_dialog()
 }
 #endif
 
+/*
 static void parse_save_folder_path(retro_emulator_file_t *file, char *path, size_t size){
     snprintf(path,
                 size,
@@ -424,6 +425,7 @@ static void parse_sram_path(retro_emulator_file_t *file, char *path, size_t size
                 slot
                 );
 }
+*/
 
 bool emulator_show_file_menu(retro_emulator_file_t *file)
 {
@@ -434,14 +436,13 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     // bool has_sram = odroid_sdcard_get_filesize(sram_path) > 0;
     // bool is_fav = favorite_find(file) != NULL;
 
-    char saveFolderPath[FS_MAX_PATH_SIZE];
+/*    char saveFolderPath[FS_MAX_PATH_SIZE];
     char savePath[FS_MAX_PATH_SIZE];
     char gnwDataPath[FS_MAX_PATH_SIZE];
-    char sramPath[FS_MAX_PATH_SIZE];
+    char sramPath[FS_MAX_PATH_SIZE];*/
     bool has_save = 0;
     bool has_sram = 0;
     bool force_redraw = false;
-    uint32_t free_blocks = fs_free_blocks();
 
 #if CHEAT_CODES == 1
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
@@ -452,13 +453,13 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     }
 
 #endif
-    parse_save_folder_path(file, saveFolderPath, sizeof(saveFolderPath));
+/*    parse_save_folder_path(file, saveFolderPath, sizeof(saveFolderPath));
     parse_save_path(file, savePath, sizeof(savePath), 0);
     parse_gnw_data_path(file, gnwDataPath, sizeof(gnwDataPath), 0);
     parse_sram_path(file, sramPath, sizeof(sramPath), 0);
 
     has_save = fs_exists(savePath);
-    has_sram = fs_exists(sramPath);
+    has_sram = fs_exists(sramPath);*/
 
     odroid_dialog_choice_t choices[] = {
         {0, curr_lang->s_Resume_game, "", (has_save || has_sram) ? 1 : -1, NULL},
@@ -489,7 +490,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         // To ensure efficient filesystem behavior, we make sure that there
         // is already a savestate file for this game or that there is enough
         // free space for a new save state
-        if ((has_save) || (free_blocks >= MIN_FREE_FS_BLOCKS)) {
+        if (has_save) {
             gui_save_current_tab();
             emulator_start(file, false, false, 0);
         } else {
@@ -498,6 +499,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         }
     }
     else if (sel == 2) {
+/*
         if (has_save) {
             if (odroid_overlay_confirm(curr_lang->s_Confirm_del_save, false, &gui_redraw_callback) == 1) {
                 fs_delete(savePath);
@@ -510,6 +512,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
             }
         }
         fs_delete(saveFolderPath);
+*/
     }
 /*    else if (sel == 3) {
         // if (is_fav)

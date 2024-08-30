@@ -44,15 +44,11 @@ Core/Src/gw_malloc.c \
 Core/Src/error_screens.c \
 Core/Src/main.c \
 Core/Src/syscalls.c \
-Core/Src/save_manager.c \
 Core/Src/sha256.c \
 Core/Src/bq24072.c \
-Core/Src/filesystem.c \
 Core/Src/porting/lib/lzma/LzmaDec.c \
 Core/Src/porting/lib/lzma/lzma.c \
 Core/Src/porting/lib/hw_jpeg_decoder.c \
-Core/Src/porting/lib/littlefs/lfs.c \
-Core/Src/porting/lib/littlefs/lfs_util.c \
 Core/Src/porting/common.c \
 Core/Src/porting/odroid_audio.c \
 Core/Src/porting/odroid_display.c \
@@ -65,12 +61,6 @@ Core/Src/porting/crc32.c \
 Core/Src/stm32h7xx_hal_msp.c \
 Core/Src/stm32h7xx_it.c \
 Core/Src/system_stm32h7xx.c
-
-TAMP_DIR = Core/Src/porting/lib/tamp/tamp/_c_src/
-TAMP_C_SOURCES = \
-$(TAMP_DIR)/tamp/common.c \
-$(TAMP_DIR)/tamp/compressor.c \
-$(TAMP_DIR)/tamp/decompressor.c
 
 # Add common C++ sources here
 CXX_SOURCES = \
@@ -783,8 +773,6 @@ $(CORE_CCLESTE)/celeste_audio.c \
 Core/Src/porting/celeste/main_celeste.c
 endif
 
-TAMP_C_INCLUDES += -I$(TAMP_DIR)
-
 ZELDA3_C_SOURCES = 
 
 ifneq ("$(wildcard roms/zelda3/zelda3.sfc)","")
@@ -939,8 +927,6 @@ C_INCLUDES +=  \
 -ICore/Inc \
 -ICore/Src/porting/lib \
 -ICore/Src/porting/lib/lzma \
--ICore/Src/porting/lib/littlefs/ \
--ICore/Src/porting/lib/tamp/tamp/_c_src \
 -Iretro-go-stm32/components/odroid \
 -I./
 

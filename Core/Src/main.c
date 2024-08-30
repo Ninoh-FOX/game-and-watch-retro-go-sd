@@ -30,7 +30,6 @@
 #include "gw_linker.h"
 #include "githash.h"
 #include "bitmaps.h"
-#include "filesystem.h"
 
 #include "odroid_colors.h"
 #include "odroid_system.h"

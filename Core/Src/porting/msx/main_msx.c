@@ -46,7 +46,7 @@
 #include "JoystickPort.h"
 #include "InputEvent.h"
 #include "R800.h"
-#include "save_msx.h"
+//#include "save_msx.h"
 #include "gw_malloc.h"
 #include "gw_linker.h"
 #include "main_msx.h"
@@ -159,6 +159,7 @@ void msxLedSetFdd1(int state) {
 
 static bool msx_system_LoadState(char *savePathName, char *sramPathName, int slot)
 {
+    /*
     // If savestate is in the old version, load it using the old way
     if (saveMsxGetVersion(savePathName) == 0) {
         loadMsxStateV0(savePathName); // internally calls load_gnw_msx_data
@@ -171,12 +172,13 @@ static bool msx_system_LoadState(char *savePathName, char *sramPathName, int slo
 
         loadGnwMsxData(gnwDataSavePath);
         loadMsxState(savePathName);
-    }
+    }*/
     return true;
 }
 
 static bool msx_system_SaveState(char *savePathName, char *sramPathName, int slot)
 {
+    /*
     char gnwDataSavePath[FS_MAX_PATH_SIZE];
     odroid_system_get_gnw_data_path(gnwDataSavePath,
                                     sizeof(gnwDataSavePath),
@@ -195,10 +197,11 @@ static bool msx_system_SaveState(char *savePathName, char *sramPathName, int slo
         }
     }
     saveGnwMsxData(gnwDataSavePath);
-    saveMsxState(savePathName);
+    saveMsxState(savePathName);*/
     return true;
 }
 
+/*
 void save_gnw_msx_data() {
     SaveState* state;
     state = saveStateOpenForWrite("main_msx");
@@ -223,7 +226,7 @@ void load_gnw_msx_data() {
     selected_key_index = saveStateGet(state, "selected_key_index", 0);
     msx_fps = saveStateGet(state, "msx_fps", 0);
     saveStateClose(state);
-}
+}*/
 
 /* Core stubs */
 void frameBufferDataDestroy(FrameBufferData* frameData){}
@@ -1934,13 +1937,14 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
     odroid_gamepad_state_t joystick;
     odroid_dialog_choice_t options[10];
-    char msxSavePath[FS_MAX_PATH_SIZE];
+//    char msxSavePath[FS_MAX_PATH_SIZE];
     uint16_t saveStateVersion;
     bool drawFrame;
 
     show_disk_icon = false;
     selected_disk_index = -1;
 
+/*
     if (load_state) {
         // Get savestate path and version
         odroid_system_get_save_path(msxSavePath,
@@ -1960,7 +1964,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
             loadGnwMsxData(gnwDataSavePath);
         }
     }
-
+*/
     // Create RGB8 to RGB565 table
     for (int i = 0; i < 256; i++)
     {
@@ -2009,6 +2013,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 
     createOptionMenu(options);
 
+/*
     if (load_state) {
         odroid_system_emu_load_state(save_slot);
         if (saveStateVersion == 0) {
@@ -2025,7 +2030,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
             }
         }
     }
-
+*/
     while (1) {
         // Frequency change check if in automatic mode
         if ((selected_frequency_index == FREQUENCY_VDP_AUTO) && (msx_fps != boardInfo.getRefreshRate())) {

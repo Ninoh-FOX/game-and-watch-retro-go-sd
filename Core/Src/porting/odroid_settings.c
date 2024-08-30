@@ -8,7 +8,6 @@
 #include "appid.h"
 #include "gui.h"
 #include "rom_manager.h"
-#include "filesystem.h"
 
 #define CONFIG_MAGIC 0xcafef00d
 #define ODROID_APPID_COUNT 4
@@ -151,12 +150,15 @@ persistent_config_t persistent_config_ram;
 
 void odroid_settings_init()
 {
+/*
     if(fs_mounted && fs_exists("CONFIG")){
         fs_file_t *file = fs_open("CONFIG", FS_READ, FS_COMPRESS);
         fs_read(file, (unsigned char *)&persistent_config_ram, sizeof(persistent_config_t));
         fs_close(file);
     }
-    else{
+    else
+*/
+    {
         memset(&persistent_config_ram, 0, sizeof(persistent_config_t));
     }
 
@@ -196,11 +198,13 @@ void odroid_settings_commit()
     persistent_config_ram.crc32 = 0;
     persistent_config_ram.crc32 = crc32_le(0, (unsigned char *) &persistent_config_ram, sizeof(persistent_config_t));
 
+/*
     if(fs_mounted){
         fs_file_t *file = fs_open("CONFIG", FS_WRITE, FS_COMPRESS);
         fs_write(file, (unsigned char *)&persistent_config_ram, sizeof(persistent_config_t));
         fs_close(file);
     }
+*/
 }
 
 void odroid_settings_reset()
@@ -394,7 +398,7 @@ void odroid_settings_FontSize_set(int32_t value)
     persistent_config_ram.font_size = value;
 }
 
-
+/*
 char* odroid_settings_RomFilePath_get()
 {
     static char filepath_buffer[FS_MAX_PATH_SIZE];  // Being static is fine since the name is immediately used.
@@ -405,6 +409,7 @@ char* odroid_settings_RomFilePath_get()
              ACTIVE_FILE->name);
     return filepath_buffer;
 }
+*/
 void odroid_settings_RomFilePath_set(const char* value)
 {
   odroid_settings_string_set(Key_RomFilePath, value);

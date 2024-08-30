@@ -29,9 +29,9 @@
 #define SAVE_STATE_H
  
 #include "MsxTypes.h"
-#include "filesystem.h"
 
-typedef fs_file_t SaveState;
+//typedef fs_file_t SaveState;
+typedef void SaveState;
 
 uint16_t saveMsxGetVersion(char *pathName);
 
