@@ -18,8 +18,9 @@
 #include "ff.h"
 
 bool fs_mounted = false;
+static FRESULT cause;
 
-static void sdcard_error_screen(FRESULT cause){
+void sdcard_error_screen(void) {
     char buf[64];
     int idle_s = uptime_get();
 
@@ -64,11 +65,9 @@ static void sdcard_error_screen(FRESULT cause){
  */
 FATFS FatFs;  // Fatfs handle
 void sdcard_init(void) {
-    FRESULT fres; // Result after operations
-    fres = f_mount(&FatFs, (const TCHAR *)"", 1);
-    if (fres != FR_OK) {
-        sdcard_error_screen(fres);
+    cause = f_mount(&FatFs, (const TCHAR *)"", 1);
+    if (cause == FR_OK) {
+        fs_mounted = true;
+        printf("filesytem mounted.\n");
     }
-    fs_mounted = true;
-    printf("filesytem mounted.\n");
 }

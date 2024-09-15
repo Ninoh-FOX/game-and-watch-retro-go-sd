@@ -112,6 +112,67 @@ void odroid_system_get_sram_path(char *path, size_t size, int slot)
 }
 #endif
 
+char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
+{
+    const char *fileName = _romPath ?: currentApp.romPath;
+    char buffer[256];
+
+    if (strstr(fileName, ODROID_BASE_PATH_ROMS))
+    {
+        fileName = strstr(fileName, ODROID_BASE_PATH_ROMS);
+        fileName += strlen(ODROID_BASE_PATH_ROMS);
+    }
+
+    if (!fileName || strlen(fileName) < 4)
+    {
+        RG_PANIC("Invalid ROM path!");
+    }
+
+    switch (type)
+    {
+        case ODROID_PATH_SAVE_STATE:
+        case ODROID_PATH_SAVE_STATE_1:
+        case ODROID_PATH_SAVE_STATE_2:
+        case ODROID_PATH_SAVE_STATE_3:
+            strcpy(buffer, ODROID_BASE_PATH_SAVES);
+            strcat(buffer, fileName);
+            strcat(buffer, ".sav");
+            break;
+
+        case ODROID_PATH_SAVE_BACK:
+            strcpy(buffer, ODROID_BASE_PATH_SAVES);
+            strcat(buffer, fileName);
+            strcat(buffer, ".sav.bak");
+            break;
+
+        case ODROID_PATH_SAVE_SRAM:
+            strcpy(buffer, ODROID_BASE_PATH_SAVES);
+            strcat(buffer, fileName);
+            strcat(buffer, ".sram");
+            break;
+
+        case ODROID_PATH_TEMP_FILE:
+            sprintf(buffer, "%s/%X%X.tmp", ODROID_BASE_PATH_TEMP, get_elapsed_time(), rand());
+            break;
+
+        case ODROID_PATH_ROM_FILE:
+            strcpy(buffer, ODROID_BASE_PATH_ROMS);
+            strcat(buffer, fileName);
+            break;
+
+        case ODROID_PATH_CRC_CACHE:
+            strcpy(buffer, ODROID_BASE_PATH_CRC_CACHE);
+            strcat(buffer, fileName);
+            strcat(buffer, ".crc");
+            break;
+
+        default:
+            RG_PANIC("Unknown Type");
+    }
+
+    return strdup(buffer);
+}
+
 /* Return true on successful load.
  * Slot -1 is for the OFF_SAVESTATE
  * */

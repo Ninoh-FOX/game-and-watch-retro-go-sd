@@ -37,8 +37,8 @@ typedef struct {
     //max 64kb image file data
     uint16_t img_size;
 	#endif
-    //size_t crc_offset;
-    //uint32_t checksum;
+    size_t crc_offset;
+    uint32_t checksum;
     //bool missing_cover;
     const uint8_t *extra;
     rom_region_t region;
@@ -54,8 +54,7 @@ typedef struct {
     char system_name[32];
     char dirname[16];
     char exts[16];
-    uint16_t crc_offset;
-    uint16_t partition;
+    int16_t crc_offset;
 	#if COVERFLOW != 0
     size_t cover_width;
     size_t cover_height;

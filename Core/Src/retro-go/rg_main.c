@@ -815,13 +815,17 @@ void GLOBAL_DATA app_sleep_logo()
 void GLOBAL_DATA app_main(uint8_t boot_mode)
 {
     lcd_set_buffers(framebuffer1, framebuffer2);
+    sdcard_init();
     odroid_system_init(ODROID_APPID_LAUNCHER, 32000);
     odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
 
     //check data;
     app_check_data_loop();
 
-    sdcard_init();
+    if (fs_mounted == false) {
+        sdcard_error_screen();
+    }
+
     // Re-initialize system now that the filesystem is mounted.
     odroid_system_init(ODROID_APPID_LAUNCHER, 32000);
     uint8_t oc = odroid_settings_cpu_oc_level_get();

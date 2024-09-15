@@ -191,14 +191,17 @@ static void event_handler(gui_event_t event, tab_t *tab)
     }
     else if (event == TAB_IDLE)
     {
+        if (file->checksum == 0)
+            emulator_crc32_file(file);
+
     }
     else if (event == TAB_REDRAW)
     {
     }
 }
 
-static void add_emulator(const char *system, const char *dirname, const char* ext, const char *part,
-                          uint16_t crc_offset, const void *logo, const void *header, game_data_type_t game_data_type)
+static void add_emulator(const char *system, const char *dirname, const char* ext, int16_t crc_offset,
+                         const void *logo, const void *header, game_data_type_t game_data_type)
 {
     assert(emulators_count <= MAX_EMULATORS);
     retro_emulator_t *p = &emulators[emulators_count];
@@ -208,7 +211,6 @@ static void add_emulator(const char *system, const char *dirname, const char* ex
     strcpy(p->system_name, system);
     strcpy(p->dirname, dirname);
     snprintf(p->exts, sizeof(p->exts), " %s ", ext);
-    p->partition = 0;
     p->roms.count = 0;
     p->roms.maxcount = 20;
     p->roms.files = calloc(p->roms.maxcount, sizeof(retro_emulator_file_t)); // TODO SD : improve this
@@ -268,6 +270,11 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
         emu->roms.maxcount = new_maxcount;
     }
 
+    uint32_t checksum = 0;
+    if (emu->crc_offset < 0) {
+        checksum = 1; // CRC32 is useless for this system
+    }
+
     emu->roms.files[emu->roms.count++] = (retro_emulator_file_t) {
         .name = strdup(entry->basename),
         .ext = ext,
@@ -277,6 +284,8 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
         .system = emu->system,
         .region = REGION_NTSC,
         .extra = NULL,
+        .checksum = checksum,
+        .crc_offset = emu->crc_offset,
     };
     emu->system->roms_count = emu->roms.count;
 
@@ -310,6 +319,7 @@ const retro_emulator_file_t gg_roms[] EMU_DATA = {
 
 };
 #endif
+
 void emulator_init(retro_emulator_t *emu)
 {
     char folder[255];
@@ -322,177 +332,80 @@ void emulator_init(retro_emulator_t *emu)
 
     snprintf(folder, sizeof(folder), "%s/%s", RG_BASE_PATH_ROMS, emu->dirname);
 
+    char path[128];
+
+    if (emu->crc_offset >=0) {
+        sprintf(path, ODROID_BASE_PATH_CRC_CACHE "/%s", emu->dirname);
+        rg_storage_mkdir(path);
+    }
+
+    sprintf(path, ODROID_BASE_PATH_SAVES "/%s", emu->dirname);
+    rg_storage_mkdir(path);
+
+    sprintf(path, ODROID_BASE_PATH_ROMS "/%s", emu->dirname);
+    rg_storage_mkdir(path);
+
     rg_storage_scandir(folder, scan_folder_cb, emu, RG_SCANDIR_RECURSIVE);
-
-#if 0
-    const rom_system_t *system = rom_manager_system(&rom_mgr, emu->system_name);
-    if (system) {
-        emu->system = system;
-//        emu->roms.files = system->roms;
-//        emu->roms.count = system->roms_count;
-#if COVERFLOW != 0        
-        emu->cover_height = system->cover_height;
-        emu->cover_width = system->cover_width;
-#endif
-    } else {
-        while(1) {
-            lcd_backlight_on();
-            HAL_Delay(100);
-            lcd_backlight_off();
-            HAL_Delay(100);
-        }
-    }
-#endif
-
-    // retro_emulator_file_t *file = &emu->roms.files[emu->roms.count++];
-    // strcpy(file->folder, "/");
-    // strcpy(file->name, "test");
-    // strcpy(file->ext, "gb");
-    // file->emulator = (void*)emu;
-    // file->crc_offset = emu->crc_offset;
-    // file->checksum = 0;
-
-
-    // char path[128];
-    // char *files = NULL;
-    // size_t count = 0;
-
-    // sprintf(path, ODROID_BASE_PATH_CRC_CACHE "/%s", emu->dirname);
-    // odroid_sdcard_mkdir(path);
-
-    // sprintf(path, ODROID_BASE_PATH_SAVES "/%s", emu->dirname);
-    // odroid_sdcard_mkdir(path);
-
-    // sprintf(path, ODROID_BASE_PATH_ROMS "/%s", emu->dirname);
-    // odroid_sdcard_mkdir(path);
-
-    // if (odroid_sdcard_list(path, &files, &count) == 0 && count > 0)
-    // {
-    //     emu->roms.files = rg_alloc(count * sizeof(retro_emulator_file_t), MEM_ANY);
-    //     emu->roms.count = 0;
-
-    //     char *ptr = files;
-    //     for (int i = 0; i < count; ++i)
-    //     {
-    //         const char *name = ptr;
-    //         const char *ext = odroid_sdcard_get_extension(ptr);
-    //         size_t name_len = strlen(name);
-
-    //         // Advance pointer to next entry
-    //         ptr += name_len + 1;
-
-    //         if (!ext || strcasecmp(emu->ext, ext) != 0) //  && strcasecmp("zip", ext) != 0
-    //             continue;
-
-    //         retro_emulator_file_t *file = &emu->roms.files[emu->roms.count++];
-    //         strcpy(file->folder, path);
-    //         strcpy(file->name, name);
-    //         strcpy(file->ext, ext);
-    //         file->name[name_len-strlen(ext)-1] = 0;
-    //         file->emulator = (void*)emu;
-    //         file->crc_offset = emu->crc_offset;
-    //         file->checksum = 0;
-    //     }
-    // }
-    // free(files);
 }
-
-const uint32_t *emu_get_file_address(retro_emulator_file_t *file)
-{
-    // static char buffer[192];
-    // if (file == NULL) return NULL;
-    // sprintf(buffer, "%s/%s.%s", file->folder, file->name, file->ext);
-    // return (const char*)&buffer;
-    return (uint32_t *) file->address;
-}
-
-/*bool emulator_build_file_object(const char *path, retro_emulator_file_t *file)
-{
-    const char *name = odroid_sdcard_get_filename(path);
-    const char *ext = odroid_sdcard_get_extension(path);
-
-    if (ext == NULL || name == NULL)
-        return false;
-
-    memset(file, 0, sizeof(retro_emulator_file_t));
-    strncpy(file->folder, path, strlen(path)-strlen(name)-1);
-    strncpy(file->name, name, strlen(name)-strlen(ext)-1);
-    strcpy(file->ext, ext);
-
-    const char *dirname = odroid_sdcard_get_filename(file->folder);
-
-    for (int i = 0; i < emulators_count; ++i)
-    {
-        if (strcmp(emulators[i].dirname, dirname) == 0)
-        {
-            file->crc_offset = emulators[i].crc_offset;
-            file->emulator = &emulators[i];
-            return true;
-        }
-    }
-
-    return false;
-}*/
 
 void emulator_crc32_file(retro_emulator_file_t *file)
 {
-    // if (file == NULL || file->checksum > 0)
-    //     return;
+    if (file == NULL || file->checksum > 0)
+         return;
 
-    // const int chunk_size = 32768;
-    // const char *file_path = emu_get_file_path(file);
-    // char *cache_path = odroid_system_get_path(ODROID_PATH_CRC_CACHE, file_path);
-    // FILE *fp, *fp2;
+    const int chunk_size = 512;
+    char *cache_path = odroid_system_get_path(ODROID_PATH_CRC_CACHE, file->path);
 
-    // file->missing_cover = 0;
+    FILE *fp, *fp2;
 
-    // if ((fp = fopen(cache_path, "rb")) != NULL)
-    // {
-    //     fread(&file->checksum, 4, 1, fp);
-    //     fclose(fp);
-    // }
-    // else if ((fp = fopen(file_path, "rb")) != NULL)
-    // {
-    //     void *buffer = malloc(chunk_size);
-    //     uint32_t crc_tmp = 0;
-    //     uint32_t count = 0;
+//    file->missing_cover = 0;
 
-    //     gui_draw_notice("        CRC32", C_GREEN);
+    if ((fp = fopen(cache_path, "rb")) != NULL)
+    {
+        fread(&file->checksum, 4, 1, fp);
+        fclose(fp);
+    }
+    else if ((fp = fopen(file->path, "rb")) != NULL)
+    {
+        void *buffer = malloc(chunk_size);
+        uint32_t crc_tmp = 0;
+        uint32_t count = 0;
 
-    //     fseek(fp, file->crc_offset, SEEK_SET);
-    //     while (true)
-    //     {
-    //         odroid_input_read_gamepad(&gui.joystick);
-    //         if (gui.joystick.bitmask > 0) break;
+//        gui_draw_notice("        CRC32", C_GREEN);
 
-    //         count = fread(buffer, 1, chunk_size, fp);
-    //         if (count == 0) break;
+        fseek(fp, file->crc_offset, SEEK_SET);
+        while (true)
+        {
+            odroid_input_read_gamepad(&gui.joystick);
+            if (gui.joystick.bitmask > 0) break;
+            count = fread(buffer, 1, chunk_size, fp);
+            if (count == 0) break;
 
-    //         crc_tmp = crc32_le(crc_tmp, buffer, count);
-    //         if (count < chunk_size) break;
-    //     }
+            crc_tmp = crc32_le(crc_tmp, buffer, count);
+            if (count < chunk_size) break;
+        }
 
-    //     free(buffer);
+        free(buffer);
 
-    //     if (feof(fp))
-    //     {
-    //         file->checksum = crc_tmp;
-    //         if ((fp2 = fopen(cache_path, "wb")) != NULL)
-    //         {
-    //             fwrite(&file->checksum, 4, 1, fp2);
-    //             fclose(fp2);
-    //         }
-    //     }
-    //     fclose(fp);
-    // }
-    // else
-    // {
-    //     file->checksum = 1;
-    // }
+        if (feof(fp))
+        {
+            file->checksum = crc_tmp;
+            if ((fp2 = fopen(cache_path, "wb")) != NULL)
+            {
+                fwrite(&file->checksum, 4, 1, fp2);
+                fclose(fp2);
+            }
+        }
+        fclose(fp);
+    }
+    else
+    {
+        file->checksum = 1;
+    }
 
-    // free(cache_path);
+    free(cache_path);
 
-    // gui_draw_notice(" ", C_RED);
+//    gui_draw_notice(" ", C_RED);
 }
 
 void emulator_show_file_info(retro_emulator_file_t *file)
@@ -503,8 +416,6 @@ void emulator_show_file_info(retro_emulator_file_t *file)
 #if COVERFLOW != 0
     char img_size[32];
 #endif
-    //char crc_value[32];
-    //crc_value[0] = '\x00';
 
     odroid_dialog_choice_t choices[] = {
         {-1, curr_lang->s_File, filename_value, 0, NULL},
@@ -568,47 +479,6 @@ static bool show_cheat_dialog()
     return false;
 }
 #endif
-
-/*
-static void parse_save_folder_path(retro_emulator_file_t *file, char *path, size_t size){
-    snprintf(path,
-                size,
-                "savestate/%s/%s",
-                file->system->extension,
-                file->name
-                );
-}
-
-static void parse_save_path(retro_emulator_file_t *file, char *path, size_t size, int slot){
-    snprintf(path,
-                size,
-                "savestate/%s/%s/%d",
-                file->system->extension,
-                file->name,
-                slot
-                );
-}
-
-static void parse_gnw_data_path(retro_emulator_file_t *file, char *path, size_t size, int slot){
-    snprintf(path,
-                size,
-                "savestate/%s/%s/%d.gnw",
-                file->system->extension,
-                file->name,
-                slot
-                );
-}
-
-static void parse_sram_path(retro_emulator_file_t *file, char *path, size_t size, int slot){
-    snprintf(path,
-                size,
-                "savestate/%s/%s/%d.srm",
-                file->system->extension,
-                file->name,
-                slot
-                );
-}
-*/
 
 bool emulator_show_file_menu(retro_emulator_file_t *file)
 {
@@ -880,10 +750,10 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 
 void emulators_init()
 {
-    add_emulator("Nintendo Gameboy", "gb", "gb gbc", "tgbdual-go", 0, &pad_gb, &header_gb, GAME_DATA);
-//    add_emulator("Game & Watch", "gw", "gw", "LCD-Game-Emulator", 0, &pad_gw, &header_gw, GAME_DATA);
-    add_emulator("Homebrew", "homebrew", "bin", "", 0, &pad_homebrew, &header_homebrew, NO_GAME_DATA);
-//    add_emulator("Sega Genesis", "md", "md gen bin", "gwenesis", 0, &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
+    add_emulator("Nintendo Gameboy", "gb", "gb gbc", -1, &pad_gb, &header_gb, GAME_DATA);
+//    add_emulator("Game & Watch", "gw", "gw", -1, &pad_gw, &header_gw, GAME_DATA);
+    add_emulator("Homebrew", "homebrew", "bin", -1, &pad_homebrew, &header_homebrew, NO_GAME_DATA);
+//    add_emulator("Sega Genesis", "md", "md gen bin", -1, 0, &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
 /*
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", "tgbdual-go", 0, &pad_gb, &header_gb);
     add_emulator("Nintendo Entertainment System", "nes", "nes fc fds nsf", "fceumm", 16, &pad_nes, &header_nes);

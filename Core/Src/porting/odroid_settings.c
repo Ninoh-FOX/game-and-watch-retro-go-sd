@@ -8,6 +8,8 @@
 #include "appid.h"
 #include "gui.h"
 #include "rom_manager.h"
+#include "ff.h"
+#include "gw_sdcard.h"
 
 #define CONFIG_MAGIC 0xcafef00d
 #define ODROID_APPID_COUNT 4
@@ -148,16 +150,33 @@ static const persistent_config_t persistent_config_default = {
 
 persistent_config_t persistent_config_ram;
 
+static bool file_exists(const char *file_path) {
+    FILINFO fno;
+    FRESULT res;
+
+    res = f_stat(file_path, &fno);
+    
+    if (res == FR_OK) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void odroid_settings_init()
 {
-/*
-    if(fs_mounted && fs_exists("CONFIG")){
-        fs_file_t *file = fs_open("CONFIG", FS_READ, FS_COMPRESS);
-        fs_read(file, (unsigned char *)&persistent_config_ram, sizeof(persistent_config_t));
-        fs_close(file);
+    FIL file;
+    UINT bytes_read;
+
+    if (fs_mounted && file_exists("/CONFIG")) {
+        FRESULT fr;
+        fr = f_open(&file, "/CONFIG", FA_READ);
+        if (fr == FR_OK) {
+            f_read(&file, (unsigned char *)&persistent_config_ram, sizeof(persistent_config_t), &bytes_read);
+            f_close(&file);
+        }
     }
     else
-*/
     {
         memset(&persistent_config_ram, 0, sizeof(persistent_config_t));
     }
@@ -194,17 +213,21 @@ void odroid_settings_init()
 
 void odroid_settings_commit()
 {
+    FIL file;
+    FRESULT fr;
+    UINT bytes_write;
+
     // Calculate crc32 of the whole struct with the crc32 value set to 0
     persistent_config_ram.crc32 = 0;
     persistent_config_ram.crc32 = crc32_le(0, (unsigned char *) &persistent_config_ram, sizeof(persistent_config_t));
 
-/*
-    if(fs_mounted){
-        fs_file_t *file = fs_open("CONFIG", FS_WRITE, FS_COMPRESS);
-        fs_write(file, (unsigned char *)&persistent_config_ram, sizeof(persistent_config_t));
-        fs_close(file);
+    if (fs_mounted) {
+        fr = f_open(&file, "/CONFIG", FA_CREATE_ALWAYS | FA_WRITE);
+        if (fr == FR_OK) {
+            f_write(&file, (const void *)&persistent_config_ram, sizeof(persistent_config_t), &bytes_write);
+            f_close(&file);
+        }
     }
-*/
 }
 
 void odroid_settings_reset()
