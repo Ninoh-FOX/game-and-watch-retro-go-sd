@@ -65,8 +65,10 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
     UINT bytes_read;
 
     uint32_t address_in_flash = (&__CACHEFLASH_START__ - &__EXTFLASH_BASE__);
+    uint8_t *address_in_mem = (&__CACHEFLASH_START__);
     uint8_t buffer[512];
-    uint32_t total_written = 0;
+    uint32_t offset = 0;
+    bool flash_needed = false;
 
     printf("file_path %s %ld\n",file_path,size/1024);
 
@@ -78,15 +80,8 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
         return NULL;
     }
 
-    OSPI_DisableMemoryMappedMode();
-
-    // Erase flash memory
-    OSPI_EraseSync(address_in_flash, size);
-
-    // read file and write data in flash
-    while (total_written < size) {
-        wdog_refresh();
-
+    // Check if content to load is different from cache content
+    while (offset < size) {
         fr = f_read(&file, buffer, sizeof(buffer), &bytes_read);
         if (fr != FR_OK || bytes_read == 0) {
             break;
@@ -99,16 +94,48 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
                 buffer[i+1]=temp;
             }
         }
-
-        OSPI_Program(address_in_flash + total_written, buffer, bytes_read);
-        total_written += bytes_read;
+        if (memcmp(buffer, (const void *)(address_in_mem + offset), bytes_read) != 0) {
+            flash_needed = true;
+            break;
+        }
+        offset += bytes_read;
     }
 
-    OSPI_EnableMemoryMappedMode();
+    if (flash_needed) {
+        f_lseek(&file, 0);
+        offset = 0;
+
+        OSPI_DisableMemoryMappedMode();
+
+        // Erase flash memory
+        OSPI_EraseSync(address_in_flash, size);
+
+        // read file and write data in flash
+        while (offset < size) {
+            wdog_refresh();
+
+            fr = f_read(&file, buffer, sizeof(buffer), &bytes_read);
+            if (fr != FR_OK || bytes_read == 0) {
+                break;
+            }
+            if (byte_swap) {
+                for (int i=0; i < sizeof(buffer); i+=2)
+                {
+                    char temp = buffer[i];
+                    buffer[i]=buffer[i+1];
+                    buffer[i+1]=temp;
+                }
+            }
+            OSPI_Program(address_in_flash + offset, buffer, bytes_read);
+            offset += bytes_read;
+        }
+
+        OSPI_EnableMemoryMappedMode();
+    }
 
     f_close(&file);
 
-    return &__CACHEFLASH_START__;
+    return address_in_mem;
 }
 
 /* copy file content into ram */
