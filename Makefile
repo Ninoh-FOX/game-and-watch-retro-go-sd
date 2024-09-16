@@ -26,7 +26,7 @@ ROMS_TAMA :=
 ROMS_COL := 
 ROMS_GG :=
 ROMS_SG := 
-ROMS_SMS := 
+ROMS_SMS :=
 
 HOMEBREW_CELESTE := yes
 
@@ -49,6 +49,7 @@ Core/Src/save_manager.c \
 Core/Src/sha256.c \
 Core/Src/bq24072.c \
 Core/Src/porting/lib/hw_jpeg_decoder.c \
+Core/Src/porting/lib/hw_sha1.c \
 Core/Src/porting/common.c \
 Core/Src/porting/odroid_audio.c \
 Core/Src/porting/odroid_display.c \
