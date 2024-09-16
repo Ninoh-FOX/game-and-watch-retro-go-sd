@@ -441,24 +441,9 @@ void osd_getinput(bitmap_t *bmp)
 
 size_t osd_getromdata(unsigned char **data)
 {
-    /* src pointer to the ROM data in the external flash (raw or LZ4) */
-    const unsigned char *src = ROM_DATA;
-    unsigned char *dest = (unsigned char *)&_NES_ROM_UNPACK_BUFFER;
-    uint32_t available_size = (uint32_t)&_NES_ROM_UNPACK_BUFFER_SIZE;
+    *data = (unsigned char *)ROM_DATA;
 
-    wdog_refresh();
-    if(strcmp(ROM_EXT, "lzma") == 0){
-        size_t n_decomp_bytes;
-        n_decomp_bytes = lzma_inflate(dest, available_size, src, ROM_DATA_LENGTH);
-        *data = dest;
-        return n_decomp_bytes;
-    }
-    else
-    {
-        *data = (unsigned char *)ROM_DATA;
-
-        return ROM_DATA_LENGTH;
-    }
+    return ROM_DATA_LENGTH;
 }
 
 uint osd_getromcrc()

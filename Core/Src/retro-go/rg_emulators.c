@@ -484,7 +484,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     if (newfile->system->game_data_type != NO_GAME_DATA) {
         uint32_t rounded_size = 1;
         while (rounded_size < newfile->size) {
-            rounded_size <<= 1; // Décale les bits vers la gauche pour obtenir la prochaine puissance de 2
+            rounded_size <<= 1;
         }
         newfile->address = copy_file_to_cache(newfile->path,rounded_size,
                                            newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
@@ -501,7 +501,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_GB_SIZE);
         app_main_gb(load_state, start_paused, save_slot);
 #else
-//        copy_file_to_ram("/roms/gb/tgb-dual.bin",(char *)&__RAM_EMU_START__);
+//        copy_file_to_ram("/cores/gb/tgb-dual.bin",(char *)&__RAM_EMU_START__);
         memcpy(&__RAM_EMU_START__, &_OVERLAY_TGB_LOAD_START, (size_t)&_OVERLAY_TGB_SIZE);
         memset(&_OVERLAY_TGB_BSS_START, 0x0, (size_t)&_OVERLAY_TGB_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_TGB_SIZE);
@@ -639,6 +639,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 void emulators_init()
 {
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", &pad_gb, &header_gb, GAME_DATA);
+    add_emulator("Nintendo Entertainment System", "nes", "nes", &pad_nes, &header_nes, GAME_DATA);
     add_emulator("Game & Watch", "gw", "gw", &pad_gw, &header_gw, GAME_DATA);
     add_emulator("PC Engine", "pce", "pce", &pad_pce, &header_pce, GAME_DATA);
     add_emulator("Sega Game Gear", "gg", "gg", &pad_gg, &header_gg, GAME_DATA);
