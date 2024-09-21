@@ -30,6 +30,7 @@ void odroid_system_panic(const char *reason, const char *function, const char *f
 void odroid_system_init(int appId, int sampleRate)
 {
     currentApp.id = appId;
+    currentApp.romPath = ACTIVE_FILE->path;
 
     odroid_settings_init();
     odroid_audio_init(sampleRate);
@@ -40,12 +41,13 @@ void odroid_system_init(int appId, int sampleRate)
     printf("%s: System ready!\n\n", __func__);
 }
 
-void odroid_system_emu_init(state_handler_t load, state_handler_t save, netplay_callback_t netplay_cb)
+void odroid_system_emu_init(state_handler_t load, state_handler_t save, screenshot_handler_t screenshot_cb)
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
-    currentApp.loadState = load;
-    currentApp.saveState = save;
+    currentApp.handlers.loadState = load;
+    currentApp.handlers.saveState = save;
+    currentApp.handlers.screenshot = screenshot_cb;
 
     printf("%s: Init done. GameId=%08lX\n", __func__, currentApp.gameId);
 }
@@ -55,62 +57,6 @@ rg_app_desc_t *odroid_system_get_app()
     return &currentApp;
 }
 
-#if 0
-const char OFF_SAVESTATE_PATH[] = "savestate/common";
-const char OFF_GNW_DATA_PATH[] = "savestate/common.gnw";
-const char OFF_SRAM_PATH[] = "savestate/common.srm";
-
-void odroid_system_get_save_path(char *path, size_t size, int slot)
-{
-    if (slot == -1)
-    {
-        strcpy(path, OFF_SAVESTATE_PATH);
-    }
-    else
-    {
-        snprintf(path,
-                 size,
-                 "savestate/%s/%s/%d",
-                 ACTIVE_FILE->system->extension,
-                 ACTIVE_FILE->name,
-                 slot);
-    }
-}
-
-void odroid_system_get_gnw_data_path(char *path, size_t size, int slot)
-{
-    if (slot == -1)
-    {
-        strcpy(path, OFF_GNW_DATA_PATH);
-    }
-    else
-    {
-        snprintf(path,
-                 size,
-                 "savestate/%s/%s/%d.gnw",
-                 ACTIVE_FILE->system->extension,
-                 ACTIVE_FILE->name,
-                 slot);
-    }
-}
-
-void odroid_system_get_sram_path(char *path, size_t size, int slot)
-{
-    if (slot == -1)
-    {
-        strcpy(path, OFF_SRAM_PATH);
-    }
-    else
-    {
-        snprintf(path,
-                 size,
-                 "savestate/%s/%s/%d.srm",
-                 ACTIVE_FILE->system->extension,
-                 ACTIVE_FILE->name,
-                 slot);
-    }
-}
-#endif
 
 char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
 {
@@ -134,9 +80,14 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
         case ODROID_PATH_SAVE_STATE_1:
         case ODROID_PATH_SAVE_STATE_2:
         case ODROID_PATH_SAVE_STATE_3:
-            strcpy(buffer, ODROID_BASE_PATH_SAVES);
-            strcat(buffer, fileName);
-            strcat(buffer, ".sav");
+            sprintf(buffer, "%s%s-%d.sav", ODROID_BASE_PATH_SAVES, fileName, type);
+            break;
+
+        case ODROID_PATH_SCREENSHOT:
+        case ODROID_PATH_SCREENSHOT_1:
+        case ODROID_PATH_SCREENSHOT_2:
+        case ODROID_PATH_SCREENSHOT_3:
+            sprintf(buffer, "%s%s-%d.raw", ODROID_BASE_PATH_SAVES, fileName, type-ODROID_PATH_SCREENSHOT);
             break;
 
         case ODROID_PATH_SAVE_BACK:
@@ -173,63 +124,143 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
     return strdup(buffer);
 }
 
+bool odroid_system_emu_screenshot(const char *filename)
+{
+    if (!currentApp.handlers.screenshot)
+    {
+        printf("No handler defined...\n");
+        return false;
+    }
+
+    printf("Saving screenshot to '%s'.\n",filename);
+
+    if (!rg_storage_mkdir(rg_dirname(filename)))
+    {
+        printf("Unable to create dir, save might fail...\n");
+    }
+
+    // FIXME: We should allocate a framebuffer to pass to the handler and ask it
+    // to fill it, then we'd resize and save to png from here...
+    bool success = (*currentApp.handlers.screenshot)(filename);
+
+    rg_storage_commit();
+
+    return success;
+}
+
+rg_emu_states_t *odroid_system_emu_get_states(const char *romPath, size_t slots)
+{
+    rg_emu_states_t *result = (rg_emu_states_t *)calloc(1, sizeof(rg_emu_states_t) + sizeof(rg_emu_slot_t) * slots);
+    uint8_t last_used_slot = 0xFF;
+
+    char *filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE, romPath);
+    FILE *fp = fopen(filename, "rb");
+    if (fp)
+    {
+        fread(&last_used_slot, 1, 1, fp);
+        fclose(fp);
+    }
+    free(filename);
+
+    for (size_t i = 0; i < slots; i++)
+    {
+        rg_emu_slot_t *slot = &result->slots[i];
+        char *preview = odroid_system_get_path(ODROID_PATH_SCREENSHOT + i, romPath);
+        char *file = odroid_system_get_path(ODROID_PATH_SAVE_STATE + i, romPath);
+        rg_stat_t info = rg_storage_stat(file);
+        strcpy(slot->preview, preview);
+        strcpy(slot->file, file);
+        slot->id = i;
+        slot->is_used = info.exists;
+        slot->is_lastused = false;
+        slot->mtime = info.mtime;
+        if (slot->is_used)
+        {
+            if (!result->latest || slot->mtime > result->latest->mtime)
+                result->latest = slot;
+            if (slot->id == last_used_slot)
+                result->lastused = slot;
+            result->used++;
+        }
+        free(preview);
+        free(file);
+    }
+    if (!result->lastused && result->latest)
+        result->lastused = result->latest;
+    if (result->lastused)
+        result->lastused->is_lastused = true;
+    result->total = slots;
+
+    return result;
+}
+
 /* Return true on successful load.
  * Slot -1 is for the OFF_SAVESTATE
  * */
 bool odroid_system_emu_load_state(int slot)
 {
-   return false;
-/*
-    char savePath[FS_MAX_PATH_SIZE];
-    char gnwDataPath[FS_MAX_PATH_SIZE];
-    char sramPath[FS_MAX_PATH_SIZE];
-    if (currentApp.loadState == NULL)
-        return true;
-    odroid_system_get_save_path(savePath, sizeof(savePath), slot);
-    odroid_system_get_gnw_data_path(gnwDataPath, sizeof(gnwDataPath), slot);
-    odroid_system_get_sram_path(sramPath, sizeof(sramPath), slot);
-    printf("Attempting to load state from [%s]\n", savePath);
-    if (!fs_exists(savePath) && !fs_exists(sramPath))
+    if (!currentApp.romPath || !currentApp.handlers.loadState)
     {
-        printf("Savestate does not exist.\n");
+        printf("No rom or handler defined...\n");
         return false;
     }
-    (*currentApp.loadState)(savePath, sramPath, slot);
-    if (slot == -1)
-    {
-        // Delete save files as it's not useful anymore
-        if (fs_exists(savePath))
-        {
-            fs_delete(savePath);
-        }
-        if (fs_exists(gnwDataPath))
-        {
-            fs_delete(gnwDataPath);
-        }
-        if (fs_exists(sramPath))
-        {
-            fs_delete(sramPath);
-        }
+
+    char *filename;
+    if (slot == -1) {
+        filename = ODROID_BASE_PATH_SAVES "/off.sav";
+    } else {
+        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath);
     }
-    return true;
-*/
+    bool success = false;
+
+    printf("Loading state from '%s'.\n", filename);
+
+    success = (*currentApp.handlers.loadState)(filename);
+
+    free(filename);
+
+    return success;
 };
 
 bool odroid_system_emu_save_state(int slot)
 {
-        return true;
-/*
-    char savePath[FS_MAX_PATH_SIZE];
-    char sramPath[FS_MAX_PATH_SIZE];
-    if (currentApp.saveState == NULL)
-        return true;
+    if (!currentApp.romPath || !currentApp.handlers.saveState)
+    {
+        printf("No rom or handler defined...\n");
+        return false;
+    }
 
-    odroid_system_get_save_path(savePath, sizeof(savePath), slot);
-    odroid_system_get_sram_path(sramPath, sizeof(sramPath), slot);
-    printf("Savestating to [%s]\n", savePath);
-    (*currentApp.saveState)(savePath, sramPath, slot);
-    return true;
-*/
+    char *filename;
+    if (slot == -1) {
+        filename = ODROID_BASE_PATH_SAVES "/off.sav";
+    } else {
+        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath);
+    }
+
+    bool success = false;
+
+    printf("Saving state to '%s'.\n", filename);
+
+    if (!rg_storage_mkdir(rg_dirname(filename)))
+    {
+        printf("Unable to create dir, save might fail...\n");
+    }
+
+    success = (*currentApp.handlers.saveState)(filename);
+
+    if ((success) && (slot >= 0))
+    {
+        // Save succeeded, let's take a pretty screenshot for the launcher!
+        char *filename = odroid_system_get_path(ODROID_PATH_SCREENSHOT + slot, currentApp.romPath);
+        odroid_system_emu_screenshot(filename);
+        free(filename);
+    }
+
+    free(filename);
+
+    rg_storage_commit();
+
+    return success;
 };
 
 IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTime)

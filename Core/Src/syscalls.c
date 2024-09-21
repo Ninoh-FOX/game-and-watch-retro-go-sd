@@ -169,7 +169,7 @@ off_t _lseek(int file, off_t offset, int whence) {
             new_offset = f_size(&file_table[file].file) + offset;
             break;
         default:
-            errno = EINVAL;  // Mauvais argument
+            errno = EINVAL;
             return -1;
     }
 
@@ -190,7 +190,7 @@ int _fstat(int file, struct stat *st) {
     }
 
     st->st_size = f_size(&file_table[file].file);
-    st->st_mode = S_IFREG;  // Fichier régulier
+    st->st_mode = S_IFREG;
     return 0;
 }
 
@@ -271,6 +271,17 @@ int rmdir(const char *path) {
     }
     
     return -1;  // Failure
+}
+
+int _unlink(const char *path) {
+    FRESULT res;
+    res = f_unlink(path);
+    if (res == FR_OK) {
+        return 0;
+    } else {
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 int __wrap_fflush(int file) {

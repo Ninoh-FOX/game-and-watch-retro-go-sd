@@ -111,7 +111,8 @@ rg_stat_t rg_storage_stat(const char *path)
 {
     rg_stat_t ret = {0};
     struct stat statbuf;
-    if (path && stat(path, &statbuf) == 0)
+    FILE *file = fopen(path,"rb");
+    if (path && fstat(fileno(file), &statbuf) == 0)
     {
         ret.basename = rg_basename(path);
         ret.extension = rg_extension(path);
@@ -121,6 +122,7 @@ rg_stat_t rg_storage_stat(const char *path)
         ret.is_dir = S_ISDIR(statbuf.st_mode);
         ret.exists = true;
     }
+    fclose(file);
     return ret;
 }
 

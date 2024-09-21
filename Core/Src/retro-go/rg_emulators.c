@@ -50,9 +50,6 @@ static retro_emulator_t emulators[MAX_EMULATORS];
 static rom_system_t systems[MAX_EMULATORS];
 static int emulators_count = 0;
 
-// Minimum amount of free blocks in filesystem to ensure correct behavior
-#define MIN_FREE_FS_BLOCKS 30
-
 static retro_emulator_file_t *CHOSEN_FILE = NULL;
 
 /* Copy file into flash "cache" section */
@@ -391,19 +388,13 @@ static bool show_cheat_dialog()
 
 bool emulator_show_file_menu(retro_emulator_file_t *file)
 {
+    int slot = -1;
     CHOSEN_FILE = file;
-    // char *save_path = odroid_system_get_path(ODROID_PATH_SAVE_STATE, emu_get_file_path(file));
-    // char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, emu_get_file_path(file));
-    // bool has_save = odroid_sdcard_get_filesize(save_path) > 0;
-    // bool has_sram = odroid_sdcard_get_filesize(sram_path) > 0;
-    // bool is_fav = favorite_find(file) != NULL;
-
-/*    char saveFolderPath[FS_MAX_PATH_SIZE];
-    char savePath[FS_MAX_PATH_SIZE];
-    char gnwDataPath[FS_MAX_PATH_SIZE];
-    char sramPath[FS_MAX_PATH_SIZE];*/
-    bool has_save = 0;
-    bool has_sram = 0;
+    char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, file->path);
+    rg_emu_states_t *savestates = odroid_system_emu_get_states(file->path, 4);
+    bool has_save = savestates->used > 0;
+    bool has_sram = odroid_sdcard_get_filesize(sram_path) > 0;
+//    bool is_fav = favorite_find(file) != NULL;
     bool force_redraw = false;
 
 #if CHEAT_CODES == 1
@@ -413,77 +404,67 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     if (CHOSEN_FILE->cheat_count != 0) {
         cheat_choice = cheat_row;
     }
-
 #endif
-/*    parse_save_folder_path(file, saveFolderPath, sizeof(saveFolderPath));
-    parse_save_path(file, savePath, sizeof(savePath), 0);
-    parse_gnw_data_path(file, gnwDataPath, sizeof(gnwDataPath), 0);
-    parse_sram_path(file, sramPath, sizeof(sramPath), 0);
-
-    has_save = fs_exists(savePath);
-    has_sram = fs_exists(sramPath);*/
 
     odroid_dialog_choice_t choices[] = {
-        {0, curr_lang->s_Resume_game, "", (has_save || has_sram) ? 1 : -1, NULL},
+        {0, curr_lang->s_Resume_game, "", has_save ? 1:-1, NULL},
         {1, curr_lang->s_New_game, "", 1, NULL},
         ODROID_DIALOG_CHOICE_SEPARATOR,
-        //{3, is_fav ? s_Del_favorite : s_Add_favorite, "", 1, NULL},
-		//ODROID_DIALOG_CHOICE_SEPARATOR,
+//        {3, is_fav ? "Del favorite" : "Add favorite", "", 1, NULL},
         {2, curr_lang->s_Delete_save, "", (has_save || has_sram) ? 1 : -1, NULL},
 #if CHEAT_CODES == 1
         ODROID_DIALOG_CHOICE_SEPARATOR,
         cheat_choice,
 #endif
-
         ODROID_DIALOG_CHOICE_LAST
     };
+
 #if CHEAT_CODES == 1
     if (CHOSEN_FILE->cheat_count == 0)
         choices[4] = last;
 #endif
 
-    int sel = odroid_overlay_dialog(file->name, choices, (has_save || has_sram) ? 0 : 1, &gui_redraw_callback);
+    int sel = odroid_overlay_dialog(file->name, choices, has_save ? 0 : 1, &gui_redraw_callback);
 
     if (sel == 0) { // Resume game
-        gui_save_current_tab();
-        emulator_start(file, true, false, 0);
+        if ((slot = odroid_savestate_menu(curr_lang->s_Resume_game, file->path, true, &gui_redraw_callback)) != -1) {
+            gui_save_current_tab();
+            emulator_start(file, true, false, slot);
+        }
     }
     if (sel == 1) { // New game
         gui_save_current_tab();
         emulator_start(file, false, false, 0);
     }
     else if (sel == 2) {
-/*
-        if (has_save) {
-            if (odroid_overlay_confirm(curr_lang->s_Confirm_del_save, false, &gui_redraw_callback) == 1) {
-                fs_delete(savePath);
-                fs_delete(gnwDataPath);
-            }
+        while ((slot = odroid_savestate_menu(curr_lang->s_Confirm_del_save, file->path, true, &gui_redraw_callback)) != -1)
+        {
+            printf("unlink %s\n",savestates->slots[slot].file);
+            odroid_sdcard_unlink(savestates->slots[slot].file);
+            savestates->slots[slot].is_used = false;
         }
-        if (has_sram) {
-            if (odroid_overlay_confirm(curr_lang->s_Confirm_del_sram, false, &gui_redraw_callback) == 1) {
-                fs_delete(sramPath);
-            }
+        if (has_sram && odroid_overlay_confirm(curr_lang->s_Confirm_del_sram, false, &gui_redraw_callback))
+        {
+            odroid_sdcard_unlink(sram_path);
         }
-        fs_delete(saveFolderPath);
-*/
     }
 /*    else if (sel == 3) {
-        // if (is_fav)
-        //     favorite_remove(file);
-        // else
-        //     favorite_add(file);
+        if (is_fav)
+            favorite_remove(file);
+        else
+            favorite_add(file);
     }*/
-    else if (sel == 4) {
 #if CHEAT_CODES == 1
+    else if (sel == 4) {
         if (CHOSEN_FILE->cheat_count != 0)
             show_cheat_dialog();
         force_redraw = true;
-#endif
     }
+#endif
 
-    // free(save_path);
-    // free(sram_path);
+    free(sram_path);
+    free(savestates);
+
     CHOSEN_FILE = NULL;
 
     return force_redraw;
@@ -495,6 +476,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // odroid_settings_StartAction_set(load_state ? ODROID_START_ACTION_RESUME : ODROID_START_ACTION_NEWGAME);
     // odroid_settings_commit();
 
+    // create a copy in internal ram as ram used by ram_malloc will be erase by emulator
     retro_emulator_file_t *newfile = calloc(sizeof(retro_emulator_file_t),1);
     memcpy(newfile,file,sizeof(retro_emulator_file_t));
     newfile->name=calloc(strlen(file->name)+1,1);
@@ -514,7 +496,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
                                            newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
         ACTIVE_FILE = newfile;
         ROM_DATA = newfile->address;
-        ROM_EXT = "";//newfile->ext;
+        ROM_EXT = "";//newfile->ext; // TODO : get correct const char * for this
         ROM_DATA_LENGTH = newfile->size;
     }
 
@@ -664,12 +646,12 @@ void emulators_init()
 {
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", &pad_gb, &header_gb, GAME_DATA);
     add_emulator("Nintendo Entertainment System", "nes", "nes", &pad_nes, &header_nes, GAME_DATA);
-    add_emulator("Game & Watch", "gw", "gw", &pad_gw, &header_gw, GAME_DATA);
-    add_emulator("PC Engine", "pce", "pce", &pad_pce, &header_pce, GAME_DATA);
-    add_emulator("Sega Game Gear", "gg", "gg", &pad_gg, &header_gg, GAME_DATA);
-    add_emulator("Sega Master System", "sms", "sms", &pad_sms, &header_sms, GAME_DATA);
+//    add_emulator("Game & Watch", "gw", "gw", &pad_gw, &header_gw, GAME_DATA);
+//    add_emulator("PC Engine", "pce", "pce", &pad_pce, &header_pce, GAME_DATA);
+//    add_emulator("Sega Game Gear", "gg", "gg", &pad_gg, &header_gg, GAME_DATA);
+//    add_emulator("Sega Master System", "sms", "sms", &pad_sms, &header_sms, GAME_DATA);
     add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
-    add_emulator("Homebrew", "homebrew", "bin", &pad_homebrew, &header_homebrew, NO_GAME_DATA);
+//    add_emulator("Homebrew", "homebrew", "bin", &pad_homebrew, &header_homebrew, NO_GAME_DATA);
 //    add_emulator("Sega Genesis", "md", "md gen bin", -1, 0, &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
 /*
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", "tgbdual-go", 0, &pad_gb, &header_gb);
@@ -687,7 +669,7 @@ void emulators_init()
     add_emulator("Amstrad CPC", "amstrad", "amstrad", "caprice32", 0, &pad_amstrad, &header_amstrad);
 //    add_emulator("Philips Vectrex", "videopac", "bin", "o2em-go", 0, &pad_gb, &header_gb); // TODO Sylver : change graphics
     add_emulator("Tamagotchi", "tama", "b", "tamalib", 0, &pad_tama, &header_tama);*/
-//    while(1); // sylver
+//    while(1);
 #if 0
 #if !( defined(ENABLE_EMULATOR_GB) || defined(ENABLE_EMULATOR_NES) || defined(ENABLE_EMULATOR_SMS) || defined(ENABLE_EMULATOR_GG) || defined(ENABLE_EMULATOR_COL) || defined(ENABLE_EMULATOR_SG1000) || defined(ENABLE_EMULATOR_PCE) || defined(ENABLE_EMULATOR_GW) || defined(ENABLE_EMULATOR_MSX) || defined(ENABLE_EMULATOR_WSV) || defined(ENABLE_EMULATOR_MD) || defined(ENABLE_EMULATOR_A7800) || defined(ENABLE_EMULATOR_AMSTRAD) || defined(ENABLE_EMULATOR_VIDEOPAC) || defined(ENABLE_HOMEBREW)|| defined(ENABLE_HOMEBREW_ZELDA3) || defined(ENABLE_HOMEBREW_SMW) || defined(ENABLE_EMULATOR_TAMA) || defined(ENABLE_EMULATOR_A2600))
     // Add gameboy as a placeholder in case no emulator is built.

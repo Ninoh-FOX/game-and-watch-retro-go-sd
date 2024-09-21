@@ -32,6 +32,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 #include <math.h>
 
 #include "gw_buttons.h"
+#include "gw_lcd.h"
 #include "bitmaps/font_basic.h"
 #include "gw_lcd.h"
 #include "odroid_system.h"
@@ -675,7 +676,7 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
 {
     int options_count = get_dialog_items_count(options);
     int sel = odroid_overlay_dialog_find_next_item(options, options_count, selected < 0 ? (options_count + selected) : selected, 0);
-    int last_sel = sel;
+    int last_sel = -1;
     int last_key = -1;
     int repeat = 0;
     bool select = false;
@@ -686,15 +687,15 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
     {
         wdog_refresh();
         lcd_sleep_while_swap_pending();
-        lcd_clear_active_buffer();
 
         // Repaint background (if enabled)
         if (repaint != NULL)
         {
+            lcd_clear_active_buffer();
             repaint();
+            // Darken background (if needed)
+            odroid_overlay_darken_all();
         }
-        // Darken background (if needed)
-        odroid_overlay_darken_all();
         // Draw dialog on top of darken background
         odroid_overlay_draw_dialog(header, options, sel);
         // Show
@@ -817,6 +818,9 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
                 if (select)
                     break;
             }
+        }
+        if ((last_sel != sel) && (options[sel].update_cb != NULL)) {
+            options[sel].update_cb(&options[sel], ODROID_DIALOG_FOCUS_GAINED, 0);
         }
         last_sel = sel;
         if (repeat > 0)
@@ -1191,6 +1195,51 @@ static bool show_cheat_dialog()
 }
 #endif
 
+static bool show_preview_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+    if (event == ODROID_DIALOG_FOCUS_GAINED)
+    {
+        rg_emu_slot_t *slot = (rg_emu_slot_t *)option->id;
+        if (slot->is_used)
+        {
+            FILE *file = fopen(slot->preview,"rb");
+            if (file != NULL) {
+                fread(lcd_get_inactive_buffer(), sizeof(framebuffer1), 1, file);
+                memcpy(lcd_get_active_buffer(),lcd_get_inactive_buffer(),sizeof(framebuffer1));
+                fclose(file);
+            }
+        }
+    }
+    return event == ODROID_DIALOG_ENTER;
+}
+
+int odroid_savestate_menu(const char *title, const char *rom_path, bool show_preview, void_callback_t repaint)
+{
+    rg_app_desc_t *app = odroid_system_get_app();
+    rg_emu_states_t *savestates = odroid_system_emu_get_states(rom_path ?: app->romPath, 4);
+    odroid_dialog_choice_t choices[] = {
+        {(intptr_t)&savestates->slots[0], "Slot 0", NULL, show_preview? (savestates->slots[0].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[1], "Slot 1", NULL, show_preview? (savestates->slots[1].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[2], "Slot 2", NULL, show_preview? (savestates->slots[2].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[3], "Slot 3", NULL, show_preview? (savestates->slots[3].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        ODROID_DIALOG_CHOICE_LAST
+    };
+    int sel = 0;
+
+    if (savestates->lastused)
+        sel = savestates->lastused->id;
+
+    intptr_t ret = odroid_overlay_dialog(title, choices, sel, show_preview?NULL:repaint);
+    if (ret >= 0)
+        sel = ((rg_emu_slot_t *)ret)->id;
+    else
+        sel = -1;
+
+    free(savestates);
+
+    return sel;
+}
+
 int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callback_t repaint)
 {
     // Collect stats before freezing emulation
@@ -1301,6 +1350,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 
     odroid_audio_mute(true);
 
+    int slot;
     int r = odroid_overlay_dialog(curr_lang->s_Retro_Go_options, choices, 0, &_repaint);
 
     // Clear startup file so we boot into the retro-go gui
@@ -1309,15 +1359,20 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
     switch (r)
     {
     case 10:
-        odroid_system_emu_save_state(0);
+        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Cont, NULL, false, repaint)) >= 0)
+            odroid_system_emu_save_state(slot);
         break;
     case 20:
-        odroid_system_emu_save_state(0);
-        odroid_system_switch_app(0);
+        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Quit, NULL, false, repaint)) >= 0) {
+            odroid_system_emu_save_state(slot);
+            odroid_system_switch_app(0);
+        }
         break;
     case 30:
-        odroid_system_emu_load_state(0);
-        break; // TODO: Reload emulator?
+        if ((slot = odroid_savestate_menu(curr_lang->s_Reload, NULL, true, NULL)) >= 0) {
+            odroid_system_emu_load_state(slot);
+        }
+        break;
     case 40:
         odroid_overlay_game_settings_menu(extra_options, &_repaint);
         break;
