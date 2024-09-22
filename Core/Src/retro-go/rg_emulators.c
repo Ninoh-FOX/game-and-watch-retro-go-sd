@@ -437,12 +437,13 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
         emulator_start(file, false, false, 0);
     }
     else if (sel == 2) {
-        while ((slot = odroid_savestate_menu(curr_lang->s_Confirm_del_save, file->path, true, &gui_redraw_callback)) != -1)
+        while ((savestates->used > 0) &&
+               ((slot = odroid_savestate_menu(curr_lang->s_Confirm_del_save, file->path, true, &gui_redraw_callback)) != -1))
         {
-            if (savestates->slots[slot].preview)
             odroid_sdcard_unlink(savestates->slots[slot].preview);
             odroid_sdcard_unlink(savestates->slots[slot].file);
             savestates->slots[slot].is_used = false;
+            savestates->used--;
         }
         if (has_sram && odroid_overlay_confirm(curr_lang->s_Confirm_del_sram, false, &gui_redraw_callback))
         {
