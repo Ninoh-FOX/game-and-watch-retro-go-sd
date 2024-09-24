@@ -50,15 +50,6 @@ __license__ = "GPLv3"
 
 #define ENABLE_DEBUG_OPTIONS 0
 
-static const uint8_t IMG_DISKETTE[] = {
-    0x00, 0x00, 0x00, 0x3F, 0xFF, 0xE0, 0x7C, 0x00, 0x70, 0x7C, 0x03, 0x78,
-    0x7C, 0x03, 0x7C, 0x7C, 0x03, 0x7E, 0x7C, 0x00, 0x7E, 0x7F, 0xFF, 0xFE,
-    0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE, 0x7F, 0xFF, 0xFE,
-    0x7F, 0xFF, 0xFE, 0x7E, 0x00, 0x7E, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E,
-    0x7D, 0xFF, 0xBE, 0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x7D, 0xFF, 0xBE,
-    0x7C, 0x00, 0x3E, 0x7C, 0x00, 0x3E, 0x3F, 0xFF, 0xFC, 0x00, 0x00, 0x00,
-};
-
 static char *headerString = "Gene0000";
 
 static unsigned int gwenesis_show_debug_bar = 0;
@@ -75,6 +66,8 @@ unsigned int gwenesis_lcd_current_line;
 static int gwenesis_lpfilter = 0;
 extern int gwenesis_H32upscaler;
 static unsigned int gwenesis_audio_pll_sync = 0;
+
+static int hori_screen_offset, vert_screen_offset;
 
 /* Clocks and synchronization */
 /* system clock is video clock */
@@ -461,36 +454,84 @@ static char gwenesis_sync_mode_str[8];
 #endif
 
 static char AudioFilter_str[2];
-/*
-void gwenesis_save_local_data(fs_file_t *file) {
-  fs_write(file, (unsigned char *)&ABCkeys_value, sizeof(int));
-  fs_write(file, (unsigned char *)&PAD_A_def, 4);
-  fs_write(file, (unsigned char *)&PAD_B_def, 4);
-  fs_write(file, (unsigned char *)&PAD_C_def, 4);
 
-  fs_write(file, (unsigned char *)&AudioFilter_str, sizeof(int));
-  fs_write(file, (unsigned char *)&gwenesis_lpfilter, 4);
+void gwenesis_save_local_data(FILE *file) {
+  fwrite((unsigned char *)&ABCkeys_value, 4, 1, file);
+  fwrite((unsigned char *)&PAD_A_def, 4, 1, file);
+  fwrite((unsigned char *)&PAD_B_def, 4, 1, file);
+  fwrite((unsigned char *)&PAD_C_def, 4, 1, file);
+
+  fwrite((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
+  fwrite((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
 }
 
-void gwenesis_load_local_data(fs_file_t *file) {
-  fs_read(file, (unsigned char *)&ABCkeys_value, sizeof(int));
-  fs_read(file, (unsigned char *)&PAD_A_def, 4);
-  fs_read(file, (unsigned char *)&PAD_B_def, 4);
-  fs_read(file, (unsigned char *)&PAD_C_def, 4);
+void gwenesis_load_local_data(FILE *file) {
+  fread((unsigned char *)&ABCkeys_value, 4, 1, file);
+  fread((unsigned char *)&PAD_A_def, 4, 1, file);
+  fread((unsigned char *)&PAD_B_def, 4, 1, file);
+  fread((unsigned char *)&PAD_C_def, 4, 1, file);
 
-  fs_read(file, (unsigned char *)&AudioFilter_str, sizeof(int));
-  fs_read(file, (unsigned char *)&gwenesis_lpfilter, 4);
+  fread((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
+  fread((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
 }
-*/
 
-static bool gwenesis_system_SaveState(char *savePathName, char *sramPathName, int slot) {
-  printf("Saving state...\n");
+static bool gwenesis_system_SaveState(const char *savePathName) {
+  FILE *file = fopen(savePathName, "wb");
+  if (file == NULL) {
+      return false;
+  }
+  fwrite((unsigned char *)headerString, 8, 1, file);
+  gwenesis_save_state(file);
+  gwenesis_save_local_data(file);
+
+  fclose(file);
   return true;
 }
 
-static bool gwenesis_system_LoadState(char *savePathName, char *sramPathName, int slot) {
-  printf("Loading state...\n");
+static bool gwenesis_system_LoadState(const char *savePathName) {
+  char header[8];
+  FILE *file = fopen(savePathName, "rb");
+  if (file == NULL) {
+      return false;
+  }
+  fread((unsigned char *)header, sizeof(header), 1, file);
+  if (memcmp(headerString, header, 8) == 0) {
+      gwenesis_load_state(file);
+      gwenesis_load_local_data(file);
+  }
+
+  fclose(file);
   return true;
+}
+
+static bool gwenesis_system_Screenshot(const char *filename)
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    unsigned short *data = (unsigned short *)lcd_get_active_buffer();
+    size_t size = sizeof(framebuffer1);
+
+    gwenesis_vdp_set_buffer(&data[vert_screen_offset + hori_screen_offset]);
+    for (int l = 0; l < lines_per_frame; l++)
+    {
+        gwenesis_vdp_render_line(l); /* render scan_line */
+    }
+
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t written = fwrite(data, 1, size, file);
+
+    fclose(file);
+
+    if (written != size) {
+        return false;
+    }
+
+    return true;
 }
 
 /* Main */
@@ -499,7 +540,9 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
 
     printf("Genesis start\n");
     odroid_system_init(APPID_MD, GWENESIS_AUDIO_FREQ_NTSC);
-    odroid_system_emu_init(&gwenesis_system_LoadState, &gwenesis_system_SaveState, NULL);
+    odroid_system_emu_init(&gwenesis_system_LoadState,
+                           &gwenesis_system_SaveState, 
+                           &gwenesis_system_Screenshot);
    // rg_app_desc_t *app = odroid_system_get_app();
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / 60.0 + 0.5f);
@@ -529,7 +572,6 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     extern unsigned char gwenesis_vdp_regs[0x20];
     extern unsigned int gwenesis_vdp_status;
     extern unsigned int screen_width, screen_height;
-    static int hori_screen_offset, vert_screen_offset;
     int hint_counter;
     extern int hint_pending;
     volatile unsigned int current_frame;
