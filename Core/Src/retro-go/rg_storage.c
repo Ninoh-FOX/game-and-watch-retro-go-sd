@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "main.h"
 #include "ff.h"
 #include "rg_storage.h"
-//#include <dirent.h>
 #include <unistd.h>
 
 static bool disk_mounted = false;
@@ -166,6 +166,7 @@ bool rg_storage_scandir(const char *path, rg_scandir_cb_t *callback, void *arg, 
 
     while (true)
     {
+        wdog_refresh();
         res = f_readdir(&dir, &fno);
         if (res != FR_OK || fno.fname[0] == 0)
             break;

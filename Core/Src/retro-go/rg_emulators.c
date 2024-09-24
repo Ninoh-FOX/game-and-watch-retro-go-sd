@@ -76,6 +76,7 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
 
     // Check if content to load is different from cache content
     while (offset < size) {
+        wdog_refresh();
         fr = f_read(&file, buffer, sizeof(buffer), &bytes_read);
         if (fr != FR_OK || bytes_read == 0) {
             break;
