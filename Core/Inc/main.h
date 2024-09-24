@@ -154,9 +154,24 @@ int odroid_overlay_draw_text_line(uint16_t x_pos, uint16_t y_pos, uint16_t width
 #define BTN_Up_GPIO_Port GPIOD
 #define BTN_B_Pin GPIO_PIN_5
 #define BTN_B_GPIO_Port GPIOD
+
+#if SD_CARD == 1
 #define SD_SPI_HANDLE hspi1
+#define SD_VCC_GPIO_Port GPIOA
+#define SD_VCC_Pin GPIO_PIN_15
 #define SD_CS_GPIO_Port GPIOB
 #define SD_CS_Pin GPIO_PIN_9
+#elif SD_CARD == 2
+// OSPI pins
+#define GPIO_FLASH_NCS_Pin GPIO_PIN_11
+#define GPIO_FLASH_NCS_GPIO_Port GPIOE
+#define GPIO_FLASH_MOSI_Pin GPIO_PIN_1
+#define GPIO_FLASH_MOSI_GPIO_Port GPIOB
+#define GPIO_FLASH_CLK_Pin GPIO_PIN_2
+#define GPIO_FLASH_CLK_GPIO_Port GPIOB
+#define GPIO_FLASH_MISO_Pin GPIO_PIN_12
+#define GPIO_FLASH_MISO_GPIO_Port GPIOD
+#endif
 
 // Zelda only buttons; they are not connected on mario.
 #define BTN_START_Pin GPIO_PIN_11

@@ -17,6 +17,9 @@ CHECK_TOOLS ?= 1
 # Set to 1 to enable 16MB external flash support. (deprecated, use EXTFLASH_SIZE_MB instead!)
 LARGE_FLASH ?= 0
 
+# Set to 1 or 2 to enable sd card support
+SD_CARD ?= 0
+
 # Configure where data is stored in the external flash by
 # setting EXTFLASH_OFFSET. Useful if the first 1MB are to be preserved.
 EXTFLASH_OFFSET ?= 0
@@ -236,6 +239,23 @@ endif
 ROMINFOCODE ?= $(SCODEPAGE)
 CODEPAGE_PARAM := --codepage=$(ROMINFOCODE)
 
+#######################################
+# SD Card
+#######################################
+# No SD Card reader -> No FatFS, allow compression
+ifeq ($(SD_CARD), 0)
+C_SOURCES += Core/Src/gw_flash.c
+else ifeq ($(SD_CARD), 1)
+C_SOURCES += Core/Src/gw_flash.c
+FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_spi.c
+C_DEFS += -DGNW_DISABLE_COMPRESSION
+else ifeq ($(SD_CARD), 2)
+C_SOURCES += \
+  Core/Src/gw_sd.c \
+  Core/src/softspi.c
+FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_softspi.c
+C_DEFS += -DGNW_DISABLE_COMPRESSION
+endif
 
 #######################################
 # MSX
@@ -453,6 +473,7 @@ C_DEFS +=  \
 -DDEBUG_RG_ALLOC \
 -DLFS_NO_MALLOC \
 -DENABLE_SCREENSHOT=$(ENABLE_SCREENSHOT) \
+-DSD_CARD=$(SD_CARD)
 -DGNW_TARGET_MARIO=$(GNW_TARGET_MARIO) \
 -DGNW_TARGET_ZELDA=$(GNW_TARGET_ZELDA) \
 -DCHEAT_CODES=$(CHEAT_CODES) \
@@ -1085,6 +1106,9 @@ help:
 	@echo "  EXTFLASH_SIZE_MB    - Sets the external flash size in megabytes"
 	@echo "  EXTFLASH_SIZE       - Sets the external flash size in bytes (has precedence over EXTFLASH_SIZE_MB)"
 	@echo "  LARGE_FLASH         - Sets the external flash size to 16MB  (deprecated)"
+	@echo "  SD_CARD             - Use SD Card reader"
+	@echo "                        set to 1 for SD Card reader on spi1 (Design by Tim Schuerewegen)"
+	@echo "                        set to 2 for SD Card reader on qspi1 (Design by *yota9* Vladislav Khmelevsky)"
 	@echo "  EXTFLASH_OFFSET     - Places the data at an offset in the external flash (useful for dual boot)"
 	@echo "  INTFLASH_BANK       - Sets the internal flash bank. Valid values {1,2} (default=1)."
 	@echo "  INTFLASH_ADDRESS    - Explicit internal flash address. If not provided, derived from INTFLASH_BANK."

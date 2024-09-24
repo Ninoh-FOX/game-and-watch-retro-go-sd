@@ -28,7 +28,7 @@ ROMS_GG :=
 ROMS_SG := 
 ROMS_SMS :=
 
-HOMEBREW_CELESTE := yes
+HOMEBREW_CELESTE := 
 
 ######################################
 # source
@@ -37,7 +37,6 @@ HOMEBREW_CELESTE := yes
 C_SOURCES =  \
 Core/Src/bilinear.c \
 Core/Src/gw_buttons.c \
-Core/Src/gw_flash.c \
 Core/Src/gw_lcd.c \
 Core/Src/gw_audio.c \
 Core/Src/gw_malloc.c \
@@ -65,7 +64,6 @@ Core/Src/system_stm32h7xx.c
 
 FATFS_C_SOURCES = \
 Core/Src/porting/lib/FatFs/user_diskio.c \
-Core/Src/porting/lib/FatFs/user_diskio_spi.c \
 Core/Src/porting/lib/FatFs/ff.c \
 Core/Src/porting/lib/FatFs/ffsystem.c \
 Core/Src/porting/lib/FatFs/ffunicode.c

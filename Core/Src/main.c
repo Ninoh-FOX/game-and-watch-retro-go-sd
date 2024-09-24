@@ -73,7 +73,9 @@ RTC_HandleTypeDef hrtc;
 SAI_HandleTypeDef hsai_BlockA1;
 DMA_HandleTypeDef hdma_sai1_a;
 
+#if SD_CARD == 1
 SPI_HandleTypeDef hspi1;
+#endif
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
@@ -101,7 +103,9 @@ static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_LTDC_Init(void);
+#if SD_CARD == 1
 static void MX_SPI1_Init(void);
+#endif
 static void MX_SPI2_Init(void);
 static void MX_OCTOSPI1_Init(void);
 static void MX_SAI1_Init(void);
@@ -314,9 +318,11 @@ void GW_EnterDeepSleep(void)
   lcd_deinit(&hspi2);
 
   // Deinit SD Card
+#if SD_CARD == 1
   HAL_SPI_MspDeInit(&hspi1);
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET); // set SD VCC to 0v
+  HAL_GPIO_WritePin(SD_VCC_GPIO_Port, SD_VCC_Pin, GPIO_PIN_RESET); // set SD Card VCC to 0v
   HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);
+#endif
 
   HAL_PWR_EnterSTANDBYMode();
 
@@ -443,7 +449,9 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_LTDC_Init();
+#if SD_CARD == 1
   MX_SPI1_Init();
+#endif
   MX_SPI2_Init();
   MX_OCTOSPI1_Init();
   MX_SAI1_Init();
@@ -636,7 +644,10 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_LTDC
-                              |RCC_PERIPHCLK_SPI1|RCC_PERIPHCLK_SPI2|RCC_PERIPHCLK_SAI1
+#if SD_CARD == 1
+                              |RCC_PERIPHCLK_SPI1
+#endif
+                              |RCC_PERIPHCLK_SPI2|RCC_PERIPHCLK_SAI1
                               |RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_OSPI
                               |RCC_PERIPHCLK_CKPER;
   PeriphClkInitStruct.PLL2.PLL2M = 25;
@@ -1066,6 +1077,7 @@ static void MX_SAI1_Init(void)
 
 }
 
+#if SD_CARD == 1
 /**
   * @brief SPI1 Initialization Function
   * @param None
@@ -1113,6 +1125,7 @@ static void MX_SPI1_Init(void)
   /* USER CODE END SPI1_Init 2 */
 
 }
+#endif
 
 /**
   * @brief SPI2 Initialization Function
@@ -1294,13 +1307,15 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_4, GPIO_PIN_RESET);
 
+#if SD_CARD == 1
   /*Configure GPIO pin Output Level */
   /* PA15 = 0v : Enable SD Card VCC */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SD_VCC_GPIO_Port, SD_VCC_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   /* PB9 = 0v : SD Card disable CS  */
   HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
+#endif
 
   /*Configure GPIO pins : GPIO_Speaker_enable_Pin PE8 */
   GPIO_InitStruct.Pin = GPIO_Speaker_enable_Pin|GPIO_PIN_8;
@@ -1361,12 +1376,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+#if SD_CARD == 1
   /*Configure GPIO pin : PA15 to control SD Card VCC */
-  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Pin = SD_VCC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(SD_VCC_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB9 SD Card CS */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
@@ -1374,6 +1390,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);

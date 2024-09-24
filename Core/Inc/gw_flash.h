@@ -7,6 +7,32 @@
 #include <stdbool.h>
 
 
+#if SD_CARD == 2 // SOFTSPI
+struct FlashCtx {
+    void (*Init)(OSPI_HandleTypeDef *hospi);
+    void (*Write)(uint32_t address, const void *buffer, size_t buffer_size);
+    void (*Read)(uint32_t address, void *buffer, size_t buffer_size);
+    void (*EnableMemoryMappedMode)(void);
+    void (*DisableMemoryMappedMode)(void);
+    void (*Format)(void);
+    void (*Erase)(uint32_t address, uint32_t size);
+    void (*ReadId)(uint8_t dest[3]);
+    void (*ReadSR)(uint8_t dest[1]);
+    void (*ReadCR)(uint8_t dest[1]);
+    uint32_t (*GetSmallestEraseSize)(void);
+    const char* (*GetName)(void);
+    bool Presented : 1;
+};
+
+extern struct FlashCtx FlashCtx;
+
+extern struct FlashCtx SdCtx;
+
+void reset_flash_allocator(void);
+uint32_t copy_sd_to_flash(uint32_t sd_address, uint32_t size);
+
+#endif
+
 void OSPI_EnableMemoryMappedMode(void);
 void OSPI_DisableMemoryMappedMode(void);
 void OSPI_ChipErase(void);
