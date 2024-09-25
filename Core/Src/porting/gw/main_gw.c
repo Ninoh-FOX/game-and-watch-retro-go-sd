@@ -134,29 +134,13 @@ static bool gw_system_LoadState(const char *savePathName)
     return gw_state_load((unsigned char *)state_save_buffer);
 }
 
-static bool gw_system_Screenshot(const char *filename)
+static void *gw_system_Screenshot()
 {
     lcd_wait_for_vblank();
 
     lcd_clear_active_buffer();
     gw_system_blit(lcd_get_active_buffer());
-    unsigned char *data = (unsigned char *)lcd_get_active_buffer();
-    size_t size = sizeof(framebuffer1);
-
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        return false;
-    }
-
-    size_t written = fwrite(data, 1, size, file);
-
-    fclose(file);
-
-    if (written != size) {
-        return false;
-    }
-
-    return true;
+    return lcd_get_active_buffer();
 }
 
 /* callback to get buttons state */

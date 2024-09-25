@@ -131,29 +131,30 @@ bool odroid_system_emu_screenshot(const char *filename)
 
     rg_storage_mkdir(rg_dirname(filename));
 
+    uint8_t *data;
+    size_t size = sizeof(framebuffer1);
     if (currentApp.handlers.screenshot) {
-        success = (*currentApp.handlers.screenshot)(filename);
+        data = (*currentApp.handlers.screenshot)();
     } else {
         // If there is no callback for screenshot, we take it from framebuffer
         // which is not the best as it will include menu in the middle
         lcd_wait_for_vblank();
-        unsigned char *data = (unsigned char *)lcd_get_inactive_buffer();
-        size_t size = sizeof(framebuffer1);
-
-        FILE *file = fopen(filename, "wb");
-        if (file == NULL) {
-            return false;
-        }
-
-        size_t written = fwrite(data, 1, size, file);
-
-        fclose(file);
-        
-        if (written != size) {
-            return false;
-        }
-        success = true;
+        data = (unsigned char *)lcd_get_inactive_buffer();
     }
+
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t written = fwrite(data, 1, size, file);
+
+    fclose(file);
+    
+    if (written != size) {
+        return false;
+    }
+    success = true;
 
     rg_storage_commit();
 

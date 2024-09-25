@@ -18,6 +18,8 @@ extern "C" {
 extern void __libc_init_array(void);
 }
 
+void gb_process_blit();
+
 #define GB_WIDTH (160)
 #define GB_HEIGHT (144)
 
@@ -112,6 +114,16 @@ static bool LoadState(const char *savePathName)
 
     return true;
 }
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    gb_process_blit();
+    return lcd_get_active_buffer();
+}
+
 
 void gb_pcm_submit(int16_t *stream, int samples) {
     if (common_emu_sound_loop_is_muted()) {
@@ -488,7 +500,7 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
     common_emu_state.frame_time_10us = (uint16_t)(100000 / VIDEO_REFRESH_RATE + 0.5f);
 
     odroid_system_init(APPID_GB, GB_AUDIO_FREQUENCY);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
 
     lcd_clear_buffers();
 

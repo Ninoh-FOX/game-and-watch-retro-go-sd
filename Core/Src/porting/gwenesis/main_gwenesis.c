@@ -504,13 +504,12 @@ static bool gwenesis_system_LoadState(const char *savePathName) {
   return true;
 }
 
-static bool gwenesis_system_Screenshot(const char *filename)
+static void *gwenesis_system_Screenshot()
 {
     lcd_wait_for_vblank();
 
     lcd_clear_active_buffer();
     unsigned short *data = (unsigned short *)lcd_get_active_buffer();
-    size_t size = sizeof(framebuffer1);
 
     gwenesis_vdp_set_buffer(&data[vert_screen_offset + hori_screen_offset]);
     for (int l = 0; l < lines_per_frame; l++)
@@ -518,20 +517,7 @@ static bool gwenesis_system_Screenshot(const char *filename)
         gwenesis_vdp_render_line(l); /* render scan_line */
     }
 
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        return false;
-    }
-
-    size_t written = fwrite(data, 1, size, file);
-
-    fclose(file);
-
-    if (written != size) {
-        return false;
-    }
-
-    return true;
+    return (void *)data;
 }
 
 /* Main */

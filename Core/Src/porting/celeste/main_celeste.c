@@ -150,29 +150,13 @@ static inline uint16_t getcolorid(char idx) {
     return color[idx%16];
 }
 
-static bool Screenshot(const char *filename)
+static void *Screenshot()
 {
     lcd_wait_for_vblank();
 
     lcd_clear_active_buffer();
     blit();
-    unsigned char *data = (unsigned char *)lcd_get_active_buffer();
-    size_t size = sizeof(framebuffer1);
-
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        return false;
-    }
-
-    size_t written = fwrite(data, 1, size, file);
-
-    fclose(file);
-
-    if (written != size) {
-        return false;
-    }
-
-    return true;
+    return lcd_get_active_buffer();
 }
 
 static void ResetPalette(void) {
