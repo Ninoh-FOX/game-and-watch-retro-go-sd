@@ -58,7 +58,6 @@ bool tgb_drawFrame;
 
 static bool SaveState(const char *savePathName)
 {
-    printf("Save tgb %s\n",savePathName);
     size_t size = g_gb->get_state_size();
 
     // We store data in the not visible framebuffer
@@ -68,16 +67,14 @@ static bool SaveState(const char *savePathName)
 
     FILE *file = fopen(savePathName, "wb");
     if (file == NULL) {
-        printf("Error opening file\n");
         return false;
     }
 
-    size_t written = fwrite(data, 1, size, file);
+    size_t written = fwrite(data, size, 1, file);
 
     fclose(file);
     
-    if (written != size) {
-        printf("Error writing to file\n");
+    if (!written) {
         return false;
     }
 
@@ -86,24 +83,20 @@ static bool SaveState(const char *savePathName)
 
 static bool LoadState(const char *savePathName)
 {
-    printf("Load tgb %s\n",savePathName);
-
     // We store data in the not visible framebuffer
     unsigned char *data = (unsigned char *)lcd_get_active_buffer();
     size_t size = g_gb->get_state_size();
 
     FILE *file = fopen(savePathName, "rb");
     if (file == NULL) {
-        printf("Error opening file\n");
         return false;
     }
 
-    size_t read = fread(data, 1, size, file);
+    size_t read = fread(data, size, 1, file);
 
     fclose(file);
 
-    if (read != size) {
-        printf("Error reading file\n");
+    if (!read) {
         return false;
     }
 
