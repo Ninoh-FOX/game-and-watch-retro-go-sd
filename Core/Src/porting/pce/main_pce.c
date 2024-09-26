@@ -155,14 +155,91 @@ void osd_log(int type, const char *format, ...) {
     va_end(ap);
 }
 
-#define SAVE_STATE_BUFFER_SIZE (76*1024)
+static void blit();
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot) {
-    return false;
+#define SAVE_STATE_BUFFER_SIZE (76*1024)
+uint8_t save_buffer[SAVE_STATE_BUFFER_SIZE];
+static bool SaveState(const char *savePathName) {
+    int pos=0;
+    // it should use active_framebuffer, but it makes it crash for unknown reason
+    uint8_t *pce_save_buf = save_buffer;
+    memset(pce_save_buf, 0x00, SAVE_STATE_BUFFER_SIZE); // 76K save size
+    uint8_t *pce_save_header=(uint8_t *)SAVESTATE_HEADER;
+    for(int i=0;i<sizeof(SAVESTATE_HEADER);i++) {
+        pce_save_buf[pos]=pce_save_header[i];
+        pos++;
+    }
+    pce_save_buf[pos]=0; pos++;
+    uint32_t *crc_ptr = (uint32_t *)(pce_save_buf + pos);
+    crc_ptr[0] = PCE.ROM_CRC; pos+=sizeof(uint32_t);
+    for (int i = 0; SaveStateVars[i].len > 0; i++) {
+        uint8_t *pce_save_ptr = (uint8_t *)SaveStateVars[i].ptr;
+        for(int j=0;j<SaveStateVars[i].len;j++) {
+            pce_save_buf[pos]=pce_save_ptr[j];
+            pos++;
+        }
+    }
+    assert(pos<SAVE_STATE_BUFFER_SIZE);
+    FILE *file = fopen(savePathName, "wb");
+    if (file == NULL) {
+        return false;
+    }
+    size_t written = fwrite(pce_save_buf, SAVE_STATE_BUFFER_SIZE, 1, file);
+    if (!written) {
+        return false;
+    }
+    fclose(file);
+    sprintf(pce_log,"%08lX",PCE.ROM_CRC);
+    return true;
 }
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot) {
+static bool LoadState(const char *savePathName) {
+    uint8_t *pce_save_buf = save_buffer;
+    FILE *file = fopen(savePathName, "rb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t read = fread(pce_save_buf, SAVE_STATE_BUFFER_SIZE, 1, file);
+    fclose(file);
+
+    if (!read) {
+        return false;
+    }
+
+    pce_save_buf+=sizeof(SAVESTATE_HEADER) + 1;
+    uint32_t *crc_ptr = (uint32_t *)pce_save_buf;
+#pragma GCC diagnostic ignored "-Warray-bounds"
+    sprintf(pce_log,"%08lX",crc_ptr[0]);
+    if (crc_ptr[0]!=PCE.ROM_CRC) {
+        return true;
+    }
+#pragma GCC diagnostic pop
+    pce_save_buf+=sizeof(uint32_t);
+    int pos=0;
+    for (int i = 0; SaveStateVars[i].len > 0; i++) {
+        printf("Loading %s (%d)\n", SaveStateVars[i].key, SaveStateVars[i].len);
+        uint8_t *pce_save_ptr = (uint8_t *)SaveStateVars[i].ptr;
+        for(int j=0;j<SaveStateVars[i].len;j++) {
+            pce_save_ptr[j] = pce_save_buf[pos];
+            pos++;
+        }
+    }
+    for(int i = 0; i < 8; i++) {
+        pce_bank_set(i, PCE.MMR[i]);
+    }
+    gfx_reset(true);
+    osd_gfx_set_mode(IO_VDC_SCREEN_WIDTH, IO_VDC_SCREEN_HEIGHT);
     return true;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    blit();
+    return lcd_get_active_buffer();
 }
 
 static void pce_rom_full_patch()
@@ -393,7 +470,7 @@ void pce_input_read(odroid_gamepad_state_t* out_state) {
     PCE.Joypad.regs[0] = rc;
 }
 
-void blit() {
+static void blit() {
     odroid_display_scaling_t scaling = odroid_display_get_scaling_mode();
 
     uint8_t *emuFrameBuffer = osd_gfx_framebuffer();
@@ -436,8 +513,6 @@ void blit() {
             framebuffer_active[offsetY+x+offsetX]=0;
         }
     }
-
-    common_ingame_overlay();
 }
 
 void pce_osd_gfx_blit() {
@@ -457,6 +532,8 @@ void pce_osd_gfx_blit() {
 #endif
 
     blit();
+
+    common_ingame_overlay();
 
 #ifdef PCE_SHOW_DEBUG
     char debugMsg[200];
@@ -493,7 +570,7 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused, int8_t save_slot) {
     }
 
     odroid_system_init(APPID_PCE, PCE_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
     pce_log[0]=0;
 
     // Init Graphics
