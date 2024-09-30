@@ -31,7 +31,7 @@ int find_free_slot() {
             return i;
         }
     }
-    return -1; // Aucun slot libre
+    return -1; // No free slot
 }
 
 int _open(const char *name, int flags, int mode)
@@ -63,7 +63,7 @@ int _open(const char *name, int flags, int mode)
             mode_flags = FA_OPEN_APPEND | FA_READ | FA_WRITE;
             break;
         default:
-            errno = EINVAL;  // Mode d'ouverture non supporté
+            errno = EINVAL;
             return -1;
     }
     FRESULT res = f_open(&file_table[slot].file, name, mode_flags);
@@ -81,7 +81,7 @@ int _close(int file)
 {
     file = file - FATFS_FD_OFFSET;
     if (file < 0 || file >= MAX_OPEN_FILES || !file_table[file].is_open) {
-        errno = EBADF;  // Mauvais descripteur de fichier
+        errno = EBADF;
         return -1;
     }
 
