@@ -212,57 +212,6 @@ void abort(void)
   BSOD(BSOD_ABORT, 0, 0);
 }
 
-void store_erase(const uint8_t *flash_ptr, uint32_t size)
-{
-  // Disable clear data when save address is zero
-  if (flash_ptr == 0) {
-    return;
-  }
-
-  // Convert mem mapped pointer to flash address
-  uint32_t save_address = flash_ptr - &__EXTFLASH_BASE__;
-
-  // Only allow 4kB aligned pointers
-  assert((save_address & (4*1024 - 1)) == 0);
-
-  // Round size up to nearest 4K
-  if ((size & 0xfff) != 0) {
-    size += 0x1000 - (size & 0xfff);
-  }
-
-  OSPI_DisableMemoryMappedMode();
-  OSPI_EraseSync(save_address, size);
-  OSPI_EnableMemoryMappedMode();
-}
-
-void store_save(const uint8_t *flash_ptr, const uint8_t *data, size_t size)
-{
-  // Temporary solution to make things work with flash with 256K erase pages
-#ifdef DISABLE_STORE
-  return;
-#endif
-  // Disable save data when save address is zero
-  if (flash_ptr == 0) {
-    return;
-  }
-  // Convert mem mapped pointer to flash address
-  uint32_t save_address = flash_ptr - &__EXTFLASH_BASE__;
-
-  // Only allow 4kB aligned pointers
-  assert((save_address & (4*1024 - 1)) == 0);
-
-  int diff = memcmp((void*)flash_ptr, data, size);
-  if (diff == 0) {
-    return;
-  }
-
-  store_erase(flash_ptr, size);
-
-  OSPI_DisableMemoryMappedMode();
-  OSPI_Program(save_address, data, size);
-  OSPI_EnableMemoryMappedMode();
-}
-
 void boot_magic_set(uint32_t magic)
 {
   boot_magic = magic;
@@ -363,6 +312,51 @@ void wdog_refresh()
     HAL_WWDG_Refresh(&hwwdg1);
   }
 }
+
+#if SD_CARD == 2
+void switch_ospi_gpio(uint8_t ToOspi) {
+  static int8_t IsOspi = -1;
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  if (IsOspi == ToOspi) {
+    return;
+  }
+
+  if (ToOspi) {
+    if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+      Error_Handler();
+  } else {
+    HAL_OSPI_DeInit(&hospi1);
+
+    /*Configure GPIO pin Output Level */
+    HAL_GPIO_WritePin(GPIOE, GPIO_FLASH_NCS_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_FLASH_MOSI_Pin|GPIO_FLASH_CLK_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOD, GPIO_FLASH_MISO_Pin, GPIO_PIN_RESET);
+
+    /*Configure GPIO pin : GPIO_FLASH_NCS_Pin */
+    GPIO_InitStruct.Pin = GPIO_FLASH_NCS_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIO_FLASH_NCS_GPIO_Port, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : GPIO_FLASH_MOSI_Pin GPIO_FLASH_CLK_Pin */
+    GPIO_InitStruct.Pin = GPIO_FLASH_MOSI_Pin|GPIO_FLASH_CLK_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : GPIO_FLASH_MISO_Pin */
+    GPIO_InitStruct.Pin = GPIO_FLASH_MISO_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIO_FLASH_MISO_GPIO_Port, &GPIO_InitStruct);
+  }
+
+  IsOspi = ToOspi;
+}
+#endif
 
 /* USER CODE END 0 */
 
@@ -644,10 +638,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_LTDC
-#if SD_CARD == 1
-                              |RCC_PERIPHCLK_SPI1
-#endif
-                              |RCC_PERIPHCLK_SPI2|RCC_PERIPHCLK_SAI1
+                              |RCC_PERIPHCLK_SPI123|RCC_PERIPHCLK_SAI1
                               |RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_OSPI
                               |RCC_PERIPHCLK_CKPER;
   PeriphClkInitStruct.PLL2.PLL2M = 25;
@@ -702,9 +693,11 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
+#if SD_CARD != 2
   /* OCTOSPI1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
+#endif
 }
 
 /**

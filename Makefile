@@ -41,6 +41,7 @@ Core/Src/gw_lcd.c \
 Core/Src/gw_audio.c \
 Core/Src/gw_malloc.c \
 Core/Src/gw_sdcard.c \
+Core/Src/gw_flash.c \
 Core/Src/error_screens.c \
 Core/Src/main.c \
 Core/Src/syscalls.c \
