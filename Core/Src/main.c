@@ -315,12 +315,11 @@ void wdog_refresh()
 
 #if SD_CARD == 2
 void switch_ospi_gpio(uint8_t ToOspi) {
-  static int8_t IsOspi = -1;
+  static uint8_t IsOspi = true;
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  if (IsOspi == ToOspi) {
+  if (IsOspi == ToOspi)
     return;
-  }
 
   if (ToOspi) {
     if (HAL_OSPI_Init(&hospi1) != HAL_OK)
@@ -331,7 +330,6 @@ void switch_ospi_gpio(uint8_t ToOspi) {
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOE, GPIO_FLASH_NCS_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOB, GPIO_FLASH_MOSI_Pin|GPIO_FLASH_CLK_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOD, GPIO_FLASH_MISO_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin : GPIO_FLASH_NCS_Pin */
     GPIO_InitStruct.Pin = GPIO_FLASH_NCS_Pin;
@@ -657,10 +655,17 @@ void SystemClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
+#if SD_CARD != 2
   if (oc_level == 0)  //// No overclocking
     PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_CLKP;
   else
     PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_PLL;
+#else
+  // For some reasons, using RCC_OSPICLKSOURCE_PLL is not working with
+  // this SD Card design, this is a workaround until it is properly fixed
+  // PLL frequency too high ?
+  PeriphClkInitStruct.OspiClockSelection = RCC_OSPICLKSOURCE_CLKP;
+#endif
   PeriphClkInitStruct.CkperClockSelection = RCC_CLKPSOURCE_HSI;
   PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_CLKP;
