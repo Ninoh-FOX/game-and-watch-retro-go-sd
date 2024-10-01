@@ -72,6 +72,7 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
         return NULL;
     } 
 
+#if 0
     // Check if content to load is different from cache content
     while (offset < size) {
         wdog_refresh();
@@ -91,6 +92,9 @@ static const uint8_t *copy_file_to_cache(char *file_path, uint32_t size, bool by
         }
         offset += bytes_read;
     }
+#else
+    flash_needed = true;
+#endif
 
     if (flash_needed) {
         fseek(file, 0, SEEK_SET);
@@ -642,12 +646,12 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 void emulators_init()
 {
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", &pad_gb, &header_gb, GAME_DATA);
-    add_emulator("Nintendo Entertainment System", "nes", "nes", &pad_nes, &header_nes, GAME_DATA);
+//    add_emulator("Nintendo Entertainment System", "nes", "nes", &pad_nes, &header_nes, GAME_DATA);
 //    add_emulator("Game & Watch", "gw", "gw", &pad_gw, &header_gw, GAME_DATA);
 //    add_emulator("PC Engine", "pce", "pce", &pad_pce, &header_pce, GAME_DATA);
 //    add_emulator("Sega Game Gear", "gg", "gg", &pad_gg, &header_gg, GAME_DATA);
 //    add_emulator("Sega Master System", "sms", "sms", &pad_sms, &header_sms, GAME_DATA);
-    add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
+//    add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
 //    add_emulator("Homebrew", "homebrew", "bin", &pad_homebrew, &header_homebrew, NO_GAME_DATA);
 /*
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", "tgbdual-go", 0, &pad_gb, &header_gb);
