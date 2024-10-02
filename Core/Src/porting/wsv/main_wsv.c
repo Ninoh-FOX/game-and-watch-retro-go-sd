@@ -30,16 +30,69 @@ static odroid_video_frame_t video_frame = {WSV_WIDTH, WSV_HEIGHT, WSV_WIDTH * 2,
 #define WSV_AUDIO_BUFFER_LENGTH (SV_SAMPLE_RATE / WSV_FPS)
 static int8 audioBuffer_wsv[WSV_AUDIO_BUFFER_LENGTH*2]; // *2 as emulator is filling stereo buffer
 #define WSV_ROM_BUFF_LENGTH 0x80000 // Largest Watara Supervision Rom is 512kB (Journey to the West)
+#ifndef GNW_DISABLE_COMPRESSION
 // Memory to handle compressed roms
 static uint8 wsv_rom_memory[WSV_ROM_BUFF_LENGTH];
+#endif
 
-#define STATE_SAVE_BUFFER_LENGTH (1024 * 28)
+#define STATE_SAVE_BUFFER_LENGTH (24741)
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot) {
-    return 0;
+static void blit_emulator(void);
+
+static bool LoadState(const char *savePathName) {
+    // We store data in the not visible framebuffer
+    unsigned char *data = (unsigned char *)lcd_get_active_buffer();
+
+    FILE *file = fopen(savePathName, "rb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t read = fread(data, STATE_SAVE_BUFFER_LENGTH, 1, file);
+
+    fclose(file);
+
+    if (!read) {
+        return false;
+    }
+
+    supervision_load_state(data);
+
+    lcd_clear_active_buffer();
+
+    return true;
 }
-static bool SaveState(char *savePathName, char *sramPathName, int slot) {
-    return 0;
+
+static bool SaveState(const char *savePathName) {
+    // We store data in the not visible framebuffer
+    lcd_wait_for_vblank();
+    unsigned char *data = (unsigned char *)lcd_get_active_buffer();
+
+    int size = supervision_save_state(data);
+    assert(size == STATE_SAVE_BUFFER_LENGTH);
+    FILE *file = fopen(savePathName, "wb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t written = fwrite(data, size, 1, file);
+
+    fclose(file);
+
+    if (!written) {
+        return false;
+    }
+
+    return true;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    blit_emulator();
+    return lcd_get_active_buffer();
 }
 
 void wsv_pcm_submit() {
@@ -309,7 +362,7 @@ static inline void screen_blit_jth(void) {
 #endif
 }
 
-static void blit(void)
+static void blit_emulator(void)
 {
     odroid_display_scaling_t scaling = odroid_display_get_scaling_mode();
     odroid_display_filter_t filtering = odroid_display_get_filter_mode();
@@ -366,27 +419,11 @@ static void blit(void)
         assert(!"Unknown scaling mode");
         break;
     }
-    common_ingame_overlay();
 }
 
-//TODO: Could this be optimized ?
-void wsv_render_image() {
-    // WSV image is 160x160
-    int y;
-    pixel_t *framebuffer_active = lcd_get_active_buffer();
-    int offset = 0;
-    for (y=0;y<40;y++) {
-        memset(framebuffer_active+y*GW_LCD_WIDTH,0x00,GW_LCD_WIDTH*2);
-    }
-    for (y=40;y<200;y++) {
-        memset(framebuffer_active+y*GW_LCD_WIDTH,0x00,80*2);
-        memcpy(framebuffer_active+y*GW_LCD_WIDTH+80,wsv_framebuffer+offset,160*2);
-        memset(framebuffer_active+y*GW_LCD_WIDTH+80+160,0x00,80*2);
-        offset+=320;
-    }
-    for (y=200;y<240;y++) {
-        memset(framebuffer_active+y*GW_LCD_WIDTH,0x00,GW_LCD_WIDTH*2);
-    }
+static void blit(void) {
+    blit_emulator();
+    common_ingame_overlay();
 }
 
 
@@ -474,7 +511,7 @@ int app_main_wsv(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     lcd_clear_buffers();
 
     odroid_system_init(APPID_WSV, SV_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
 
     // Init Sound
     audio_start_playing(WSV_AUDIO_BUFFER_LENGTH);

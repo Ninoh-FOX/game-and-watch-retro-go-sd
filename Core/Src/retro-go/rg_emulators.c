@@ -657,6 +657,8 @@ void emulators_init()
 //    add_emulator("Sega Master System", "sms", "sms", &pad_sms, &header_sms, GAME_DATA);
 //    add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
 //    add_emulator("Homebrew", "homebrew", "bin", &pad_homebrew, &header_homebrew, NO_GAME_DATA);
+//    add_emulator("Watara Supervision", "wsv", "wsv sv bin", &pad_wsv, &header_wsv, GAME_DATA);
+
 /*
     add_emulator("Nintendo Gameboy", "gb", "gb gbc", "tgbdual-go", 0, &pad_gb, &header_gb);
     add_emulator("Nintendo Entertainment System", "nes", "nes fc fds nsf", "fceumm", 16, &pad_nes, &header_nes);
