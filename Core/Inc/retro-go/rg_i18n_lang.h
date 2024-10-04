@@ -188,6 +188,7 @@ typedef struct
     const char *s_Flash_Name;
     const char *s_Flash_SR;
     const char *s_Flash_CR;
+    const char *s_Flash_Size;
     const char *s_Smallest_erase;
     const char *s_DBGMCU_IDCODE;
     const char *s_DBGMCU_CR;

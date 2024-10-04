@@ -226,6 +226,7 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Flash_Name = "´æ´¢Ð¾Æ¬",
     .s_Flash_SR = "´æ´¢×´Ì¬",
     .s_Flash_CR = "´æ´¢ÅäÖÃ",
+    .s_Flash_Size = "Flash Size",
     .s_Smallest_erase = "×îÐ¡µ¥Î»",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
     .s_DBGMCU_CR = "DBGMCU CR",

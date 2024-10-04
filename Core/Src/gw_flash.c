@@ -84,6 +84,12 @@
 #define WB_SR3_DRV_Val_50  (0b10<<5) // 50%
 #define WB_SR3_ADS_Pos     0
 
+// SFDP (Serial Flash Discoverable Parameter Structure) specific info
+#define SFDP_HEADER_SIZE      24
+#define SFDP_BASIC_TABLE_SIZE 8
+#define SFDP_SIGNATURE        0x50444653 // "SFDP"
+
+
 typedef enum {
     LINES_0,        // Mapped to HAL_OSPI_*_NONE
     LINES_1,        // Mapped to HAL_OSPI_*_1_LINE
@@ -141,6 +147,8 @@ enum {
     CMD_PP,         // Page Program
     CMD_READ,       // Read Data Bytes
 
+    CMD_SFDP,       // Read SFDP Mode
+
     CMD_COUNT,
 };
 
@@ -189,6 +197,7 @@ const flash_cmd_t cmds_spi_24b[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x02, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    0), // PP
     [CMD_READ]   = CMD_DEF(0x0B, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8), // FAST_READ dummy=8
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 const flash_cmd_t cmds_quad_24b_mx[CMD_COUNT] = {
@@ -207,6 +216,7 @@ const flash_cmd_t cmds_quad_24b_mx[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x38, LINES_1, LINES_4, ADDR_SIZE_24B, LINES_4,    0), // 4PP
     [CMD_READ]   = CMD_DEF(0xEB, LINES_1, LINES_4, ADDR_SIZE_24B, LINES_4,    6), // 4READ dummy=6
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8), // ****
 };
 
 const flash_cmd_t cmds_quad_32b_mx[CMD_COUNT] = {
@@ -225,6 +235,7 @@ const flash_cmd_t cmds_quad_32b_mx[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x3E, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4,    0), // 4PP4B
     [CMD_READ]   = CMD_DEF(0xEC, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4,    6), // 4READ4B dummy=6
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 const flash_cmd_t cmds_quad_32b_mx54[CMD_COUNT] = {
@@ -243,6 +254,7 @@ const flash_cmd_t cmds_quad_32b_mx54[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x38, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4,    0), // 4PP
     [CMD_READ]   = CMD_DEF(0xEB, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4,   10), // 4READ dummy=10
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 const flash_cmd_t cmds_quad_32b_s[CMD_COUNT] = {
@@ -262,6 +274,7 @@ const flash_cmd_t cmds_quad_32b_s[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x12, LINES_1, LINES_1, ADDR_SIZE_32B, LINES_1,     0), // 4PP (no 4PP4B)
     [CMD_READ]   = CMD_DEF(0xEC, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4, 2 + 8), // 4QIOR
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,     8),
 };
 
 const flash_cmd_t cmds_quad_24b_issi[CMD_COUNT] = {
@@ -280,6 +293,7 @@ const flash_cmd_t cmds_quad_24b_issi[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x38, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_4,    0), // PPQ
     [CMD_READ]   = CMD_DEF(0xEB, LINES_1, LINES_4, ADDR_SIZE_24B, LINES_4,    6), // FRQIO dummy=6
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 const flash_cmd_t cmds_quad_24b_wb[CMD_COUNT] = {
@@ -298,6 +312,7 @@ const flash_cmd_t cmds_quad_24b_wb[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x32, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_4,    0), // Quad Input Page Program
     [CMD_READ]   = CMD_DEF(0xEB, LINES_1, LINES_4, ADDR_SIZE_24B, LINES_4,    6), // Fast Read Quad I/O
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 const flash_cmd_t cmds_quad_32b_wb[CMD_COUNT] = {
@@ -316,6 +331,7 @@ const flash_cmd_t cmds_quad_32b_wb[CMD_COUNT] = {
     [CMD_ERASE4] = { },
     [CMD_PP]     = CMD_DEF(0x34, LINES_1, LINES_1, ADDR_SIZE_32B, LINES_4,    0), // Quad Page Program with 4-Byte Address
     [CMD_READ]   = CMD_DEF(0xEC, LINES_1, LINES_4, ADDR_SIZE_32B, LINES_4,    6), // Fast Read Quad I/O with 4-Byte Address
+    [CMD_SFDP]   = CMD_DEF(0x5A, LINES_1, LINES_1, ADDR_SIZE_24B, LINES_1,    8),
 };
 
 static void init_spansion(void);
@@ -373,6 +389,7 @@ static struct {
     jedec_id_t            jedec_id;
     const flash_config_t *config;
     const char           *name;
+    uint32_t              size;
     bool                  mem_mapped_enabled;
 } flash = {
     .config = &config_spi_24b, // Default config to use to probe status etc.
@@ -683,6 +700,40 @@ void OSPI_ReadCR(uint8_t dest[1])
     OSPI_ReadBytes(CMD(RDCR), 0, dest, 1);
 }
 
+static void OSPI_GetFlashSizeSfdp(uint32_t *flash_size)
+{
+    uint8_t sfdp_header[SFDP_HEADER_SIZE];
+    uint8_t sfdp_basic_table[SFDP_BASIC_TABLE_SIZE];
+    uint32_t density_bits;
+    uint32_t header_signature = SFDP_SIGNATURE;
+
+    OSPI_ReadBytes(CMD(SFDP), 0, sfdp_header, SFDP_HEADER_SIZE);
+    
+
+    // Check header
+    if (memcmp(&header_signature, sfdp_header, sizeof(uint32_t)) != 0) {
+        // SFDP not supported on this chip
+        *flash_size = 0;
+        return;
+    }
+
+    // Get PTP0
+    uint32_t basic_table_pointer = (sfdp_header[12] | (sfdp_header[13] << 8) | (sfdp_header[14] << 16)) & 0xFFFFFF;
+
+    // Get Basic Flash Parameter Table
+    OSPI_ReadBytes(CMD(SFDP), basic_table_pointer, sfdp_basic_table, SFDP_BASIC_TABLE_SIZE);
+
+    density_bits = sfdp_basic_table[4] | (sfdp_basic_table[5] << 8) | (sfdp_basic_table[6] << 16) | (sfdp_basic_table[7] << 24);
+
+    if (density_bits & 0x80000000) {
+        // size > 4 Gb (It should't happen on the G&W ...)
+        *flash_size = (1 << ((density_bits & 0x7FFFFFFF) + 3));
+    } else {
+        // Size <= 4 Gb
+        *flash_size = (density_bits + 1) / 8;
+    }
+}
+
 static void init_mx_issi(void)
 {
     // Shared code for both MX and ISSI
@@ -833,6 +884,12 @@ uint32_t OSPI_GetSmallestEraseSize(void)
     return flash.config->erase_sizes[0];
 }
 
+uint32_t OSPI_GetFlashSize(void)
+{
+    // Assumes that erase sizes are sorted: 4 > 3 > 2 > 1.
+    return flash.size;
+}
+
 void OSPI_Init(OSPI_HandleTypeDef *hospi)
 {
     uint8_t status;
@@ -868,6 +925,9 @@ void OSPI_Init(OSPI_HandleTypeDef *hospi)
             break;
         }
     }
+
+    // Get flash size using SFDP
+    OSPI_GetFlashSizeSfdp(&flash.size);
 
     if (flash.config->init_fn) {
         flash.config->init_fn();

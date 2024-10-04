@@ -217,6 +217,7 @@ const lang_t lang_es_es LANG_DATA = {
     .s_Flash_Name = "Flash Nombre",
     .s_Flash_SR = "Flash SR",
     .s_Flash_CR = "Flash CR",
+    .s_Flash_Size = "Flash Size",
     .s_Smallest_erase = "Menor borrado",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
     .s_DBGMCU_CR = "DBGMCU CR",

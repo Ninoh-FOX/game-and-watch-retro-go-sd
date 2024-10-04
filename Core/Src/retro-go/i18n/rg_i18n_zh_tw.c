@@ -220,6 +220,7 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Flash_Name = "存儲晶片",
     .s_Flash_SR = "存儲狀態",
     .s_Flash_CR = "存儲配置",
+    .s_Flash_Size = "Flash Size",
     .s_Smallest_erase = "最小抹除單位",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
      .s_DBGMCU_CR = "DBGMCU CR",

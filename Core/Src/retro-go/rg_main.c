@@ -368,6 +368,7 @@ static void GLOBAL_DATA handle_debug_menu()
     char status_str[8];
     uint8_t config;
     char config_str[8];
+    char flash_size_str[16];
     char erase_size_str[32];
     char dbgmcu_id_str[16];
     char dbgmcu_cr_str[16];
@@ -383,6 +384,7 @@ static void GLOBAL_DATA handle_debug_menu()
     snprintf(jedec_id_str, sizeof(jedec_id_str), "%02X %02X %02X", jedec_id[0], jedec_id[1], jedec_id[2]);
     snprintf(status_str, sizeof(status_str), "0x%02X", status);
     snprintf(config_str, sizeof(config_str), "0x%02X", config);
+    snprintf(flash_size_str, sizeof(flash_size_str), "%ld MB", OSPI_GetFlashSize() / (1024*1024));
     snprintf(erase_size_str, sizeof(erase_size_str), "%ld kB", OSPI_GetSmallestEraseSize() / 1024);
     snprintf(dbgmcu_id_str, sizeof(dbgmcu_id_str), "0x%08lX", DBGMCU->IDCODE);
 
@@ -391,6 +393,7 @@ static void GLOBAL_DATA handle_debug_menu()
             {-1, curr_lang->s_Flash_Name, (char *)OSPI_GetFlashName(), 0, NULL},
             {-1, curr_lang->s_Flash_SR, (char *)status_str, 0, NULL},
             {-1, curr_lang->s_Flash_CR, (char *)config_str, 0, NULL},
+            {-1, curr_lang->s_Flash_Size, flash_size_str, 0, NULL},
             {-1, curr_lang->s_Smallest_erase, erase_size_str, 0, NULL},
             ODROID_DIALOG_CHOICE_SEPARATOR,
             {-1, curr_lang->s_DBGMCU_IDCODE, dbgmcu_id_str, 0, NULL},

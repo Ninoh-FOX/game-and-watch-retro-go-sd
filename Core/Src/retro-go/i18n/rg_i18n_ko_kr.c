@@ -224,6 +224,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Flash_Name = "플래시 이름",
     .s_Flash_SR = "플래시 SR",
     .s_Flash_CR = "플래시 CR",
+    .s_Flash_Size = "Flash Size",
     .s_Smallest_erase = "Smallest 지우기",
     .s_DBGMCU_IDCODE = "DBGMCU IDCODE",
     .s_DBGMCU_CR = "DBGMCU CR",
