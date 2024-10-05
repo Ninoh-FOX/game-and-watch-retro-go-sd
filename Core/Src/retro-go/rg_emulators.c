@@ -33,6 +33,7 @@
 #include "rg_rtc.h"
 #include "heap.hpp"
 #include "gw_flash.h"
+#include "gw_flash_alloc.h"
 
 
 const unsigned char *ROM_DATA = NULL;
@@ -50,8 +51,6 @@ static rom_system_t systems[MAX_EMULATORS];
 static int emulators_count = 0;
 
 static retro_emulator_file_t *CHOSEN_FILE = NULL;
-
-uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size);
 
 /* Copy file into flash "cache" section */
 static const uint8_t *copy_file_to_cache(char *file_path, uint32_t file_size, bool byte_swap) {
