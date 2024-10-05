@@ -496,8 +496,6 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
     odroid_system_init(APPID_GB, GB_AUDIO_FREQUENCY);
     odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
 
-    lcd_clear_buffers();
-
     // To optimize free memory for bank caching, we make sure that maximum
     // data will be set in itc ram. If RAM size info tell that we need
     // to allocate 32KB of GB extended ram, we disable itc allocation to
@@ -514,6 +512,8 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
 
     if (load_state) {
         odroid_system_emu_load_state(save_slot);
+    } else {
+        lcd_clear_buffers();
     }
 
     index_palette = g_gb->get_lcd()->get_current_palette();
