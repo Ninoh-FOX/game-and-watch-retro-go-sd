@@ -126,7 +126,7 @@ int odroid_sdcard_get_filesize(const char* path)
         fclose(f);
     }
     else
-        printf("odroid_sdcard_get_filesize: fopen failed.\n");
+        printf("odroid_sdcard_get_filesize: fopen failed. path='%s'\n",path);
 
     SDCARD_ACCESS_END();
 

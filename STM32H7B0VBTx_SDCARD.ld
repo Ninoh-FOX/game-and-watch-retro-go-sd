@@ -56,7 +56,7 @@ ENTRY(Reset_Handler)
 _estack = _stack_top;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
-_Heap_Size = 32 * 1024;     /* required amount of heap */
+_Heap_Size = 40 * 1024;     /* required amount of heap */
 
 _Stack_Redzone_Size = 256;  /* size of stack overflow protection */
 _Min_Stack_Size = 20 * 1024; /* required amount of stack */
@@ -74,9 +74,9 @@ __AHBRAM_LENGTH__   = 128K;
 __FLASH_LENGTH__    = DEFINED(__FLASH_LENGTH__) ? __FLASH_LENGTH__ : 128k;
 __FLASH2_LENGTH__   = 256K; /* bank2 */
 
-__EXTFLASH_OFFSET__ = DEFINED(__EXTFLASH_OFFSET__) ? __EXTFLASH_OFFSET__ : 0;
+/* Usefull only for round robin flash allocator */
 __EXTFLASH_BASE__ = 0x90000000;  /* Beginning of addressable extflash addresses */
-__EXTFLASH_START__ = __EXTFLASH_BASE__ + __EXTFLASH_OFFSET__;  /* Beginning of where we're going to store emulator and rom data */
+__EXTFLASH_START__ = __EXTFLASH_BASE__;  /* Beginning of where we're going to store emulator and rom data */
 
 __RAM_START__       = 0x24000000;
 __RAM_UC_START__    = __RAM_START__;
@@ -85,38 +85,6 @@ __RAM_EMU_START__   = __RAM_CORE_START__ + __RAM_CORE_LENGTH__;
 
 __RAM_EMU_END__     = __RAM_EMU_START__ + __RAM_EMU_LENGTH__;
 __RAM_END__         = __RAM_START__ + 1024K;
-
-INCLUDE build/cacheflash.ld
-
-/****
- * External Flash Layout
- *
- * 0x90000000 +----------------------------------+  __EXTFLASH_BASE__
- *            |                                  |
- *            |        Untouched data if         |
- *            | __EXTFLASH_OFFSET__ is specified |
- *            |                                  |
- *            +----------------------------------+  __EXTFLASH_START__
- *            |                                  |
- *            |   Executable emulator data and   |
- *            |         constant ROM data        |
- *            |                                  |
- *            +----------------------------------+
- *            |                                  |
- *            |         Possibly Unused          |
- *            |                                  |
- *            +----------------------------------+  __EXTFLASH_END__ __CACHEFLASH_START__
- *            |                                  |
- *            |          Reserved space          |
- *            |    to decompress Roms not        |
- *            |         fitting in RAM           |
- *            +----------------------------------+  __CACHEFLASH_END__ __EXTFLASH_END__
- */
-__EXTFLASH_LENGTH__ = __EXTFLASH_TOTAL_LENGTH__ - __CACHEFLASH_LENGTH__;
-__EXTFLASH_END__ = __EXTFLASH_START__ + __EXTFLASH_LENGTH__;
-__CACHEFLASH_START__ = __EXTFLASH_END__;
-__CACHEFLASH_END__   = __CACHEFLASH_START__ + __CACHEFLASH_LENGTH__;
-
 
 __INTFLASH__ = DEFINED(__INTFLASH__) ? __INTFLASH__ : 0x08000000;
 
@@ -133,10 +101,11 @@ MEMORY
   AHBRAM   (xrw) : ORIGIN = 0x30000000, LENGTH =  __AHBRAM_LENGTH__
 
   /* FLASH */
-  FLASH      (xr ) : ORIGIN = __INTFLASH__,          LENGTH =  __FLASH_LENGTH__
+  FLASH    (xr ) : ORIGIN = __INTFLASH__,        LENGTH =  __FLASH_LENGTH__
   FLASH2   (xr ) : ORIGIN = 0x08100000,          LENGTH = __FLASH2_LENGTH__
-  EXTFLASH   (xr ) : ORIGIN = __EXTFLASH_START__,  LENGTH = __EXTFLASH_LENGTH__
-  CACHEFLASH (xr ) : ORIGIN = __CACHEFLASH_START__,  LENGTH = __CACHEFLASH_LENGTH__
+
+  /* CORES */
+  CORES    (x)   : ORIGIN = 0x0,                 LENGTH = 0xFFFFFFFF
 }
 
 
@@ -146,26 +115,8 @@ SECTIONS
   ._itcram :
   {
     __itcram_start__ = .;
-    . = ALIGN(4);
-    *(.itcram_data)
-    . = ALIGN(4);
-    *(.itcram_text)
-    . = ALIGN(4);
-  } > ITCMRAM
-
-  /* Copied from flash to ram at boot */
-  _sitcram_hot = LOADADDR(._itcram_hot);
-  ._itcram_hot :
-  {
-    __itcram_hot_start__ = .;
-    . = ALIGN(4);
-    *(.itcram_hot_data)
-    . = ALIGN(4);
-    *(.itcram_hot_text)
-    . = ALIGN(4);
-    __itcram_hot_end__ = .;
     __itcram_end__ = .;
-  } >ITCMRAM AT> EXTFLASH
+  } > ITCMRAM
 
   /* Uncached and unbuffered memory for the LCD framebuffers */
   ._ram_uc (NOLOAD) :
@@ -177,72 +128,13 @@ SECTIONS
     __ram_uc_end__ = .;
   } > RAM_UC
 
-  /* Data that should be copied from extflash to axiram */
-  /* used by the startup to initialize data */
-  _siramdata = LOADADDR(._ram_exec);
-  __extflash_start__ = LOADADDR(._ram_exec);
-  ._ram_exec :
-  {
-    __ram_start__ = .;
-    __ram_exec_start__ = .;
-    . = ALIGN(4);
-    _sram_text = .;
-    *(.ram_text)
-    _eram_text = .;
-    _sram_data = .;
-    *(.ram_data)
-    _eram_data = .;
-    __ram_exec_end__ = .;
-  } >RAM AT> EXTFLASH
-
-  ._extflash :
-  {
-    . = ALIGN(4);
-    __extflash_font_start__ = .;
-    *(.extflash_font)
-    . = ALIGN(4);
-    __extflash_font_end__ = .;
-    __extflash_emu_data_start__ = .;
-    *(.extflash_emu_data)
-    . = ALIGN(4);
-    __extflash_emu_data_end__ = .;
-    __extflash_logo_data_start__ = .;
-    *(.extflash_logo)
-    . = ALIGN(4);
-    __extflash_logo_data_end__ = .;
-    __extflash_global_data_start__ = .;
-    *(.extflash_global)
-    . = ALIGN(4);
-    __extflash_global_data_end__ = .;
-    __extflash_nes_start__ = .;
-    build/core/logo*.o (.text .text* .rodata .rodata*)
-    . = ALIGN(4);
-    build/core/header*.o (.text .text* .rodata .rodata*)
-    . = ALIGN(4);
-    __extflash_end_start__ = .;
-    . = ALIGN(4);
-    __extflash_text_start__ = .;
-    *(.extflash_text)
-    . = ALIGN(4);
-    __extflash_text_end__ = .;
-    __extflash_data_start__ = .;
-    . = ALIGN(4);
-    *(.extflash_data)
-    . = ALIGN(4);
-    __extflash_data_end__ = .;
-    . = ALIGN(4K);
-    __extflash_game_rom_start__ = .;
-    *(.extflash_game_rom)
-    __extflash_game_rom_end__ = .;
-  } > EXTFLASH
-
   .overlay_nes __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_nes_start__ = .;
     build/nes/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_NES_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_NES_LOAD_START = LOADADDR(.overlay_nes);
   _OVERLAY_NES_SIZE = SIZEOF(.overlay_nes);
 
@@ -267,7 +159,7 @@ SECTIONS
     build/nes_fceu/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_NES_FCEU_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_NES_FCEU_LOAD_START = LOADADDR(.overlay_nes_fceu);
   _OVERLAY_NES_FCEU_SIZE = SIZEOF(.overlay_nes_fceu);
 
@@ -292,7 +184,7 @@ SECTIONS
     build/gnuboy/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_GB_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_GB_LOAD_START = LOADADDR(.overlay_gb);
   _OVERLAY_GB_SIZE = SIZEOF(.overlay_gb);
 
@@ -314,7 +206,7 @@ SECTIONS
     build/tgbdual/*.o (.data .data* .text .text* .text.* .rodata .rodata* .ARM.extab.text.* .ARM.exidx.text.* )
     . = ALIGN(4);
     _OVERLAY_TGB_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_TGB_LOAD_START = LOADADDR(.overlay_tgb);
   _OVERLAY_TGB_SIZE = SIZEOF(.overlay_tgb);
 
@@ -336,7 +228,7 @@ SECTIONS
       build/smsplusgx/*.o (.data .data* .text .text* .rodata .rodata*)
       . = ALIGN(4);
       _OVERLAY_SMS_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_SMS_LOAD_START = LOADADDR(.overlay_sms);
   _OVERLAY_SMS_SIZE = SIZEOF(.overlay_sms);
 
@@ -358,7 +250,7 @@ SECTIONS
       build/pce/*.o (.data .data* .text .text* .rodata .rodata*)
       . = ALIGN(4);
       _OVERLAY_PCE_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_PCE_LOAD_START = LOADADDR(.overlay_pce);
   _OVERLAY_PCE_SIZE = SIZEOF(.overlay_pce);
 
@@ -384,7 +276,7 @@ SECTIONS
     build/msx/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_MSX_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_MSX_LOAD_START = LOADADDR(.overlay_msx);
   _OVERLAY_MSX_SIZE = SIZEOF(.overlay_msx);
   .overlay_msx_bss _OVERLAY_MSX_LOAD_END : {
@@ -407,7 +299,7 @@ SECTIONS
     build/wsv/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_WSV_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_WSV_LOAD_START = LOADADDR(.overlay_wsv);
   _OVERLAY_WSV_SIZE = SIZEOF(.overlay_wsv);
   .overlay_wsv_bss _OVERLAY_WSV_LOAD_END : {
@@ -428,7 +320,7 @@ SECTIONS
     build/gw/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_GW_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_GW_LOAD_START = LOADADDR(.overlay_gw);
   _OVERLAY_GW_SIZE = SIZEOF(.overlay_gw);
 
@@ -450,7 +342,7 @@ SECTIONS
     build/md/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_MD_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_MD_LOAD_START = LOADADDR(.overlay_md);
   _OVERLAY_MD_SIZE = SIZEOF(.overlay_md);
 
@@ -472,7 +364,7 @@ SECTIONS
     build/a2600/*.o (.data .data* .text .text* .rodata .rodata* .ARM.extab.text.* .ARM.exidx.text.*)
     . = ALIGN(4);
     _OVERLAY_A2600_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_A2600_LOAD_START = LOADADDR(.overlay_a2600);
   _OVERLAY_A2600_SIZE = SIZEOF(.overlay_a2600);
 
@@ -494,7 +386,7 @@ SECTIONS
     build/a7800/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_A7800_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_A7800_LOAD_START = LOADADDR(.overlay_a7800);
   _OVERLAY_A7800_SIZE = SIZEOF(.overlay_a7800);
 
@@ -516,7 +408,7 @@ SECTIONS
     build/amstrad/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_AMSTRAD_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_AMSTRAD_LOAD_START = LOADADDR(.overlay_amstrad);
   _OVERLAY_AMSTRAD_SIZE = SIZEOF(.overlay_amstrad);
 
@@ -538,7 +430,7 @@ SECTIONS
     build/zelda3/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_ZELDA3_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_ZELDA3_LOAD_START = LOADADDR(.overlay_zelda3);
   _OVERLAY_ZELDA3_SIZE = SIZEOF(.overlay_zelda3);
 
@@ -560,7 +452,7 @@ SECTIONS
     build/smw/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_SMW_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_SMW_LOAD_START = LOADADDR(.overlay_smw);
   _OVERLAY_SMW_SIZE = SIZEOF(.overlay_smw);
 
@@ -582,7 +474,7 @@ SECTIONS
     build/videopac/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_VIDEOPAC_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_VIDEOPAC_LOAD_START = LOADADDR(.overlay_videopac);
   _OVERLAY_VIDEOPAC_SIZE = SIZEOF(.overlay_videopac);
 
@@ -604,7 +496,7 @@ SECTIONS
     build/celeste/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_CELESTE_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_CELESTE_LOAD_START = LOADADDR(.overlay_celeste);
   _OVERLAY_CELESTE_SIZE = SIZEOF(.overlay_celeste);
 
@@ -626,7 +518,7 @@ SECTIONS
     build/tama/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);
     _OVERLAY_TAMA_LOAD_END = .;
-  } AT> EXTFLASH
+  } AT > CORES
   _OVERLAY_TAMA_LOAD_START = LOADADDR(.overlay_tama);
   _OVERLAY_TAMA_SIZE = SIZEOF(.overlay_tama);
 
@@ -642,22 +534,10 @@ SECTIONS
   }
   _OVERLAY_TAMA_BSS_SIZE = SIZEOF(.overlay_tama_bss);
 
-  /* Place this symbol after the last overlay definition */
-  .overlay_end : {
-    __extflash_end__ = .;
-  } AT> EXTFLASH
-
   ._ram_space_check_md : {
     . = . + SIZEOF(.overlay_md);
     . = . + SIZEOF(.overlay_md_bss);
   } >RAM_EMU
-
-  ._cacheflash (NOLOAD) :
-  {
-    __cacheflash_start__ = .;
-    *(.cacheflash)
-    __cacheflash_end__ = .;
-  } > CACHEFLASH
 
   ._ram (NOLOAD) :
   {
@@ -771,21 +651,6 @@ SECTIONS
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
   } >DTCMRAM AT> FLASH
-
-  ._flash_end :
-  {
-    . = ALIGN(4);
-    __flash_end__ = .;
-  } >FLASH
-
-  /* put *fast access* MSX read only stuff on the second bank */
-  .flash2 :
-  {
-    __flash2_start__ = .;
-    . = ALIGN(4);
-    *(.flash2)
-    __flash2_end__ = .;
-  } >FLASH2
 
   /* Uninitialized data section */
   . = ALIGN(4);

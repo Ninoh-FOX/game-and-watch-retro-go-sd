@@ -11,24 +11,24 @@ V = @
 endif
 
 ROMS_A2600 := 
-ROMS_A7800 := 
+ROMS_A7800 := y
 ROMS_AMSTRAD := 
 ROMS_GB := yes
-ROMS_GW :=
-ROMS_MD :=
+ROMS_GW := y
+ROMS_MD := y
 ROMS_NES := 
 ROMS_MSX :=
-ROMS_PCE :=
-ROMS_VIDEOPAC := 
-ROMS_WSV := 
-ROMS_TAMA := 
+ROMS_PCE := y
+ROMS_VIDEOPAC := y
+ROMS_WSV := y
+ROMS_TAMA := y
 
-ROMS_COL := 
-ROMS_GG :=
-ROMS_SG := 
-ROMS_SMS :=
+ROMS_COL := y
+ROMS_GG := y
+ROMS_SG := y
+ROMS_SMS := y
 
-HOMEBREW_CELESTE := 
+HOMEBREW_CELESTE := y
 
 ######################################
 # source

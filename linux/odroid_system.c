@@ -30,8 +30,8 @@ void odroid_system_emu_init(state_handler_t load, state_handler_t save, netplay_
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
-    currentApp.loadState = load;
-    currentApp.saveState = save;
+    currentApp.handlers.loadState = load;
+    currentApp.handlers.saveState = save;
 
     printf("%s: Init done. GameId=%08X\n", __func__, currentApp.gameId);
 }

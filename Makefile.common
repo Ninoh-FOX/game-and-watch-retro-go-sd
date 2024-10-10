@@ -244,10 +244,12 @@ CODEPAGE_PARAM := --codepage=$(ROMINFOCODE)
 #######################################
 # No SD Card reader -> No FatFS, allow compression
 ifeq ($(SD_CARD), 1)
+EXTFLASH_TOTAL_LENGTH = 0
 C_SOURCES += Core/src/gw_flash_alloc.c
 FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_spi.c
 C_DEFS += -DGNW_DISABLE_COMPRESSION
 else ifeq ($(SD_CARD), 2)
+EXTFLASH_TOTAL_LENGTH = 0
 C_SOURCES += Core/src/softspi.c \
              Core/src/gw_flash_alloc.c
 FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_softspi.c
@@ -571,7 +573,11 @@ LDFLAGS += -Wl,--defsym=__FLASH_LENGTH__=$(FLASH_LENGTH)
 # LDFLAGS
 #######################################
 # link script
+ifeq ($(SD_CARD), 0)
 LDSCRIPT ?= STM32H7B0VBTx_FLASH.ld
+else
+LDSCRIPT ?= STM32H7B0VBTx_SDCARD.ld
+endif
 
 # libraries
 LIBS = -lc -lm -lnosys
@@ -705,7 +711,9 @@ $(BUILD_DIR)/%.o: %.s Makefile.common Makefile | $(BUILD_DIR)
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(FATFS_OBJECTS) $(A2600_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(GNUBOY_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) Makefile.common Makefile $(LDSCRIPT)
 	$(V)$(ECHO) [ LD ] $(notdir $@)
 	$(V)$(CC) $(OBJECTS) $(FATFS_OBJECTS) $(A2600_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(GNUBOY_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) $(LDFLAGS) -o $@
+ifeq ($(SD_CARD), 0)
 	$(V)./scripts/extflash_size.sh $@
+endif
 
 $(BUILD_DIR)/core/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC core ] $(notdir $<)
@@ -1033,16 +1041,61 @@ flash_intflash: $(BUILD_DIR)/$(TARGET)_intflash.bin
 
 
 flash_extflash: $(BUILD_DIR)/$(TARGET)_extflash.bin
+ifeq ($(SD_CARD), 0)
 	@$(GNWMANAGER) flash ext $< --offset=$(EXTFLASH_OFFSET) -- start $(INTFLASH_ADDRESS)
+endif
 .PHONY: flash_extflash
 
 # Programs both the external and internal flash.
 flash: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin $(BUILD_DIR)/$(TARGET)_extflash.bin
+ifeq ($(SD_CARD), 0)
 	@$(GNWMANAGER) flash $(INTFLASH_ADDRESS) $(BUILD_DIR)/$(TARGET)_intflash.bin \
 		-- flash ext $(BUILD_DIR)/$(TARGET)_extflash.bin --offset=$(EXTFLASH_OFFSET) \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
+else
+	@$(GNWMANAGER) flash $(INTFLASH_ADDRESS) $(BUILD_DIR)/$(TARGET)_intflash.bin \
+		-- start $(INTFLASH_ADDRESS) \
+		$(RESET_DBGMCU_CMD)
+endif
 .PHONY: flash
+
+# Upload cores to sd card
+flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin
+	$(V)mkdir -p build/cores
+	@$(CP) -O binary --only-section=.overlay_nes $(BUILD_DIR)/$(TARGET).elf build/cores/nes.bin
+	@$(CP) -O binary --only-section=.overlay_nes_fceu $(BUILD_DIR)/$(TARGET).elf build/cores/nes_fceu.bin
+	@$(CP) -O binary --only-section=.overlay_gb $(BUILD_DIR)/$(TARGET).elf build/cores/gb.bin
+	@$(CP) -O binary --only-section=.overlay_tgb $(BUILD_DIR)/$(TARGET).elf build/cores/tgb.bin
+	@$(CP) -O binary --only-section=.overlay_sms $(BUILD_DIR)/$(TARGET).elf build/cores/sms.bin
+	@$(CP) -O binary --only-section=.overlay_pce $(BUILD_DIR)/$(TARGET).elf build/cores/pce.bin
+	@$(CP) -O binary --only-section=.overlay_msx $(BUILD_DIR)/$(TARGET).elf build/cores/msx.bin
+	@$(CP) -O binary --only-section=.overlay_wsv $(BUILD_DIR)/$(TARGET).elf build/cores/wsv.bin
+	@$(CP) -O binary --only-section=.overlay_gw $(BUILD_DIR)/$(TARGET).elf build/cores/gw.bin
+	@$(CP) -O binary --only-section=.overlay_md $(BUILD_DIR)/$(TARGET).elf build/cores/md.bin
+	@$(CP) -O binary --only-section=.overlay_a2600 $(BUILD_DIR)/$(TARGET).elf build/cores/a2600.bin
+	@$(CP) -O binary --only-section=.overlay_a7800 $(BUILD_DIR)/$(TARGET).elf build/cores/a7800.bin
+	@$(CP) -O binary --only-section=.overlay_amstrad $(BUILD_DIR)/$(TARGET).elf build/cores/amstrad.bin
+	@$(CP) -O binary --only-section=.overlay_videopac $(BUILD_DIR)/$(TARGET).elf build/cores/videopac.bin
+	@$(CP) -O binary --only-section=.overlay_tama $(BUILD_DIR)/$(TARGET).elf build/cores/tama.bin
+	@$(GNWMANAGER) flash $(INTFLASH_ADDRESS) $(BUILD_DIR)/$(TARGET)_intflash.bin \
+		-- sdpush --file build/cores/nes.bin --dest-path "/cores/nes.bin" \
+		-- sdpush --file build/cores/nes_fceu.bin --dest-path "/cores/nes_fceu.bin" \
+		-- sdpush --file build/cores/gb.bin --dest-path "/cores/gb.bin" \
+		-- sdpush --file build/cores/tgb.bin --dest-path "/cores/tgb.bin" \
+		-- sdpush --file build/cores/sms.bin --dest-path "/cores/sms.bin" \
+		-- sdpush --file build/cores/pce.bin --dest-path "/cores/pce.bin" \
+		-- sdpush --file build/cores/msx.bin --dest-path "/cores/msx.bin" \
+		-- sdpush --file build/cores/wsv.bin --dest-path "/cores/wsv.bin" \
+		-- sdpush --file build/cores/gw.bin --dest-path "/cores/gw.bin" \
+		-- sdpush --file build/cores/md.bin --dest-path "/cores/md.bin" \
+		-- sdpush --file build/cores/a2600.bin --dest-path "/cores/a2600.bin" \
+		-- sdpush --file build/cores/a7800.bin --dest-path "/cores/a7800.bin" \
+		-- sdpush --file build/cores/amstrad.bin --dest-path "/cores/amstrad.bin" \
+		-- sdpush --file build/cores/videopac.bin --dest-path "/cores/videopac.bin" \
+		-- sdpush --file build/cores/tama.bin --dest-path "/cores/tama.bin" \
+		-- start $(INTFLASH_ADDRESS) \
+		$(RESET_DBGMCU_CMD)
 
 monitor:
 	@$(GNWMANAGER) monitor

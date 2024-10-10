@@ -501,6 +501,7 @@ int main(void)
 
   OSPI_Init(&hospi1);
 
+  #if SD_CARD == 0
   // Copy instructions and data from extflash to axiram
   void *copy_areas[3];
 
@@ -516,6 +517,7 @@ int main(void)
   copy_areas2[2] = (uint32_t) &__itcram_hot_end__;
   copy_areas2[3] = copy_areas2[2] - copy_areas2[1];
   memcpy_no_check((uint32_t *) copy_areas2[1], (uint32_t *) copy_areas2[0], copy_areas2[3]);
+#endif
 
   bq24072_init();
 

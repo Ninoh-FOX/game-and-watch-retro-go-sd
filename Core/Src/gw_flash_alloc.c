@@ -50,7 +50,7 @@ static void load_metadata()
     FILE *file = fopen(METADATA_FILE, "rb");
     if (!file)
     {
-        metadata->flash_write_pointer = align_to_next_block((uint32_t)&__extflash_end__);
+        metadata->flash_write_pointer = (uint32_t)&__EXTFLASH_BASE__;
         return;
     }
     fread(metadata, sizeof(Metadata), 1, file);
@@ -106,14 +106,17 @@ static void invalidate_overwritten_files(uint32_t flash_address, uint32_t data_s
     }
 }
 
-static bool circular_flash_write(const char *file_path, uint32_t data_size, uint32_t *flash_address_out)
+static bool circular_flash_write(const char *file_path,
+                                 uint32_t data_size,
+                                 uint32_t *flash_address_out,
+                                 bool byte_swap)
 {
     uint8_t buffer[16 * 1024];
 
     // If there is not enough space available, write the file at the beginning of the flash
     if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + data_size > OSPI_GetFlashSize())
     {
-        flash_write_pointer = align_to_next_block((uint32_t)&__extflash_end__);
+        flash_write_pointer = align_to_next_block((uint32_t)&__EXTFLASH_BASE__);
     }
 
     // Data are larger than flash size ... Abort
@@ -123,7 +126,7 @@ static bool circular_flash_write(const char *file_path, uint32_t data_size, uint
     }
     uint32_t address_in_flash = flash_write_pointer - (uint32_t)&__EXTFLASH_BASE__;
     OSPI_DisableMemoryMappedMode();
-    OSPI_EraseSync(address_in_flash, data_size);
+    OSPI_EraseSync(address_in_flash, align_to_next_block(data_size));
     *flash_address_out = flash_write_pointer;
 
     FILE *file = fopen(file_path, "rb");
@@ -132,6 +135,14 @@ static bool circular_flash_write(const char *file_path, uint32_t data_size, uint
 
     while (fread(buffer, 1, sizeof(buffer), file) > 0)
     {
+        if (byte_swap) {
+            for (int i=0; i < sizeof(buffer); i+=2)
+            {
+                char temp = buffer[i];
+                buffer[i]=buffer[i+1];
+                buffer[i+1]=temp;
+            }
+        }
         OSPI_Program(address_in_flash, buffer, sizeof(buffer));
         address_in_flash += sizeof(buffer);
         flash_write_pointer += sizeof(buffer);
@@ -148,7 +159,7 @@ static bool circular_flash_write(const char *file_path, uint32_t data_size, uint
     return true;
 }
 
-uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size)
+uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size, bool byte_swap)
 {
     if (metadata == NULL)
     {
@@ -165,7 +176,7 @@ uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size)
         return (uint8_t *)flash_address;
     }
 
-    if (!circular_flash_write(file_path, file_size, &flash_address))
+    if (!circular_flash_write(file_path, file_size, &flash_address, byte_swap))
     {
         return NULL;
     }
