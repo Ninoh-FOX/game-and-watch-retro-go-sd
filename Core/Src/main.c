@@ -698,11 +698,9 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
-#if SD_CARD != 2
   /* OCTOSPI1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
-#endif
 }
 
 /**
