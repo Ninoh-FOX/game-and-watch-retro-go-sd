@@ -1,15 +1,159 @@
+#include <stdio.h>
 #include "bitmaps.h"
 #include "gw_lcd.h"
 
 #if !defined(BIG_BANK)
 #define BIG_BANK 1
 #endif
-#if ((BIG_BANK == 1) && (EXTFLASH_SIZE <= 16*1024*1024)) || SD_CARD >= 1
+#if SD_CARD >= 1
+#define LOGO_DATA __attribute__((section(".sdcard_logo")))
+#define GFX_DATA  __attribute__((section(".intflash_logo")))
+#elif (BIG_BANK == 1) && (EXTFLASH_SIZE <= 16*1024*1024)
 #define LOGO_DATA __attribute__((section(".intflash_logo")))
+#define GFX_DATA  __attribute__((section(".intflash_logo")))
 #else
 #define LOGO_DATA __attribute__((section(".extflash_logo")))
+#define GFX_DATA  __attribute__((section(".extflash_logo")))
 #endif
 
+#if SD_CARD >= 1
+static int16_t current_logo = -1;
+static uint8_t temp_logo_buffer[150*24/8];
+#endif
+
+retro_logo_image *rg_get_logo(int16_t logo_index) {
+    if (logo_index < 0)
+        return NULL;
+#if SD_CARD == 0
+    switch (logo_index) {
+        case RG_LOGO_RGO:
+            return (retro_logo_image *)&logo_rgo;
+        case RG_LOGO_RGW:
+            return (retro_logo_image *)&logo_rgw;
+//        case RG_LOGO_FLASH:
+//            return (retro_logo_image *)&logo_flash;
+        case RG_LOGO_HEADER_SG1000:
+            return (retro_logo_image *)&header_sg1000;
+        case RG_LOGO_HEADER_COL:
+            return (retro_logo_image *)&header_col;
+        case RG_LOGO_HEADER_GB:
+            return (retro_logo_image *)&header_gb;
+        case RG_LOGO_HEADER_GG:
+            return (retro_logo_image *)&header_gg;
+        case RG_LOGO_HEADER_NES:
+            return (retro_logo_image *)&header_nes;
+        case RG_LOGO_HEADER_PCE:
+            return (retro_logo_image *)&header_pce;
+        case RG_LOGO_HEADER_SMS:
+            return (retro_logo_image *)&header_sms;
+        case RG_LOGO_HEADER_GW:
+            return (retro_logo_image *)&header_gw;
+        case RG_LOGO_HEADER_MSX:
+            return (retro_logo_image *)&header_msx;
+        case RG_LOGO_HEADER_WSV:
+            return (retro_logo_image *)&header_wsv;
+        case RG_LOGO_HEADER_GEN:
+            return (retro_logo_image *)&header_gen;
+        case RG_LOGO_HEADER_A7800:
+            return (retro_logo_image *)&header_a7800;
+        case RG_LOGO_HEADER_AMSTRAD:
+            return (retro_logo_image *)&header_amstrad;
+        case RG_LOGO_HEADER_ZELDA3:
+            return (retro_logo_image *)&header_zelda3;
+        case RG_LOGO_HEADER_SMW:
+            return (retro_logo_image *)&header_smw;
+        case RG_LOGO_HEADER_TAMA:
+            return (retro_logo_image *)&header_tama;
+        case RG_LOGO_PAD_SG1000:
+            return (retro_logo_image *)&pad_sg1000;
+        case RG_LOGO_PAD_COL:
+            return (retro_logo_image *)&pad_col;
+        case RG_LOGO_PAD_GB:
+            return (retro_logo_image *)&pad_gb;
+        case RG_LOGO_PAD_GG:
+            return (retro_logo_image *)&pad_gg;
+        case RG_LOGO_PAD_NES:
+            return (retro_logo_image *)&pad_nes;
+        case RG_LOGO_PAD_PCE:
+            return (retro_logo_image *)&pad_pce;
+        case RG_LOGO_PAD_SMS:
+            return (retro_logo_image *)&pad_sms;
+        case RG_LOGO_PAD_GW:
+            return (retro_logo_image *)&pad_gw;
+        case RG_LOGO_PAD_MSX:
+            return (retro_logo_image *)&pad_msx;
+        case RG_LOGO_PAD_WSV:
+            return (retro_logo_image *)&pad_wsv;
+        case RG_LOGO_PAD_GEN:
+            return (retro_logo_image *)&pad_gen;
+        case RG_LOGO_PAD_A7800:
+            return (retro_logo_image *)&pad_a7800;
+        case RG_LOGO_PAD_AMSTRAD:
+            return (retro_logo_image *)&pad_amstrad;
+        case RG_LOGO_PAD_SNES:
+            return (retro_logo_image *)&pad_snes;
+        case RG_LOGO_PAD_TAMA:
+            return (retro_logo_image *)&pad_tama;
+        case RG_LOGO_COLECO:
+            return (retro_logo_image *)&logo_coleco;
+        case RG_LOGO_NINTENDO:
+            return (retro_logo_image *)&logo_nintendo;
+        case RG_LOGO_SEGA:
+            return (retro_logo_image *)&logo_sega;
+        case RG_LOGO_PCE:
+            return (retro_logo_image *)&logo_pce;
+        case RG_LOGO_MICROSOFT:
+            return (retro_logo_image *)&logo_microsoft;
+        case RG_LOGO_WATARA:
+            return (retro_logo_image *)&logo_watara;
+        case RG_LOGO_ATARI:
+            return (retro_logo_image *)&logo_atari;
+        case RG_LOGO_AMSTRAD:
+            return (retro_logo_image *)&logo_amstrad;
+        case RG_LOGO_TAMA:
+            return (retro_logo_image *)&logo_tama;
+    }
+    return NULL;
+#else
+    retro_logo_image *dest = (retro_logo_image *)temp_logo_buffer;
+    if (current_logo == logo_index) {
+        return dest;
+    }
+    FILE* file = fopen("/cores/logo.bin", "rb");
+    if (!file) {
+        printf("Error: unable to open logo file\n");
+        return NULL;
+    }
+
+    for (int i = 0; i <= logo_index; i++) {
+        uint16_t width, height;
+
+        fread(&width, sizeof(uint16_t), 1, file);
+        fread(&height, sizeof(uint16_t), 1, file);
+
+        size_t data_size = ((width + 7) >> 3) * height; // width aligned to 8 * height / 8
+        data_size = (data_size + 3) & ~3; // align to 4 bytes
+
+        if (i != logo_index) {
+            fseek(file, data_size, SEEK_CUR);
+        } else {
+            current_logo = logo_index;
+            dest->width = width;
+            dest->height = height;
+
+            fread(dest->logo, 1, data_size, file);
+
+            fclose(file);
+            return dest;
+        }
+    }
+    fclose(file);
+    return NULL;
+#endif
+}
+
+#pragma GCC push_options
+#pragma GCC optimize ("O0") // Prevents data order change
 const retro_logo_image logo_rgo LOGO_DATA = {
     64,
     12,
@@ -81,6 +225,7 @@ const retro_logo_image logo_rgw LOGO_DATA = {
     },
 };
 
+#if 0
 const retro_logo_image logo_flash LOGO_DATA = {
     96,
     18,
@@ -129,6 +274,7 @@ const retro_logo_image logo_flash LOGO_DATA = {
 #endif
     },
 };
+#endif
 
 const retro_logo_image logo_gnw LOGO_DATA = {
     35,
@@ -1121,46 +1267,6 @@ const retro_logo_image pad_gw LOGO_DATA = {
     },
 };
 
-const retro_logo_image pad_gen LOGO_DATA = {
-    56,
-    32,
-    {
-        // width56, height:32
-        0x00, 0x00, 0x00, 0x3f, 0xff, 0xf8, 0x00, //  __________________________###################___________
-        0x00, 0x00, 0x03, 0xff, 0xff, 0xfe, 0x00, //  ______________________#########################_________
-        0x00, 0x00, 0x1f, 0xff, 0xff, 0xff, 0x80, //  ___________________##############################_______
-        0x00, 0x00, 0xff, 0xff, 0xfe, 0x7f, 0xe0, //  ________________#######################__##########_____
-        0x00, 0x03, 0xff, 0xff, 0xfc, 0xfc, 0xf0, //  ______________########################__######__####____
-        0x00, 0x0f, 0xff, 0xef, 0xf1, 0xf0, 0x18, //  ____________###############_########___#####_______##___
-        0x00, 0x1f, 0xff, 0x87, 0xe7, 0xc1, 0xec, //  ___________##############____######__#####_____####_##__
-        0x00, 0x7f, 0xfd, 0x27, 0xe7, 0x86, 0x34, //  _________#############_#__#__######__####____##___##_#__
-        0x00, 0xff, 0xfc, 0x0f, 0xfe, 0x1c, 0x16, //  ________##############______###########____###_____#_##_
-        0x01, 0xff, 0xf9, 0x7f, 0xfc, 0x3c, 0x16, //  _______##############__#_#############____####_____#_##_
-        0x07, 0xff, 0xff, 0xff, 0xf8, 0x7c, 0x16, //  _____################################____#####_____#_##_
-        0x0f, 0xff, 0xff, 0xff, 0xf0, 0x86, 0x27, //  ____################################____#____##___#__###
-        0x1f, 0x01, 0xff, 0xff, 0xe3, 0x87, 0xcf, //  ___#####_______####################___###____#####__####
-        0x1c, 0x7c, 0x7f, 0xff, 0xe7, 0x83, 0x1f, //  ___###___#####___##################__####_____##___#####
-        0x39, 0x83, 0x3f, 0xff, 0xcf, 0x86, 0x7f, //  __###__##_____##__################__#####____##__#######
-        0x72, 0x00, 0x9f, 0xff, 0xd8, 0xf8, 0xff, //  _###__#_________#__###############_##___#####___########
-        0x74, 0x70, 0x5f, 0xff, 0x90, 0xf1, 0xff, //  _###_#___###_____#_##############__#____####___#########
-        0x64, 0x70, 0x4f, 0xff, 0x90, 0x63, 0xff, //  _##__#___###_____#__#############__#_____##___##########
-        0xe8, 0x7e, 0x2f, 0xff, 0xd0, 0xcf, 0xff, //  ###_#____######___#_##############_#____##__############
-        0xe8, 0xff, 0x2f, 0xff, 0xc9, 0x9f, 0xfe, //  ###_#___########__#_##############__#__##__############_
-        0xe9, 0xff, 0x2f, 0xff, 0xe7, 0x3f, 0xfe, //  ###_#__#########__#_###############__###__#############_
-        0xe9, 0xf8, 0x2f, 0xff, 0xf0, 0x7f, 0xfe, //  ###_#__######_____#_################_____##############_
-        0xe9, 0x38, 0x2f, 0xff, 0xff, 0xff, 0xfc, //  ###_#__#__###_____#_##################################__
-        0xe4, 0x1c, 0x4f, 0xff, 0xff, 0xff, 0xfc, //  ###__#_____###___#__##################################__
-        0xf4, 0x18, 0x5f, 0xfe, 0x00, 0xff, 0xfc, //  ####_#_____##____#_############_________##############__
-        0xf2, 0x00, 0x9f, 0xe0, 0x00, 0x7f, 0xf8, //  ####__#_________#__########______________############___
-        0x79, 0x83, 0x3f, 0x80, 0x00, 0x3f, 0xf0, //  _####__##_____##__#######_________________##########____
-        0x7c, 0x7c, 0x7e, 0x00, 0x00, 0x1f, 0xf0, //  _#####___#####___######____________________#########____
-        0x3f, 0x01, 0xfc, 0x00, 0x00, 0x07, 0xe0, //  __######_______#######_______________________######_____
-        0x3f, 0xff, 0xf8, 0x00, 0x00, 0x01, 0x00, //  __###################__________________________#________
-        0x1f, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, //  ___#################____________________________________
-        0x1f, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, //  ___#################____________________________________
-    },
-};
-
 const retro_logo_image pad_msx LOGO_DATA = {
     53,
     32,
@@ -1199,6 +1305,46 @@ const retro_logo_image pad_msx LOGO_DATA = {
         0x07, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, //  _____#############___________________________________
         0x07, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00, //  _____#########_______________________________________
 
+    },
+};
+
+const retro_logo_image pad_gen LOGO_DATA = {
+    56,
+    32,
+    {
+        // width56, height:32
+        0x00, 0x00, 0x00, 0x3f, 0xff, 0xf8, 0x00, //  __________________________###################___________
+        0x00, 0x00, 0x03, 0xff, 0xff, 0xfe, 0x00, //  ______________________#########################_________
+        0x00, 0x00, 0x1f, 0xff, 0xff, 0xff, 0x80, //  ___________________##############################_______
+        0x00, 0x00, 0xff, 0xff, 0xfe, 0x7f, 0xe0, //  ________________#######################__##########_____
+        0x00, 0x03, 0xff, 0xff, 0xfc, 0xfc, 0xf0, //  ______________########################__######__####____
+        0x00, 0x0f, 0xff, 0xef, 0xf1, 0xf0, 0x18, //  ____________###############_########___#####_______##___
+        0x00, 0x1f, 0xff, 0x87, 0xe7, 0xc1, 0xec, //  ___________##############____######__#####_____####_##__
+        0x00, 0x7f, 0xfd, 0x27, 0xe7, 0x86, 0x34, //  _________#############_#__#__######__####____##___##_#__
+        0x00, 0xff, 0xfc, 0x0f, 0xfe, 0x1c, 0x16, //  ________##############______###########____###_____#_##_
+        0x01, 0xff, 0xf9, 0x7f, 0xfc, 0x3c, 0x16, //  _______##############__#_#############____####_____#_##_
+        0x07, 0xff, 0xff, 0xff, 0xf8, 0x7c, 0x16, //  _____################################____#####_____#_##_
+        0x0f, 0xff, 0xff, 0xff, 0xf0, 0x86, 0x27, //  ____################################____#____##___#__###
+        0x1f, 0x01, 0xff, 0xff, 0xe3, 0x87, 0xcf, //  ___#####_______####################___###____#####__####
+        0x1c, 0x7c, 0x7f, 0xff, 0xe7, 0x83, 0x1f, //  ___###___#####___##################__####_____##___#####
+        0x39, 0x83, 0x3f, 0xff, 0xcf, 0x86, 0x7f, //  __###__##_____##__################__#####____##__#######
+        0x72, 0x00, 0x9f, 0xff, 0xd8, 0xf8, 0xff, //  _###__#_________#__###############_##___#####___########
+        0x74, 0x70, 0x5f, 0xff, 0x90, 0xf1, 0xff, //  _###_#___###_____#_##############__#____####___#########
+        0x64, 0x70, 0x4f, 0xff, 0x90, 0x63, 0xff, //  _##__#___###_____#__#############__#_____##___##########
+        0xe8, 0x7e, 0x2f, 0xff, 0xd0, 0xcf, 0xff, //  ###_#____######___#_##############_#____##__############
+        0xe8, 0xff, 0x2f, 0xff, 0xc9, 0x9f, 0xfe, //  ###_#___########__#_##############__#__##__############_
+        0xe9, 0xff, 0x2f, 0xff, 0xe7, 0x3f, 0xfe, //  ###_#__#########__#_###############__###__#############_
+        0xe9, 0xf8, 0x2f, 0xff, 0xf0, 0x7f, 0xfe, //  ###_#__######_____#_################_____##############_
+        0xe9, 0x38, 0x2f, 0xff, 0xff, 0xff, 0xfc, //  ###_#__#__###_____#_##################################__
+        0xe4, 0x1c, 0x4f, 0xff, 0xff, 0xff, 0xfc, //  ###__#_____###___#__##################################__
+        0xf4, 0x18, 0x5f, 0xfe, 0x00, 0xff, 0xfc, //  ####_#_____##____#_############_________##############__
+        0xf2, 0x00, 0x9f, 0xe0, 0x00, 0x7f, 0xf8, //  ####__#_________#__########______________############___
+        0x79, 0x83, 0x3f, 0x80, 0x00, 0x3f, 0xf0, //  _####__##_____##__#######_________________##########____
+        0x7c, 0x7c, 0x7e, 0x00, 0x00, 0x1f, 0xf0, //  _#####___#####___######____________________#########____
+        0x3f, 0x01, 0xfc, 0x00, 0x00, 0x07, 0xe0, //  __######_______#######_______________________######_____
+        0x3f, 0xff, 0xf8, 0x00, 0x00, 0x01, 0x00, //  __###################__________________________#________
+        0x1f, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, //  ___#################____________________________________
+        0x1f, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, //  ___#################____________________________________
     },
 };
 
@@ -1402,13 +1548,6 @@ const retro_logo_image pad_tama LOGO_DATA = {
     },
 };
 
-const retro_logo_image pad_homebrew LOGO_DATA = {
-    0,
-    0,
-    {
-    },
-};
-
 const retro_logo_image logo_coleco LOGO_DATA = {
     72,
     16,
@@ -1433,7 +1572,7 @@ const retro_logo_image logo_coleco LOGO_DATA = {
     },
 };
 
-const retro_logo_image logo_nitendo LOGO_DATA = {
+const retro_logo_image logo_nintendo LOGO_DATA = {
 #if (INCLUDED_ZH_CN == 1) || (INCLUDED_ZH_TW == 1)
     56,
     16,
@@ -1681,7 +1820,7 @@ const retro_logo_image logo_tama LOGO_DATA = {
    },
 };
 
-const unsigned char IMG_SPEAKER[] LOGO_DATA = {
+const unsigned char IMG_SPEAKER[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1709,7 +1848,7 @@ const unsigned char IMG_SPEAKER[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_SUN[] LOGO_DATA = {
+const unsigned char IMG_SUN[] GFX_DATA = {
     // width24, height:24
     0x00, 0x18, 0x00, //___________##___________
     0x00, 0x18, 0x00, //___________##___________
@@ -1737,7 +1876,7 @@ const unsigned char IMG_SUN[] LOGO_DATA = {
     0x00, 0x18, 0x00, //___________##___________
 };
 
-const unsigned char IMG_FOLDER[] LOGO_DATA = {
+const unsigned char IMG_FOLDER[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1765,7 +1904,7 @@ const unsigned char IMG_FOLDER[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_DISKETTE[] LOGO_DATA = {
+const unsigned char IMG_DISKETTE[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x3f, 0xff, 0xe0, //__#################_____
@@ -1793,7 +1932,7 @@ const unsigned char IMG_DISKETTE[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_0_5X[] LOGO_DATA = {
+const unsigned char IMG_0_5X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1821,7 +1960,7 @@ const unsigned char IMG_0_5X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_0_75X[] LOGO_DATA = {
+const unsigned char IMG_0_75X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1849,7 +1988,7 @@ const unsigned char IMG_0_75X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_1X[] LOGO_DATA = {
+const unsigned char IMG_1X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1877,7 +2016,7 @@ const unsigned char IMG_1X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_1_25X[] LOGO_DATA = {
+const unsigned char IMG_1_25X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1905,7 +2044,7 @@ const unsigned char IMG_1_25X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_1_5X[] LOGO_DATA = {
+const unsigned char IMG_1_5X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1933,7 +2072,7 @@ const unsigned char IMG_1_5X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_2X[] LOGO_DATA = {
+const unsigned char IMG_2X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1961,7 +2100,7 @@ const unsigned char IMG_2X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_3X[] LOGO_DATA = {
+const unsigned char IMG_3X[] GFX_DATA = {
     // width24, height:24
     0x00, 0x00, 0x00, //________________________
     0x00, 0x00, 0x00, //________________________
@@ -1989,7 +2128,7 @@ const unsigned char IMG_3X[] LOGO_DATA = {
     0x00, 0x00, 0x00, //________________________
 };
 
-const unsigned char IMG_SC[] LOGO_DATA = {
+const unsigned char IMG_SC[] GFX_DATA = {
     // width24, height:24
     0x3f, 0x01, 0xf8, //__######_______######___
     0x7f, 0x81, 0xfe, //_########______########_
@@ -2017,7 +2156,7 @@ const unsigned char IMG_SC[] LOGO_DATA = {
     0x3f, 0x01, 0xfc, //__######_______#######__
 };
 
-const unsigned char IMG_BUTTON_A[] LOGO_DATA = {
+const unsigned char IMG_BUTTON_A[] GFX_DATA = {
     // width24, height:24
     0x00, 0x7e, 0x00, //_________######_________
     0x03, 0xff, 0xc0, //______############______
@@ -2045,7 +2184,7 @@ const unsigned char IMG_BUTTON_A[] LOGO_DATA = {
     0x00, 0x7e, 0x00, //_________######_________
 };
 
-const unsigned char IMG_BUTTON_A_P[] LOGO_DATA = {
+const unsigned char IMG_BUTTON_A_P[] GFX_DATA = {
     // width24, height:24
     0x00, 0x18, 0x00, //___________##___________
     0x00, 0x38, 0x00, //__________###___________
@@ -2073,7 +2212,7 @@ const unsigned char IMG_BUTTON_A_P[] LOGO_DATA = {
     0x00, 0x18, 0x00, //___________##___________
 };
 
-const unsigned char IMG_BUTTON_B[] LOGO_DATA = {
+const unsigned char IMG_BUTTON_B[] GFX_DATA = {
     // width24, height:24
     0x00, 0x7e, 0x00, //_________######_________
     0x03, 0xff, 0xc0, //______############______
@@ -2101,7 +2240,7 @@ const unsigned char IMG_BUTTON_B[] LOGO_DATA = {
     0x00, 0x7e, 0x00, //_________######_________
 };
 
-const unsigned char IMG_BUTTON_B_P[] LOGO_DATA = {
+const unsigned char IMG_BUTTON_B_P[] GFX_DATA = {
     // width24, height:24
     0x00, 0x18, 0x00, //___________##___________
     0x00, 0x38, 0x00, //__________###___________
@@ -2129,7 +2268,7 @@ const unsigned char IMG_BUTTON_B_P[] LOGO_DATA = {
     0x00, 0x18, 0x00, //___________##___________
 };
 
-const unsigned char img_clock_00[] LOGO_DATA = {
+const unsigned char img_clock_00[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0xb4, //  #_##_#
@@ -2143,7 +2282,7 @@ const unsigned char img_clock_00[] LOGO_DATA = {
     0x78, //  _####_
 };
 
-const unsigned char img_clock_01[] LOGO_DATA = {
+const unsigned char img_clock_01[] GFX_DATA = {
     // width6, height:10
     0x00, //  ______
     0x04, //  _____#
@@ -2156,7 +2295,7 @@ const unsigned char img_clock_01[] LOGO_DATA = {
     0x04, //  _____#
     0x00, //  ______
 };
-const unsigned char img_clock_02[] LOGO_DATA = {
+const unsigned char img_clock_02[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0x34, //  __##_#
@@ -2169,7 +2308,7 @@ const unsigned char img_clock_02[] LOGO_DATA = {
     0xb0, //  #_##__
     0x78, //  _####_
 };
-const unsigned char img_clock_03[] LOGO_DATA = {
+const unsigned char img_clock_03[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0x34, //  __##_#
@@ -2182,7 +2321,7 @@ const unsigned char img_clock_03[] LOGO_DATA = {
     0x34, //  __##_#
     0x78, //  _####_
 };
-const unsigned char img_clock_04[] LOGO_DATA = {
+const unsigned char img_clock_04[] GFX_DATA = {
     // width6, height:10
     0x00, //  ______
     0x84, //  #____#
@@ -2195,7 +2334,7 @@ const unsigned char img_clock_04[] LOGO_DATA = {
     0x04, //  _____#
     0x00, //  ______
 };
-const unsigned char img_clock_05[] LOGO_DATA = {
+const unsigned char img_clock_05[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0xb0, //  #_##__
@@ -2208,7 +2347,7 @@ const unsigned char img_clock_05[] LOGO_DATA = {
     0x34, //  __##_#
     0x78, //  _####_
 };
-const unsigned char img_clock_06[] LOGO_DATA = {
+const unsigned char img_clock_06[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0xb0, //  #_##__
@@ -2221,7 +2360,7 @@ const unsigned char img_clock_06[] LOGO_DATA = {
     0xb4, //  #_##_#
     0x78, //  _####_
 };
-const unsigned char img_clock_07[] LOGO_DATA = {
+const unsigned char img_clock_07[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0x34, //  __##_#
@@ -2234,7 +2373,7 @@ const unsigned char img_clock_07[] LOGO_DATA = {
     0x04, //  _____#
     0x00, //  ______
 };
-const unsigned char img_clock_08[] LOGO_DATA = {
+const unsigned char img_clock_08[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0xb4, //  #_##_#
@@ -2247,7 +2386,7 @@ const unsigned char img_clock_08[] LOGO_DATA = {
     0xb4, //  #_##_#
     0x78, //  _####_
 };
-const unsigned char img_clock_09[] LOGO_DATA = {
+const unsigned char img_clock_09[] GFX_DATA = {
     // width6, height:10
     0x78, //  _####_
     0xb4, //  #_##_#
@@ -2639,3 +2778,4 @@ const unsigned char IMG_BORDER_RIGHT_SMW[] LOGO_DATA = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
+#pragma GCC optimize ("O0")

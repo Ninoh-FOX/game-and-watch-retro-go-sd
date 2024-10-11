@@ -1078,22 +1078,24 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin
 	@$(CP) -O binary --only-section=.overlay_amstrad $(BUILD_DIR)/$(TARGET).elf build/cores/amstrad.bin
 	@$(CP) -O binary --only-section=.overlay_videopac $(BUILD_DIR)/$(TARGET).elf build/cores/videopac.bin
 	@$(CP) -O binary --only-section=.overlay_tama $(BUILD_DIR)/$(TARGET).elf build/cores/tama.bin
+	@$(CP) -O binary --only-section=.overlay_graphics $(BUILD_DIR)/$(TARGET).elf build/cores/logo.bin
 	@$(GNWMANAGER) flash $(INTFLASH_ADDRESS) $(BUILD_DIR)/$(TARGET)_intflash.bin \
-		-- sdpush --file build/cores/nes.bin --dest-path "/cores/nes.bin" \
-		-- sdpush --file build/cores/nes_fceu.bin --dest-path "/cores/nes_fceu.bin" \
-		-- sdpush --file build/cores/gb.bin --dest-path "/cores/gb.bin" \
-		-- sdpush --file build/cores/tgb.bin --dest-path "/cores/tgb.bin" \
-		-- sdpush --file build/cores/sms.bin --dest-path "/cores/sms.bin" \
-		-- sdpush --file build/cores/pce.bin --dest-path "/cores/pce.bin" \
-		-- sdpush --file build/cores/msx.bin --dest-path "/cores/msx.bin" \
-		-- sdpush --file build/cores/wsv.bin --dest-path "/cores/wsv.bin" \
-		-- sdpush --file build/cores/gw.bin --dest-path "/cores/gw.bin" \
-		-- sdpush --file build/cores/md.bin --dest-path "/cores/md.bin" \
-		-- sdpush --file build/cores/a2600.bin --dest-path "/cores/a2600.bin" \
-		-- sdpush --file build/cores/a7800.bin --dest-path "/cores/a7800.bin" \
-		-- sdpush --file build/cores/amstrad.bin --dest-path "/cores/amstrad.bin" \
-		-- sdpush --file build/cores/videopac.bin --dest-path "/cores/videopac.bin" \
-		-- sdpush --file build/cores/tama.bin --dest-path "/cores/tama.bin" \
+		-- sdpush --file build/cores/nes.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/nes_fceu.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/gb.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/tgb.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/sms.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/pce.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/msx.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/wsv.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/gw.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/md.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/a2600.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/a7800.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/amstrad.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/videopac.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/tama.bin --dest-path "/cores/" \
+		-- sdpush --file build/cores/logo.bin --dest-path "/cores/" \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
 

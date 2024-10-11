@@ -80,9 +80,12 @@ int odroid_overlay_get_font_width()
     return 8;
 }
 
-void odroid_overlay_draw_logo(uint16_t x_pos, uint16_t y_pos, const retro_logo_image *logo, uint16_t color)
+void odroid_overlay_draw_logo(uint16_t x_pos, uint16_t y_pos, int16_t logo_idx, uint16_t color)
 {
     uint16_t *dst_img = lcd_get_active_buffer();
+    retro_logo_image *logo = rg_get_logo(logo_idx);
+    if (logo == NULL) return;
+
     int w = (logo->width + 7) / 8;
     for (int i = 0; i < w; i++)
         for (int y = 0; y < logo->height; y++)

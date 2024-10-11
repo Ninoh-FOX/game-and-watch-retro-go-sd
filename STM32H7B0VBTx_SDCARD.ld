@@ -534,6 +534,11 @@ SECTIONS
   }
   _OVERLAY_TAMA_BSS_SIZE = SIZEOF(.overlay_tama_bss);
 
+  .overlay_graphics : {
+    . = ALIGN(4);
+    KEEP(*(.sdcard_logo))
+  } > CORES
+
   ._ram_space_check_md : {
     . = . + SIZEOF(.overlay_md);
     . = . + SIZEOF(.overlay_md_bss);

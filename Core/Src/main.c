@@ -289,6 +289,7 @@ uint32_t GW_GetBootButtons(void)
   return boot_buttons;
 }
 
+#if SD_CARD == 0
 // Workaround for being able to run with -D_FORTIFY_SOURCE=1
 static void memcpy_no_check(uint32_t *dst, uint32_t *src, size_t len)
 {
@@ -299,6 +300,7 @@ static void memcpy_no_check(uint32_t *dst, uint32_t *src, size_t len)
     *(dst++) = *(src++);
   }
 }
+#endif
 
 void wdog_enable()
 {

@@ -138,7 +138,7 @@ static void event_handler(gui_event_t event, tab_t *tab)
 }
 
 static void add_emulator(const char *system, const char *dirname, const char* ext,
-                         const void *logo, const void *header, game_data_type_t game_data_type)
+                         uint16_t logo_idx, uint16_t header_idx, game_data_type_t game_data_type)
 {
     assert(emulators_count <= MAX_EMULATORS);
     retro_emulator_t *p = &emulators[emulators_count];
@@ -160,7 +160,7 @@ static void add_emulator(const char *system, const char *dirname, const char* ex
     s->system_name = (char *)system;
     s->game_data_type = game_data_type;
 
-    gui_add_tab(dirname, logo, header, p, event_handler);
+    gui_add_tab(dirname, logo_idx, header_idx, p, event_handler);
 
     emulator_init(p);
 }
@@ -466,7 +466,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
               strcmp(system_name, "Sega Game Gear") == 0     ||
               strcmp(system_name, "Sega SG-1000") == 0       ||
               strcmp(system_name, "Colecovision") == 0 ) {
-//#if defined(ENABLE_EMULATOR_SMS) || defined(ENABLE_EMULATOR_GG) || defined(ENABLE_EMULATOR_COL) || defined(ENABLE_EMULATOR_SG1000)
+#if defined(ENABLE_EMULATOR_SMS) || defined(ENABLE_EMULATOR_GG) || defined(ENABLE_EMULATOR_COL) || defined(ENABLE_EMULATOR_SG1000)
         if (copy_file_to_ram("/cores/sms.bin", (char *)&__RAM_EMU_START__)) {
             memset(&_OVERLAY_SMS_BSS_START, 0x0, (size_t)&_OVERLAY_SMS_BSS_SIZE);
             SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_SMS_SIZE);
@@ -475,23 +475,23 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
             if (! strcmp(system_name, "Sega SG-1000")) app_main_smsplusgx(load_state, start_paused, save_slot, SMSPLUSGX_ENGINE_SG1000);
             else                                            app_main_smsplusgx(load_state, start_paused, save_slot, SMSPLUSGX_ENGINE_OTHERS);
         }
-//#endif
+#endif
     } else if(strcmp(system_name, "Game & Watch") == 0 ) {
-//#ifdef ENABLE_EMULATOR_GW
+#ifdef ENABLE_EMULATOR_GW
         if (copy_file_to_ram("/cores/gw.bin", (char *)&__RAM_EMU_START__)) {
             memset(&_OVERLAY_GW_BSS_START, 0x0, (size_t)&_OVERLAY_GW_BSS_SIZE);
             SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_GW_SIZE);
             app_main_gw(load_state, save_slot);
         }
-//#endif
+#endif
     } else if(strcmp(system_name, "PC Engine") == 0) {
-//#ifdef ENABLE_EMULATOR_PCE
+#ifdef ENABLE_EMULATOR_PCE
       if (copy_file_to_ram("/cores/pce.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_PCE_BSS_START, 0x0, (size_t)&_OVERLAY_PCE_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PCE_SIZE);
         app_main_pce(load_state, start_paused, save_slot);
       }
-//#endif
+#endif
     } else if(strcmp(system_name, "MSX") == 0) {
 #ifdef ENABLE_EMULATOR_MSX
       if (copy_file_to_ram("/cores/msx.bin", (char *)&__RAM_EMU_START__)) {
@@ -501,21 +501,21 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     } else if(strcmp(system_name, "Watara Supervision") == 0) {
-//#ifdef ENABLE_EMULATOR_WSV
+#ifdef ENABLE_EMULATOR_WSV
       if (copy_file_to_ram("/cores/wsv.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_WSV_BSS_START, 0x0, (size_t)&_OVERLAY_WSV_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_WSV_SIZE);
         app_main_wsv(load_state, start_paused, save_slot);
       }
-//#endif
+#endif
     } else if(strcmp(system_name, "Sega Genesis") == 0)  {
-//#ifdef ENABLE_EMULATOR_MD
+#ifdef ENABLE_EMULATOR_MD
       if (copy_file_to_ram("/cores/md.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_MD_BSS_START, 0x0, (size_t)&_OVERLAY_MD_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_MD_SIZE);
         app_main_gwenesis(load_state, start_paused, save_slot);
       }
-//#endif
+#endif
     } else if(strcmp(system_name, "Atari 2600") == 0) {
 #ifdef ENABLE_EMULATOR_A2600
       if (copy_file_to_ram("/cores/a2600.bin", (char *)&__RAM_EMU_START__)) {
@@ -529,13 +529,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     } else if(strcmp(system_name, "Atari 7800") == 0)  {
-// #ifdef ENABLE_EMULATOR_A7800
+ #ifdef ENABLE_EMULATOR_A7800
       if (copy_file_to_ram("/cores/a7600.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_A7800_BSS_START, 0x0, (size_t)&_OVERLAY_A7800_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_A7800_SIZE);
         app_main_a7800(load_state, start_paused, save_slot);
       }
-// #endif
+ #endif
     } else if(strcmp(system_name, "Amstrad CPC") == 0)  {
  #ifdef ENABLE_EMULATOR_AMSTRAD
       if (copy_file_to_ram("/cores/amstrad.bin", (char *)&__RAM_EMU_START__)) {
@@ -569,13 +569,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     } else if(strcmp(system_name, "Homebrew") == 0)  {
-//#ifdef ENABLE_EMULATOR_CELESTE
+#ifdef ENABLE_EMULATOR_CELESTE
       if (copy_file_to_ram(ACTIVE_FILE->path, (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_CELESTE_BSS_START, 0x0, (size_t)&_OVERLAY_CELESTE_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_CELESTE_SIZE);
         app_main_celeste(load_state, start_paused, save_slot);
       }
-//#endif
+#endif
     } else if(strcmp(system_name, "Tamagotchi") == 0) {
 #ifdef ENABLE_EMULATOR_TAMA
       if (copy_file_to_ram("/cores/tama.bin", (char *)&__RAM_EMU_START__)) {
@@ -589,13 +589,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 
 void emulators_init()
 {
-    add_emulator("Nintendo Gameboy", "gb", "gb gbc", &pad_gb, &header_gb, GAME_DATA);
-//    add_emulator("Nintendo Entertainment System", "nes", "nes", &pad_nes, &header_nes, GAME_DATA);
-    add_emulator("Game & Watch", "gw", "gw", &pad_gw, &header_gw, GAME_DATA);
-    add_emulator("PC Engine", "pce", "pce", &pad_pce, &header_pce, GAME_DATA);
-//    add_emulator("Sega Game Gear", "gg", "gg", &pad_gg, &header_gg, GAME_DATA);
+    add_emulator("Nintendo Gameboy", "gb", "gb gbc", RG_LOGO_PAD_GB, RG_LOGO_HEADER_GB, GAME_DATA);
+    add_emulator("Nintendo Entertainment System", "nes", "nes", RG_LOGO_PAD_NES, RG_LOGO_HEADER_NES, GAME_DATA);
+    add_emulator("Game & Watch", "gw", "gw", RG_LOGO_PAD_GW, RG_LOGO_HEADER_GW, GAME_DATA);
+    add_emulator("PC Engine", "pce", "pce", RG_LOGO_PAD_PCE, RG_LOGO_HEADER_PCE, GAME_DATA);
+    add_emulator("Sega Game Gear", "gg", "gg", RG_LOGO_PAD_GG, RG_LOGO_HEADER_GG, GAME_DATA);
 //    add_emulator("Sega Master System", "sms", "sms", &pad_sms, &header_sms, GAME_DATA);
-    add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
+//    add_emulator("Sega Genesis", "md", "md gen bin", &pad_gen, &header_gen, GAME_DATA_BYTESWAP_16);
 //    add_emulator("Sega SG-1000", "sg", "sg", &pad_sg1000, &header_sg1000, GAME_DATA);
 //    add_emulator("Colecovision", "col", "col", &pad_col, &header_col, GAME_DATA);
 //    add_emulator("Watara Supervision", "wsv", "wsv sv bin", &pad_wsv, &header_wsv, GAME_DATA);
@@ -604,7 +604,8 @@ void emulators_init()
 //    add_emulator("Atari 7800", "a7800", "a78", &pad_a7800, &header_a7800, GAME_DATA);
 //    add_emulator("Amstrad CPC", "amstrad", "dsk", &pad_amstrad, &header_amstrad, GAME_DATA);
 //    add_emulator("Philips Vectrex", "videopac", "bin", "o2em-go", 0, &pad_gb, &header_gb); // TODO Sylver : change graphics
-//    add_emulator("Tamagotchi", "tama", "b", &pad_tama, &header_tama, GAME_DATA);
+    add_emulator("Tamagotchi", "tama", "b", RG_LOGO_PAD_TAMA, RG_LOGO_HEADER_TAMA, GAME_DATA);
+    add_emulator("Homebrew", "homebrew", "bin", RG_LOGO_EMPTY, RG_LOGO_HEADER_HOMEBREW, NO_GAME_DATA);
 
 #if 0
 #if !( defined(ENABLE_EMULATOR_GB) || defined(ENABLE_EMULATOR_NES) || defined(ENABLE_EMULATOR_SMS) || defined(ENABLE_EMULATOR_GG) || defined(ENABLE_EMULATOR_COL) || defined(ENABLE_EMULATOR_SG1000) || defined(ENABLE_EMULATOR_PCE) || defined(ENABLE_EMULATOR_GW) || defined(ENABLE_EMULATOR_MSX) || defined(ENABLE_EMULATOR_WSV) || defined(ENABLE_EMULATOR_MD) || defined(ENABLE_EMULATOR_A7800) || defined(ENABLE_EMULATOR_AMSTRAD) || defined(ENABLE_EMULATOR_VIDEOPAC) || defined(ENABLE_HOMEBREW)|| defined(ENABLE_HOMEBREW_ZELDA3) || defined(ENABLE_HOMEBREW_SMW) || defined(ENABLE_EMULATOR_TAMA) || defined(ENABLE_EMULATOR_A2600))

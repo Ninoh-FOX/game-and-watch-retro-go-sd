@@ -126,7 +126,7 @@ void gui_event(gui_event_t event, tab_t *tab)
         (*tab->event_handler)(event, tab);
 }
 
-tab_t *gui_add_tab(const char *name, const void *logo, const void *header, void *arg, void *event_handler)
+tab_t *gui_add_tab(const char *name, int16_t logo_idx, int16_t header_idx, void *arg, void *event_handler)
 {
     tab_t *tab = rg_calloc(1, sizeof(tab_t));
 
@@ -134,8 +134,8 @@ tab_t *gui_add_tab(const char *name, const void *logo, const void *header, void 
     sprintf(tab->status, "Loading...");
 
     tab->event_handler = event_handler;
-    tab->img_header = header;
-    tab->img_logo = logo ?: (void *)tab;
+    tab->header_idx = header_idx;
+    tab->logo_idx = logo_idx;
     tab->initialized = false;
     tab->is_empty = false;
     tab->arg = arg;
@@ -332,7 +332,9 @@ void gui_draw_navbar()
 {
     for (int i = 0; i < gui.tabcount; i++)
     {
-        odroid_display_write(i * IMAGE_LOGO_WIDTH, 0, IMAGE_LOGO_WIDTH, IMAGE_LOGO_HEIGHT, gui.tabs[i]->img_logo);
+        retro_logo_image *logo = rg_get_logo(gui.tabs[i]->logo_idx);
+        if (logo)
+            odroid_display_write(i * IMAGE_LOGO_WIDTH, 0, IMAGE_LOGO_WIDTH, IMAGE_LOGO_HEIGHT, logo);
     }
 }
 
@@ -341,18 +343,20 @@ void gui_draw_header(tab_t *tab)
 
     odroid_overlay_draw_fill_rect(0, ODROID_SCREEN_HEIGHT - IMAGE_BANNER_HEIGHT - 15, ODROID_SCREEN_WIDTH, 32, curr_colors->main_c);
 
-    if (tab->img_header)
-        odroid_overlay_draw_logo(8, ODROID_SCREEN_HEIGHT - IMAGE_BANNER_HEIGHT - 15 + 7, (retro_logo_image *)(tab->img_header), curr_colors->sel_c);
+    if (tab->header_idx > 0)
+        odroid_overlay_draw_logo(8, ODROID_SCREEN_HEIGHT - IMAGE_BANNER_HEIGHT - 15 + 7, tab->header_idx, curr_colors->sel_c);
 
-    if (tab->img_logo) {
-        retro_logo_image *img_logo = (retro_logo_image *)(tab->img_logo);
-        int h = img_logo->height;
-        h = (IMAGE_BANNER_HEIGHT - h) / 2;
-        int w = h + img_logo->width;
-        
-        odroid_overlay_draw_logo(ODROID_SCREEN_WIDTH - w - 1, 
-                                 ODROID_SCREEN_HEIGHT - IMAGE_BANNER_HEIGHT - 15 + h, 
-                                 img_logo, get_shined_pixel(curr_colors->main_c, 25));
+    if (tab->logo_idx) {
+        retro_logo_image *img_logo = rg_get_logo(tab->logo_idx);
+        if (img_logo) {
+            int h = img_logo->height;
+            h = (IMAGE_BANNER_HEIGHT - h) / 2;
+            int w = h + img_logo->width;
+            
+            odroid_overlay_draw_logo(ODROID_SCREEN_WIDTH - w - 1, 
+                                    ODROID_SCREEN_HEIGHT - IMAGE_BANNER_HEIGHT - 15 + h, 
+                                    tab->logo_idx, get_shined_pixel(curr_colors->main_c, 25));
+        }
     }
 
     odroid_overlay_draw_fill_rect(0, ODROID_SCREEN_HEIGHT - 15, ODROID_SCREEN_WIDTH, 1, curr_colors->sel_c);
@@ -378,7 +382,7 @@ void gui_draw_status(tab_t *tab)
     odroid_overlay_draw_fill_rect(0, 4, ODROID_SCREEN_WIDTH, 2, curr_colors->bg_c);
     odroid_overlay_draw_fill_rect(0, 8, ODROID_SCREEN_WIDTH, 2, curr_colors->bg_c);
 
-    odroid_overlay_draw_logo(8, 16, (retro_logo_image *)(&logo_rgw), curr_colors->sel_c);
+    odroid_overlay_draw_logo(8, 16, RG_LOGO_RGW, curr_colors->sel_c);
 
     uint16_t percentage = odroid_input_read_battery().percentage;
     if ((percentage > 20) || ((get_elapsed_time() % 1000) < 800))

@@ -704,14 +704,19 @@ void retro_loop()
 #if DISABLE_SPLASH_SCREEN == 0
 void GLOBAL_DATA app_start_logo()
 {
-    const retro_logo_image* logos[] =   {&logo_nitendo, &logo_sega,     &logo_nitendo, &logo_sega,  &logo_nitendo, &logo_pce,    &logo_sega,  &logo_coleco, &logo_microsoft, &logo_watara, &logo_sega,  &logo_atari,   &logo_amstrad,   &logo_tama};
-    const retro_logo_image* headers[] = {&header_gb,    &header_sg1000, &header_nes,   &header_gg,  &header_gw,    &header_pce,  &header_sms, &header_col,  &header_msx,     &header_wsv,  &header_gen, &header_a7800, &header_amstrad, &header_tama};
+    const int16_t logos[] =   {RG_LOGO_NINTENDO,  RG_LOGO_SEGA,          RG_LOGO_NINTENDO,   RG_LOGO_SEGA,      RG_LOGO_NINTENDO,  RG_LOGO_PCE,        RG_LOGO_SEGA,       RG_LOGO_COLECO,     RG_LOGO_MICROSOFT,  RG_LOGO_WATARA,     RG_LOGO_SEGA,       RG_LOGO_ATARI,        RG_LOGO_AMSTRAD,        RG_LOGO_TAMA};
+    const int16_t headers[] = {RG_LOGO_HEADER_GB, RG_LOGO_HEADER_SG1000, RG_LOGO_HEADER_NES, RG_LOGO_HEADER_GG, RG_LOGO_HEADER_GW, RG_LOGO_HEADER_PCE, RG_LOGO_HEADER_SMS, RG_LOGO_HEADER_COL, RG_LOGO_HEADER_MSX, RG_LOGO_HEADER_WSV, RG_LOGO_HEADER_GEN, RG_LOGO_HEADER_A7800, RG_LOGO_HEADER_AMSTRAD, RG_LOGO_HEADER_TAMA};
+    retro_logo_image *logo;
     odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
-    for (int i = 0; i < 13; i++)
+    for (int i = 0; i < 14; i++)
     {
         odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - ((retro_logo_image *)(headers[i]))->width) / 2, 90, (retro_logo_image *)(headers[i]), curr_colors->sel_c);
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - ((retro_logo_image *)(logos[i]))->width) / 2, 160 + (40 - ((retro_logo_image *)(logos[i]))->height) / 2, (retro_logo_image *)(logos[i]), curr_colors->dis_c);
+        logo = rg_get_logo(headers[i]);
+        if (logo)
+            odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 90, headers[i], curr_colors->sel_c);
+        logo = rg_get_logo(logos[i]);
+        if (logo)
+            odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 160 + (40 - logo->height) / 2, logos[i], curr_colors->dis_c);
         lcd_sync();
         lcd_swap();
         for (int j = 0; j < 5; j++)
@@ -726,12 +731,16 @@ void GLOBAL_DATA app_start_logo()
 void GLOBAL_DATA app_logo()
 {
     odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
+    retro_logo_image *logo = rg_get_logo(RG_LOGO_RGO);
+    if (!logo)
+        return;
+
     for (int i = 1; i <= 10; i++)
     {
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo_gnw.width) / 2, 90,(retro_logo_image *)(&logo_gnw), 
+        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 90, RG_LOGO_RGO, 
             get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c, i * 10));
 
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo_rgo.width) / 2, 174, (retro_logo_image *)(&logo_rgo), 
+        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 174, RG_LOGO_RGO, 
            get_darken_pixel_d(curr_colors->dis_c,curr_colors->bg_c, i * 10));
 
         lcd_sync();
@@ -748,14 +757,18 @@ void GLOBAL_DATA app_logo()
 
 void GLOBAL_DATA app_sleep_logo()
 {
+    retro_logo_image *logo = rg_get_logo(RG_LOGO_RGO);
+    if (!logo)
+        return;
+
     for (int i = 10; i <= 100; i+=2)
     {
         lcd_sleep_while_swap_pending();
         odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo_gnw.width) / 2, 90,(retro_logo_image *)(&logo_gnw),
+        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 90, RG_LOGO_RGO,
             get_darken_pixel_d(curr_colors->sel_c, curr_colors->bg_c, 110 - i));
 
-        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo_rgo.width) / 2, 174, (retro_logo_image *)(&logo_rgo), 
+        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 174, RG_LOGO_RGO, 
            get_darken_pixel_d(curr_colors->dis_c,curr_colors->bg_c, 110 - i));
 
         lcd_swap();

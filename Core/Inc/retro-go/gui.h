@@ -51,8 +51,8 @@ typedef void (*gui_event_handler_t)(gui_event_t event, void *arg);
 typedef struct {
     char name[64];
     char status[64];
-    const void *img_header;
-    const void *img_logo;
+    int16_t header_idx;
+    int16_t logo_idx;
     bool initialized;
     bool is_empty;
     void *arg;
@@ -77,7 +77,7 @@ extern int gui_colors_count;
 extern colors_t *curr_colors;
 extern const colors_t gui_colors[];
 
-tab_t *gui_add_tab(const char *name, const void *logo, const void *header, void *arg, void *event_handler);
+tab_t *gui_add_tab(const char *name, int16_t logo_idx, int16_t header_idx, void *arg, void *event_handler);
 tab_t *gui_get_tab(int index);
 tab_t *gui_get_current_tab();
 tab_t *gui_set_current_tab(int index);

@@ -3,15 +3,68 @@
 
 typedef struct
 {
-    uint32_t width;
-    uint32_t height;
-    const char logo[];
+    uint16_t width;
+    uint16_t height;
+    char logo[];
 } retro_logo_image;
 
-void odroid_overlay_draw_logo(uint16_t x_pos, uint16_t y_pos, const retro_logo_image *logo, uint16_t color);
+enum {
+    RG_LOGO_EMPTY = -1,
+    RG_LOGO_RGO = 0,
+    RG_LOGO_RGW,
+//    RG_LOGO_FLASH,
+    RG_LOGO_GNW,
+    // Headers
+    RG_LOGO_HEADER_SG1000,
+    RG_LOGO_HEADER_COL,
+    RG_LOGO_HEADER_GB,
+    RG_LOGO_HEADER_GG,
+    RG_LOGO_HEADER_NES,
+    RG_LOGO_HEADER_PCE,
+    RG_LOGO_HEADER_SMS,
+    RG_LOGO_HEADER_GW,
+    RG_LOGO_HEADER_MSX,
+    RG_LOGO_HEADER_GEN,
+    RG_LOGO_HEADER_WSV,
+    RG_LOGO_HEADER_A7800,
+    RG_LOGO_HEADER_AMSTRAD,
+    RG_LOGO_HEADER_ZELDA3,
+    RG_LOGO_HEADER_SMW,
+    RG_LOGO_HEADER_HOMEBREW,
+    RG_LOGO_HEADER_TAMA,
+    // Pads
+    RG_LOGO_PAD_SG1000,
+    RG_LOGO_PAD_COL,
+    RG_LOGO_PAD_GB,
+    RG_LOGO_PAD_GG,
+    RG_LOGO_PAD_NES,
+    RG_LOGO_PAD_PCE,
+    RG_LOGO_PAD_SMS,
+    RG_LOGO_PAD_GW,
+    RG_LOGO_PAD_MSX,
+    RG_LOGO_PAD_GEN,
+    RG_LOGO_PAD_WSV,
+    RG_LOGO_PAD_A7800,
+    RG_LOGO_PAD_AMSTRAD,
+    RG_LOGO_PAD_SNES,
+    RG_LOGO_PAD_TAMA,
+    // Logos
+    RG_LOGO_COLECO,
+    RG_LOGO_NINTENDO,
+    RG_LOGO_SEGA,
+    RG_LOGO_PCE,
+    RG_LOGO_MICROSOFT,
+    RG_LOGO_WATARA,
+    RG_LOGO_ATARI,
+    RG_LOGO_AMSTRAD,
+    RG_LOGO_TAMA,
+};
+
+void odroid_overlay_draw_logo(uint16_t x_pos, uint16_t y_pos, int16_t logo_idx, uint16_t color);
+retro_logo_image *rg_get_logo(int16_t logo_index);
 
 extern const retro_logo_image logo_rgo;
-extern const retro_logo_image logo_flash;
+//extern const retro_logo_image logo_flash;
 extern const retro_logo_image logo_rgw;
 extern const retro_logo_image logo_gnw;
 
@@ -47,11 +100,10 @@ extern const retro_logo_image pad_gen;
 extern const retro_logo_image pad_a7800;
 extern const retro_logo_image pad_amstrad;
 extern const retro_logo_image pad_snes;
-extern const retro_logo_image pad_homebrew;
 extern const retro_logo_image pad_tama;
 
 extern const retro_logo_image logo_coleco;
-extern const retro_logo_image logo_nitendo;
+extern const retro_logo_image logo_nintendo;
 extern const retro_logo_image logo_sega;
 extern const retro_logo_image logo_pce;
 extern const retro_logo_image logo_microsoft;

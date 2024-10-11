@@ -38,6 +38,8 @@ static inline int compute_x(const char *str){
  */
 void draw_error_screen(const char *main_line, const char *line_1, const char *line_2){
     lcd_set_buffers(framebuffer1, framebuffer2);
+    retro_logo_image *logo = rg_get_logo(RG_LOGO_RGO);
+
     odroid_overlay_draw_fill_rect(0, 0, ODROID_SCREEN_WIDTH, ODROID_SCREEN_HEIGHT, curr_colors->bg_c);
     for (int y = 0; y < 14; y++){
         uint8_t pt = img_error[2 * y];
@@ -49,8 +51,9 @@ void draw_error_screen(const char *main_line, const char *line_1, const char *li
             if (pt & (0x80 >> x))
                 odroid_overlay_draw_fill_rect((20 + x) * 8, (9 + y) * 8, 8, 8, curr_colors->main_c);
     }
+    if (logo)
+        odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo->width) / 2, 42, RG_LOGO_RGO, curr_colors->sel_c);
 
-    odroid_overlay_draw_logo((ODROID_SCREEN_WIDTH - logo_rgo.width) / 2, 42, (retro_logo_image *)(&logo_rgo), curr_colors->sel_c);
     if (main_line) {
         odroid_overlay_draw_text_line(compute_x(main_line), 20 * 8, strlen(main_line) * 8, main_line, C_RED, curr_colors->bg_c);
     }
