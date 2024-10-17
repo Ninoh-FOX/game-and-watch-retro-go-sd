@@ -38,17 +38,43 @@ extern int nes_state_save(uint8_t *flash_ptr, size_t size);
 
 void nes_audio_submit(int16_t *buffer);
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot)
+static bool SaveState(const char *savePathName)
 {
     printf("Saving state...\n");
-    return 0;
+
+    nes_state_save(nes_save_buffer, sizeof(nes_save_buffer));
+
+    FILE *file = fopen(savePathName, "wb");
+    if (file == NULL) {
+        return false;
+    }
+    size_t written = fwrite(nes_save_buffer, sizeof(nes_save_buffer), 1, file);
+    fclose(file);
+    if (!written) {
+        return false;
+    }
+
+    return true;
 }
 
 // TODO: Expose properly
 extern int nes_state_load(uint8_t* flash_ptr, size_t size);
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot)
+static bool LoadState(const char *savePathName)
 {
+    FILE *file = fopen(savePathName, "rb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t read = fread(nes_save_buffer, sizeof(nes_save_buffer), 1, file);
+    fclose(file);
+
+    if (!read) {
+        return false;
+    }
+
+    nes_state_load((uint8_t *) nes_save_buffer, sizeof(nes_save_buffer));
     return true;
 }
 
@@ -495,7 +521,7 @@ int app_main_nes(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 
     autoload = load_state;
     if (!load_state) {
-    lcd_clear_buffers();
+        lcd_clear_buffers();
     }
 
     printf("Nofrendo start!\n");
