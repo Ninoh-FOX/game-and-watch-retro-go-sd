@@ -6,7 +6,7 @@
 #if !defined(BIG_BANK)
 #define BIG_BANK 1
 #endif
-#if SD_CARD >= 1
+#if SD_CARD == 1
 #define LOGO_DATA __attribute__((section(".sdcard_logo")))
 #define GFX_DATA  __attribute__((section(".intflash_logo")))
 #elif (BIG_BANK == 1) && (EXTFLASH_SIZE <= 16*1024*1024)
@@ -17,7 +17,7 @@
 #define GFX_DATA  __attribute__((section(".extflash_logo")))
 #endif
 
-#if SD_CARD >= 1
+#if SD_CARD == 1
 static int16_t current_logo = -1;
 static uint8_t *temp_logo_buffer;//[112*16/8+4];
 static int16_t current_header = -1;

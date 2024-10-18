@@ -40,7 +40,6 @@ Core/Src/gw_buttons.c \
 Core/Src/gw_lcd.c \
 Core/Src/gw_audio.c \
 Core/Src/gw_malloc.c \
-Core/Src/gw_sdcard.c \
 Core/Src/gw_flash.c \
 Core/Src/error_screens.c \
 Core/Src/main.c \
@@ -66,7 +65,9 @@ FATFS_C_SOURCES = \
 Core/Src/porting/lib/FatFs/user_diskio.c \
 Core/Src/porting/lib/FatFs/ff.c \
 Core/Src/porting/lib/FatFs/ffsystem.c \
-Core/Src/porting/lib/FatFs/ffunicode.c
+Core/Src/porting/lib/FatFs/ffunicode.c \
+Core/Src/porting/lib/FatFs/user_diskio_spi.c \
+Core/Src/porting/lib/FatFs/user_diskio_softspi.c
 
 # Add common C++ sources here
 CXX_SOURCES = \

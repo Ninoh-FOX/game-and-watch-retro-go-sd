@@ -31,6 +31,7 @@ extern "C" {
 #define BOOT_MODE_WARM     1
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdbool.h>
 #include "stm32h7xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -53,6 +54,15 @@ typedef enum {
   BSOD_COUNT,
 } BSOD_t;
 
+typedef enum {
+    SDCARD_HW_UNDETECTED,  // No detection done
+    SDCARD_HW_NO_SD_FOUND, // No SD detected
+    SDCARD_HW_SPI1,        // Tim Schuerewegen design (SPI1)
+    SDCARD_HW_OSPI1,       // Yota9 design (soft SPI over OSPI)
+} sdcard_hw_type_t;
+
+extern sdcard_hw_type_t sdcard_hw_type;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -60,6 +70,8 @@ typedef enum {
 
 // hacky
 extern RTC_HandleTypeDef hrtc;
+extern OSPI_HandleTypeDef hospi1;
+extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE END EC */
 
@@ -119,10 +131,7 @@ uint32_t uptime_get(void);
 void GW_EnterDeepSleep(void);
 uint32_t GW_GetBootButtons(void);
 void wdog_refresh(void);
-#if SD_CARD == 2
-void switch_ospi_gpio(uint8_t ToOspi);
-#endif
-
+void MX_SPI1_Init(void);
 void app_sleep_logo(void);
 uint16_t get_darken_pixel_d(uint16_t color, uint16_t color1, uint16_t darken);
 uint16_t get_darken_pixel(uint16_t color, uint16_t darken);
@@ -157,13 +166,14 @@ int odroid_overlay_draw_text_line(uint16_t x_pos, uint16_t y_pos, uint16_t width
 #define BTN_B_GPIO_Port GPIOD
 
 #if SD_CARD == 1
+// SPI1 pins
 #define SD_SPI_HANDLE hspi1
 #define SD_VCC_GPIO_Port GPIOA
 #define SD_VCC_Pin GPIO_PIN_15
 #define SD_CS_GPIO_Port GPIOB
 #define SD_CS_Pin GPIO_PIN_9
-#elif SD_CARD == 2
-// OSPI pins
+
+// OSPI1 pins
 #define GPIO_FLASH_NCS_Pin GPIO_PIN_11
 #define GPIO_FLASH_NCS_GPIO_Port GPIOE
 #define GPIO_FLASH_MOSI_Pin GPIO_PIN_1

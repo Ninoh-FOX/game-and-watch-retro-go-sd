@@ -28,33 +28,39 @@
 
 static bool GLOBAL_DATA main_menu_cpu_oc_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
-    int cpu_oc = oc_level_gets();
-    if (event == ODROID_DIALOG_PREV) {
-        if (cpu_oc > 0)
-            cpu_oc--;
-        else
-            cpu_oc = 2;
-        oc_level_set(cpu_oc);
-        odroid_settings_cpu_oc_level_set(cpu_oc);
-    }
-    else if (event == ODROID_DIALOG_NEXT) {
-        if (cpu_oc < 2)
-            cpu_oc++;
-        else
-            cpu_oc = 0;
-        oc_level_set(cpu_oc);
-        odroid_settings_cpu_oc_level_set(cpu_oc);
-    }
-    switch (cpu_oc) {
-    case 1:
-        sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_1);
-        break;
-    case 2:
-        sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_2);
-        break;
-    default:
+    if (sdcard_hw_type == SDCARD_HW_OSPI1) {
+        // Current SD Card design over OSPI1 crash with overclocking,
+        // do not allow oc with it until a new flex PCB fix that
         sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_0);
-        break;
+    } else {
+        int cpu_oc = oc_level_gets();
+        if (event == ODROID_DIALOG_PREV) {
+            if (cpu_oc > 0)
+                cpu_oc--;
+            else
+                cpu_oc = 2;
+            oc_level_set(cpu_oc);
+            odroid_settings_cpu_oc_level_set(cpu_oc);
+        }
+        else if (event == ODROID_DIALOG_NEXT) {
+            if (cpu_oc < 2)
+                cpu_oc++;
+            else
+                cpu_oc = 0;
+            oc_level_set(cpu_oc);
+            odroid_settings_cpu_oc_level_set(cpu_oc);
+        }
+        switch (cpu_oc) {
+        case 1:
+            sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_1);
+            break;
+        case 2:
+            sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_2);
+            break;
+        default:
+            sprintf(option->value, "%s", curr_lang->s_CPU_Overclock_0);
+            break;
+        }
     }
     return event == ODROID_DIALOG_ENTER;
 }

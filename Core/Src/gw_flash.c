@@ -886,7 +886,6 @@ uint32_t OSPI_GetSmallestEraseSize(void)
 
 uint32_t OSPI_GetFlashSize(void)
 {
-    // Assumes that erase sizes are sorted: 4 > 3 > 2 > 1.
     return flash.size;
 }
 

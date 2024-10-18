@@ -17,7 +17,7 @@ CHECK_TOOLS ?= 1
 # Set to 1 to enable 16MB external flash support. (deprecated, use EXTFLASH_SIZE_MB instead!)
 LARGE_FLASH ?= 0
 
-# Set to 1 or 2 to enable sd card support
+# Set to 1 to enable sd card support
 SD_CARD ?= 0
 
 # Configure where data is stored in the external flash by
@@ -246,14 +246,11 @@ CODEPAGE_PARAM := --codepage=$(ROMINFOCODE)
 ifeq ($(SD_CARD), 1)
 EXTFLASH_TOTAL_LENGTH = 0
 C_SOURCES += Core/src/gw_flash_alloc.c
-FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_spi.c
+C_SOURCES += Core/Src/gw_sdcard.c
+C_SOURCES += Core/Src/gw_timer.c
+C_SOURCES += Core/src/softspi.c
 C_DEFS += -DGNW_DISABLE_COMPRESSION
-else ifeq ($(SD_CARD), 2)
 EXTFLASH_TOTAL_LENGTH = 0
-C_SOURCES += Core/src/softspi.c \
-             Core/src/gw_flash_alloc.c
-FATFS_C_SOURCES += Core/Src/porting/lib/FatFs/user_diskio_softspi.c
-C_DEFS += -DGNW_DISABLE_COMPRESSION
 endif
 
 #######################################
@@ -1160,9 +1157,9 @@ help:
 	@echo "  EXTFLASH_SIZE_MB    - Sets the external flash size in megabytes"
 	@echo "  EXTFLASH_SIZE       - Sets the external flash size in bytes (has precedence over EXTFLASH_SIZE_MB)"
 	@echo "  LARGE_FLASH         - Sets the external flash size to 16MB  (deprecated)"
-	@echo "  SD_CARD             - Use SD Card reader"
-	@echo "                        set to 1 for SD Card reader on spi1 (Design by Tim Schuerewegen)"
-	@echo "                        set to 2 for SD Card reader on qspi1 (Design by *yota9* Vladislav Khmelevsky)"
+	@echo "  SD_CARD             - Use SD Card reader (default=0)"
+	@echo "                        set to 1 for auto detect between SD Card reader on spi1 (Design by Tim"
+	@echo "                        Schuerewegen) or on ospi1 (Design by *yota9* Vladislav Khmelevsky)"
 	@echo "  EXTFLASH_OFFSET     - Places the data at an offset in the external flash (useful for dual boot)"
 	@echo "  INTFLASH_BANK       - Sets the internal flash bank. Valid values {1,2} (default=1)."
 	@echo "  INTFLASH_ADDRESS    - Explicit internal flash address. If not provided, derived from INTFLASH_BANK."
