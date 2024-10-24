@@ -40,6 +40,9 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#if SD_CARD == 1
+#include "ff.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -265,8 +268,11 @@ void GW_EnterDeepSleep(void)
   // Deinit the LCD, save power.
   lcd_deinit(&hspi2);
 
-  // Deinit SD Card if needed
+  // Unmount Fs and Deinit SD Card if needed
 #if SD_CARD == 1
+  if (fs_mounted) {
+    f_unmount("");
+  }
   switch (sdcard_hw_type) {
     case SDCARD_HW_SPI1:
       sdcard_deinit_spi1();

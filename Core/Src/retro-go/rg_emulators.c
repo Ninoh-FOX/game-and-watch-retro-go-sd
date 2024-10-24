@@ -52,11 +52,6 @@ static int emulators_count = 0;
 
 static retro_emulator_file_t *CHOSEN_FILE = NULL;
 
-/* Copy file into flash "cache" section */
-static const uint8_t *copy_file_to_cache(char *file_path, uint32_t file_size, bool byte_swap) {
-    return store_file_in_flash(file_path, file_size, byte_swap);
-}
-
 /* copy file content into ram */
 static int copy_file_to_ram(char *file_path, char *ram_dest) {
     FILE *file;
@@ -149,7 +144,7 @@ static void add_emulator(const char *system, const char *dirname, const char* ex
     strcpy(p->dirname, dirname);
     snprintf(p->exts, sizeof(p->exts), " %s ", ext);
     p->roms.count = 0;
-    p->roms.maxcount = 100;
+    p->roms.maxcount = 150;
     p->roms.files = ram_calloc(p->roms.maxcount, sizeof(retro_emulator_file_t)); // TODO SD : improve this
     p->initialized = false;
     p->system = s;
@@ -427,7 +422,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 
     // Copy game data from SD card to flash if needed
     if (newfile->system->game_data_type != NO_GAME_DATA) {
-        newfile->address = copy_file_to_cache(newfile->path, newfile->size,
+        newfile->address = store_file_in_flash(newfile->path, &newfile->size,
                                            newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
         ROM_DATA = newfile->address;
         ROM_EXT = "";//newfile->ext; // TODO : get correct const char * for this
@@ -439,10 +434,15 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         }
     }
 
-
+    // It will free all ram allocated memory for use by emulators
     ahb_init();
     itc_init();
     ram_start = 0;
+    // some pointers were freed, set them to null
+#if SD_CARD == 1
+    clear_flash_alloc_metadata();
+    rg_reset_logo_buffers();
+#endif
 
     if(strcmp(system_name, "Nintendo Gameboy") == 0) {
 #if FORCE_GNUBOY == 1
@@ -613,6 +613,10 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     }
+
+    ahb_init();
+    itc_init();
+    ram_start = 0;
 }
 
 void emulators_init()

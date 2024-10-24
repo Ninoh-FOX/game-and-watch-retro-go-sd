@@ -24,6 +24,15 @@ static int16_t current_header = -1;
 static uint8_t *temp_header_buffer;//[152*24/8+4];
 static int16_t current_pad = -1;
 static uint8_t *temp_pad_buffer;//[72*32/8+4];
+
+void rg_reset_logo_buffers() {
+    current_logo = -1;
+    temp_logo_buffer = NULL;
+    current_header = -1;
+    temp_header_buffer = NULL;
+    current_pad = -1;
+    temp_pad_buffer = NULL;
+}
 #endif
 
 retro_logo_image *rg_get_logo(int16_t logo_index) {

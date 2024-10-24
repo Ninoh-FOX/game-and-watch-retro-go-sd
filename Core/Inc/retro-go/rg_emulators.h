@@ -43,7 +43,6 @@ typedef struct {
     const uint8_t *img_address;
     img_state_t img_state;
 	#endif
-    //bool missing_cover;
     rom_region_t region;
     const rom_system_t *system;
 #if CHEAT_CODES == 1

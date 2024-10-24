@@ -71,8 +71,8 @@ __RAM_UC_LENGTH__   = 300K;
 __RAM_CORE_LENGTH__ = 0K;
 __RAM_EMU_LENGTH__  = 1024K - __RAM_UC_LENGTH__ - __RAM_CORE_LENGTH__;
 __AHBRAM_LENGTH__   = 128K;
-__FLASH_LENGTH__    = DEFINED(__FLASH_LENGTH__) ? __FLASH_LENGTH__ : 128k;
-__FLASH2_LENGTH__   = 256K; /* bank2 */
+__FLASH_LENGTH__    = 256K; /* Bank 1 */
+__FLASH2_LENGTH__   = 256K; /* Bank 2 */
 
 /* Usefull only for round robin flash allocator */
 __EXTFLASH_BASE__ = 0x90000000;  /* Beginning of addressable extflash addresses */

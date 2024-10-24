@@ -61,6 +61,9 @@ enum {
 };
 
 void odroid_overlay_draw_logo(uint16_t x_pos, uint16_t y_pos, int16_t logo_idx, uint16_t color);
+#if SD_CARD == 1
+void rg_reset_logo_buffers();
+#endif
 retro_logo_image *rg_get_logo(int16_t logo_index);
 
 extern const retro_logo_image logo_rgo;

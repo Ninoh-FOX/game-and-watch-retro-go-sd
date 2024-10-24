@@ -107,32 +107,40 @@ static void invalidate_overwritten_files(uint32_t flash_address, uint32_t data_s
 }
 
 static bool circular_flash_write(const char *file_path,
-                                 uint32_t data_size,
+                                 uint32_t *data_size,
                                  uint32_t *flash_address_out,
                                  bool byte_swap)
 {
     uint8_t buffer[16 * 1024];
 
+    FILE *file = fopen(file_path, "rb");
+    if (!file)
+        return false;
+
+    if (*data_size == 0) {
+        fseek(file, 0, SEEK_END);
+        *data_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+    }
+    // Check that file can fit in buffer
+
     // If there is not enough space available, write the file at the beginning of the flash
-    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + data_size > OSPI_GetFlashSize())
+    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + *data_size > OSPI_GetFlashSize())
     {
         flash_write_pointer = align_to_next_block((uint32_t)&__EXTFLASH_BASE__);
     }
 
     // Data are larger than flash size ... Abort
-    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + data_size > OSPI_GetFlashSize())
+    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + *data_size > OSPI_GetFlashSize())
     {
+        fclose(file);
         return false;
     }
     uint32_t old_flash_write_pointer = flash_write_pointer;
     uint32_t address_in_flash = flash_write_pointer - (uint32_t)&__EXTFLASH_BASE__;
     OSPI_DisableMemoryMappedMode();
-    OSPI_EraseSync(address_in_flash, align_to_next_block(data_size));
+    OSPI_EraseSync(address_in_flash, align_to_next_block(*data_size));
     *flash_address_out = flash_write_pointer;
-
-    FILE *file = fopen(file_path, "rb");
-    if (!file)
-        return false;
 
     while (fread(buffer, 1, sizeof(buffer), file) > 0)
     {
@@ -151,14 +159,18 @@ static bool circular_flash_write(const char *file_path,
     OSPI_EnableMemoryMappedMode();
     fclose(file);
 
-    invalidate_overwritten_files(old_flash_write_pointer, data_size);
+    invalidate_overwritten_files(old_flash_write_pointer, *data_size);
 
     update_flash_pointer(flash_write_pointer);
 
     return true;
 }
 
-uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size, bool byte_swap)
+void clear_flash_alloc_metadata() {
+    metadata = NULL;
+}
+
+uint8_t *store_file_in_flash(const char *file_path, uint32_t *file_size_p, bool byte_swap)
 {
     if (metadata == NULL)
     {
@@ -175,7 +187,7 @@ uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size, bool byt
         return (uint8_t *)flash_address;
     }
 
-    if (!circular_flash_write(file_path, file_size, &flash_address, byte_swap))
+    if (!circular_flash_write(file_path, file_size_p, &flash_address, byte_swap))
     {
         return NULL;
     }
@@ -188,7 +200,7 @@ uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size, bool byt
         {
             metadata->files[i].file_crc32 = file_crc32;
             metadata->files[i].flash_address = flash_address;
-            metadata->files[i].file_size = file_size;
+            metadata->files[i].file_size = *file_size_p;
             metadata->files[i].valid = true;
             metadata->last_written_slot_index = i;
             metadata_updated = true;
@@ -201,7 +213,7 @@ uint8_t *store_file_in_flash(const char *file_path, uint32_t file_size, bool byt
         metadata->last_written_slot_index = (metadata->last_written_slot_index + 1) % MAX_FILES;
         metadata->files[metadata->last_written_slot_index].file_crc32 = file_crc32;
         metadata->files[metadata->last_written_slot_index].flash_address = flash_address;
-        metadata->files[metadata->last_written_slot_index].file_size = file_size;
+        metadata->files[metadata->last_written_slot_index].file_size = *file_size_p;
         metadata->files[metadata->last_written_slot_index].valid = true;
     }
 
