@@ -78,13 +78,15 @@ static void update_flash_pointer(uint32_t new_pointer)
     save_metadata();
 }
 
-static bool is_file_in_flash(uint32_t file_crc32, uint32_t *flash_address)
+static bool is_file_in_flash(uint32_t file_crc32, uint32_t *flash_address, uint32_t *file_size_p)
 {
     for (int i = 0; i < MAX_FILES; i++)
     {
         if (metadata->files[i].valid && metadata->files[i].file_crc32 == file_crc32)
         {
             *flash_address = metadata->files[i].flash_address;
+            if (*file_size_p == 0)
+                *file_size_p = metadata->files[i].file_size;
             return true;
         }
     }
@@ -182,7 +184,7 @@ uint8_t *store_file_in_flash(const char *file_path, uint32_t *file_size_p, bool 
     uint32_t file_crc32 = compute_file_crc32(file_path);
     uint32_t flash_address;
 
-    if (is_file_in_flash(file_crc32, &flash_address))
+    if (is_file_in_flash(file_crc32, &flash_address, file_size_p))
     {
         return (uint8_t *)flash_address;
     }

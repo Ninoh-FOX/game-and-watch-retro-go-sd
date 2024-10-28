@@ -87,7 +87,7 @@ int msx_button_select_key = EC_CTRL;
 
 static bool show_disk_icon = false;
 static int selected_disk_index = 0;
-#define MSX_DISK_EXTENSION "cdk"
+#define MSX_DISK_EXTENSION "dsk"
 
 static int selected_key_index = 0;
 
@@ -114,8 +114,10 @@ static const uint8_t volume_table[ODROID_AUDIO_VOLUME_MAX + 1] = {
     100,
 };
 
+#ifndef GNW_DISABLE_COMPRESSION
 /* Compression management */
 static size_t rom_decompress_size;
+#endif
 
 /* Framebuffer management */
 uint8_t msx_framebuffer[272*240];
@@ -154,7 +156,7 @@ void msxLedSetFdd1(int state) {
     show_disk_icon = state;
 }
 
-static bool msx_system_LoadState(char *savePathName, char *sramPathName, int slot)
+static bool msx_system_LoadState(const char *savePathName)
 {
     /*
     // If savestate is in the old version, load it using the old way
@@ -173,7 +175,7 @@ static bool msx_system_LoadState(char *savePathName, char *sramPathName, int slo
     return true;
 }
 
-static bool msx_system_SaveState(char *savePathName, char *sramPathName, int slot)
+static bool msx_system_SaveState(const char *savePathName)
 {
     /*
     char gnwDataSavePath[FS_MAX_PATH_SIZE];
@@ -406,6 +408,7 @@ int GuessROM(const uint8_t *buf,int size)
     return(mapper);
 }
 
+#if 0
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     char game_name[PROP_MAXPATH];
@@ -437,6 +440,7 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
     strcpy(option->value, disk_file->name);
     return event == ODROID_DIALOG_ENTER;
 }
+#endif
 
 static void gw_sound_restart()
 {
@@ -785,6 +789,7 @@ static void msxInputUpdate(odroid_gamepad_state_t *joystick)
 
 static void createOptionMenu(odroid_dialog_choice_t *options) {
     int index=0;
+#if 0
     if (msx_game_type == MSX_GAME_DISK) {
         options[index].id = 100;
         options[index].label = curr_lang->s_msx_Change_Dsk;
@@ -793,6 +798,7 @@ static void createOptionMenu(odroid_dialog_choice_t *options) {
         options[index].update_cb = &update_disk_cb;
         index++;
     }
+#endif
     options[index].id = 100;
     options[index].label = curr_lang->s_msx_Select_MSX;
     options[index].value = msx_name;
@@ -832,7 +838,7 @@ static void createOptionMenu(odroid_dialog_choice_t *options) {
 
 static void setPropertiesMsx(Machine *machine, int msxType) {
     int i = 0;
-    uint8_t ctrl_needed = ACTIVE_FILE->extra[1]&0x80;
+    uint8_t ctrl_needed = false;//ACTIVE_FILE->extra[1]&0x80;
     msx2_dif = 0;
     switch(msxType) {
         case 0: // MSX1
@@ -863,7 +869,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 0;
             machine->slotInfo[i].pageCount = 4;
             machine->slotInfo[i].romType = ROM_CASPATCH;
-            strcpy(machine->slotInfo[i].name, "MSX.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX.rom");
             i++;
 
             if (msx_game_type == MSX_GAME_DISK) {
@@ -877,9 +883,9 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 // forcing disabling second floppy controller without having
                 // to press ctrl key at boot
                 if (ctrl_needed) {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK_.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK_.rom");
                 } else {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK.rom");
                 }
                 i++;
             }
@@ -921,7 +927,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 0;
             machine->slotInfo[i].pageCount = 4;
             machine->slotInfo[i].romType = ROM_CASPATCH;
-            strcpy(machine->slotInfo[i].name, "MSX2.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2.rom");
             i++;
 
             machine->slotInfo[i].slot = 3;
@@ -929,7 +935,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 0;
             machine->slotInfo[i].pageCount = 2;
             machine->slotInfo[i].romType = ROM_NORMAL;
-            strcpy(machine->slotInfo[i].name, "MSX2EXT.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2EXT.rom");
             i++;
 
             if (msx_game_type == MSX_GAME_DISK) {
@@ -943,9 +949,9 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 // forcing disabling second floppy controller without having
                 // to press ctrl key at boot
                 if (ctrl_needed) {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK_.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK_.rom");
                 } else {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK.rom");
                 }
                 i++;
             } else if (msx_game_type == MSX_GAME_HDIDE) {
@@ -954,7 +960,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 machine->slotInfo[i].startPage = 0;
                 machine->slotInfo[i].pageCount = 16;
                 machine->slotInfo[i].romType = ROM_MSXDOS2;
-                strcpy(machine->slotInfo[i].name, "MSXDOS23.ROM");
+                strcpy(machine->slotInfo[i].name, "/bios/msx/MSXDOS23.ROM");
                 i++;
             }
 
@@ -963,7 +969,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 2;
             machine->slotInfo[i].pageCount = 2;
             machine->slotInfo[i].romType = ROM_MSXMUSIC; // FMPAC
-            strcpy(machine->slotInfo[i].name, "MSX2PMUS.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2PMUS.rom");
             i++;
 
             machine->slotInfoCount = i;
@@ -1011,7 +1017,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 0;
             machine->slotInfo[i].pageCount = 4;
             machine->slotInfo[i].romType = ROM_CASPATCH;
-            strcpy(machine->slotInfo[i].name, "MSX2P.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2P.rom");
             i++;
 
             machine->slotInfo[i].slot = 3;
@@ -1019,7 +1025,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 0;
             machine->slotInfo[i].pageCount = 2;
             machine->slotInfo[i].romType = ROM_NORMAL;
-            strcpy(machine->slotInfo[i].name, "MSX2PEXT.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2PEXT.rom");
             i++;
 
             if (msx_game_type == MSX_GAME_DISK) {
@@ -1033,9 +1039,9 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 // forcing disabling second floppy controller without having
                 // to press ctrl key at boot
                 if (ctrl_needed) {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK_.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK_.rom");
                 } else {
-                    strcpy(machine->slotInfo[i].name, "PANASONICDISK.rom");
+                    strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK.rom");
                 }
                 i++;
             } else if (msx_game_type == MSX_GAME_HDIDE) {
@@ -1044,7 +1050,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 machine->slotInfo[i].startPage = 0;
                 machine->slotInfo[i].pageCount = 16;
                 machine->slotInfo[i].romType = ROM_MSXDOS2;
-                strcpy(machine->slotInfo[i].name, "MSXDOS23.ROM");
+                strcpy(machine->slotInfo[i].name, "/bios/msx/MSXDOS23.ROM");
                 i++;
             }
 
@@ -1053,7 +1059,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 2;
             machine->slotInfo[i].pageCount = 2;
             machine->slotInfo[i].romType = ROM_MSXMUSIC; // FMPAC
-            strcpy(machine->slotInfo[i].name, "MSX2PMUS.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSX2PMUS.rom");
             i++;
 
             machine->slotInfo[i].slot = 3;
@@ -1061,7 +1067,7 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
             machine->slotInfo[i].startPage = 2;
             machine->slotInfo[i].pageCount = 4;
             machine->slotInfo[i].romType = ROM_0x4000;
-            strcpy(machine->slotInfo[i].name, "MSXKANJI.rom");
+            strcpy(machine->slotInfo[i].name, "/bios/msx/MSXKANJI.rom");
             i++;
 
             machine->slotInfoCount = i;
@@ -1088,9 +1094,7 @@ static void createMsxMachine(int msxType) {
     // load correct configuration
     if (0 == strcmp(ACTIVE_FILE->ext,MSX_DISK_EXTENSION)) {
         // Find if file is disk image or IDE HDD image
-        const uint8_t *diskData = ACTIVE_FILE->address;
-        uint32_t payload_offset = diskData[4]+(diskData[5]<<8)+(diskData[6]<<16)+(diskData[7]<<24);
-        if (payload_offset <= 0x288) {
+        if (ACTIVE_FILE->size <= 720*1024) {
             msx_game_type = MSX_GAME_DISK;
         } else {
             msx_game_type = MSX_GAME_HDIDE;
@@ -1102,11 +1106,8 @@ static void createMsxMachine(int msxType) {
 }
 
 static void insertGame() {
-    char game_name[PROP_MAXPATH];
     bool controls_found = true;
-    uint16_t mapper = ACTIVE_FILE->extra[0];
-
-    sprintf(game_name,"%s.%s",ACTIVE_FILE->name,ACTIVE_FILE->ext);
+    uint16_t mapper = ROM_UNKNOWN;//ACTIVE_FILE->extra[0];
 
     // default config
     msx_button_right_key = EC_RIGHT;
@@ -1122,7 +1123,7 @@ static void insertGame() {
 
     // We suppose that we won't need more than 127 different
     // configurations, change that if it happens one day
-    uint8_t controls_profile = ACTIVE_FILE->extra[1]&0x7F;
+    uint8_t controls_profile = 0;//ACTIVE_FILE->extra[1]&0x7F;
 
     switch (controls_profile) {
         case 0:   // Default configuration
@@ -1710,23 +1711,28 @@ static void insertGame() {
                 }
             }
             printf("insertCartridge msx mapper %d\n",mapper);
-            insertCartridge(properties, 0, game_name, NULL, mapper, -1);
+            insertCartridge(properties, 0, ACTIVE_FILE->path, NULL, mapper, -1);
             break;
         }
         case MSX_GAME_DISK:
         {
+#if 0
             if (selected_disk_index == -1) {
                 const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
                 selected_disk_index = rom_get_index_for_file_ext(msx_system,ACTIVE_FILE);
 
-                insertDiskette(properties, 0, game_name, NULL, -1);
+                insertDiskette(properties, 0, ACTIVE_FILE->path, NULL, -1);
             } else {
                 retro_emulator_file_t *disk_file = NULL;
                 const rom_system_t *msx_system = rom_manager_system(&rom_mgr, "MSX");
                 disk_file = (retro_emulator_file_t *)rom_get_ext_file_at_index(msx_system,MSX_DISK_EXTENSION,selected_disk_index);
-                sprintf(game_name,"%s.%s",disk_file->name,disk_file->ext);
-                insertDiskette(properties, 0, game_name, NULL, -1);
+                sprintf(ACTIVE_FILE->path,"%s.%s",disk_file->name,disk_file->ext);
+                insertDiskette(properties, 0, ACTIVE_FILE->path, NULL, -1);
             }
+#endif
+            insertDiskette(properties, 0, ACTIVE_FILE->path, NULL, -1);
+            insertCartridge(properties, 0, CARTNAME_SCC, NULL, ROM_SCC, -1);
+
             // We load SCC-I cartridge for disk games requiring it
             switch (mapper) {
                 case ROM_SNATCHER:
@@ -1761,7 +1767,7 @@ static void insertGame() {
         {
             insertCartridge(properties, 0, CARTNAME_SUNRISEIDE, NULL, ROM_SUNRISEIDE, -1);
             insertCartridge(properties, 1, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
-            insertDiskette(properties, 1, game_name, NULL, -1);
+            insertDiskette(properties, 1, ACTIVE_FILE->path, NULL, -1);
             break;
         }
     }

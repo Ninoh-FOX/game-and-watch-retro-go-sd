@@ -175,6 +175,16 @@ static char* remove_extension(const char* path) {
     return new_path;
 }
 
+static const char *get_extension(const char *filename) {
+    const char *extension = strrchr(filename, '.');
+    
+    if (extension && extension != filename) {
+        return extension + 1;
+    }
+
+    return NULL;
+}
+
 static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
 {
     retro_emulator_t *emu = (retro_emulator_t *)arg;
@@ -186,16 +196,13 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
     if (entry->basename[0] == '.')
         return RG_SCANDIR_SKIP;
 
-    printf("name = %s\n",entry->basename);
     if (entry->is_file && ext[0])
     {
         snprintf(ext_buf, sizeof(ext_buf), " %s ", ext);
         is_valid = strstr(emu->exts, rg_strtolower(ext_buf)) != NULL;
-        printf("%d - ext_buf = '%s' ext='%s'\n",is_valid,ext_buf,emu->exts);
     }
     else if (entry->is_dir)
     {
-        printf("Found subdirectory '%s'", entry->path);
         is_valid = true;
     }
 
@@ -209,7 +216,7 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
 
     emu->roms.files[emu->roms.count++] = (retro_emulator_file_t) {
         .name = remove_extension(entry->basename),
-        .ext = ext,
+        .ext = get_extension(entry->basename),
         .address = 0,
         .path = (char *)const_string(entry->path),
         .size = entry->size,
@@ -221,7 +228,6 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
     };
     emu->system->roms_count = emu->roms.count;
 
-    printf("emu->roms.count %d\n",emu->roms.count);
     return RG_SCANDIR_CONTINUE;
 }
 
@@ -415,6 +421,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     strcpy((char *)newfile->name,file->name);
     newfile->path=calloc(strlen(file->path)+1,1);
     strcpy(newfile->path,file->path);
+    newfile->ext = get_extension(newfile->path);
 
     const char *system_name = newfile->system->system_name;
 
@@ -425,7 +432,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         newfile->address = store_file_in_flash(newfile->path, &newfile->size,
                                            newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
         ROM_DATA = newfile->address;
-        ROM_EXT = "";//newfile->ext; // TODO : get correct const char * for this
+        ROM_EXT = newfile->ext;
         ROM_DATA_LENGTH = newfile->size;
 
         if (newfile->address == NULL) {
@@ -509,13 +516,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 //#endif
     } else if(strcmp(system_name, "MSX") == 0) {
-#ifdef ENABLE_EMULATOR_MSX
+//#ifdef ENABLE_EMULATOR_MSX
       if (copy_file_to_ram("/cores/msx.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_MSX_BSS_START, 0x0, (size_t)&_OVERLAY_MSX_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_MSX_SIZE);
         app_main_msx(load_state, start_paused, save_slot);
       }
-#endif
+//#endif
     } else if(strcmp(system_name, "Watara Supervision") == 0) {
 //#ifdef ENABLE_EMULATOR_WSV
       if (copy_file_to_ram("/cores/wsv.bin", (char *)&__RAM_EMU_START__)) {
@@ -553,7 +560,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 //#endif
     } else if(strcmp(system_name, "Amstrad CPC") == 0)  {
- #ifdef ENABLE_EMULATOR_AMSTRAD
+#ifdef ENABLE_EMULATOR_AMSTRAD
       if (copy_file_to_ram("/cores/amstrad.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_AMSTRAD_BSS_START, 0x0, (size_t)&_OVERLAY_AMSTRAD_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_AMSTRAD_SIZE);
@@ -631,7 +638,9 @@ void emulators_init()
     add_emulator("Sega SG-1000", "sg", "sg", RG_LOGO_PAD_SG1000, RG_LOGO_HEADER_SG1000, GAME_DATA);
     add_emulator("Colecovision", "col", "col", RG_LOGO_PAD_COL, RG_LOGO_HEADER_COL, GAME_DATA);
     add_emulator("Watara Supervision", "wsv", "wsv sv bin", RG_LOGO_PAD_WSV, RG_LOGO_HEADER_WSV, GAME_DATA);
-    add_emulator("MSX", "msx", "dsk rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
+//    add_emulator("MSX", "msx", "dsk rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
+    add_emulator("MSX", "msx", "dsk", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, NO_GAME_DATA);
+    add_emulator("MSX", "msx", "rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
 //    add_emulator("Atari 2600", "a2600", "a2600", RG_LOGO_PAD_A7800, RG_LOGO_HEADER_A7800, GAME_DATA); // TODO : add specific gfx
     add_emulator("Atari 7800", "a7800", "a78", RG_LOGO_PAD_A7800, RG_LOGO_HEADER_A7800, GAME_DATA);
     add_emulator("Amstrad CPC", "amstrad", "dsk", RG_LOGO_PAD_AMSTRAD, RG_LOGO_HEADER_AMSTRAD, GAME_DATA);
