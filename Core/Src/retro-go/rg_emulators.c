@@ -433,7 +433,8 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     ACTIVE_FILE = newfile;
 
     // Copy game data from SD card to flash if needed
-    if (newfile->system->game_data_type != NO_GAME_DATA) {
+    // dsk files are read from sd card, do not copy them in flash
+    if ((newfile->system->game_data_type != NO_GAME_DATA) && (strcasecmp(newfile->ext, "dsk") !=0)) {
         newfile->address = store_file_in_flash(newfile->path, &newfile->size,
                                            newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
         ROM_DATA = newfile->address;
@@ -627,7 +628,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     }
 
     free(newfile->path);
-    free(newfile->name);
+    free((void *)newfile->name);
     free(newfile);
 
     ahb_init();
@@ -648,8 +649,7 @@ void emulators_init()
     add_emulator("Colecovision", "col", "col", RG_LOGO_PAD_COL, RG_LOGO_HEADER_COL, GAME_DATA);
     add_emulator("Watara Supervision", "wsv", "wsv sv bin", RG_LOGO_PAD_WSV, RG_LOGO_HEADER_WSV, GAME_DATA);
 //    add_emulator("MSX", "msx", "dsk rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
-    add_emulator("MSX", "msx", "dsk", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, NO_GAME_DATA);
-    add_emulator("MSX", "msx", "rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
+    add_emulator("MSX", "msx", "dsk rom mx1 mx2", RG_LOGO_PAD_MSX, RG_LOGO_HEADER_MSX, GAME_DATA);
 //    add_emulator("Atari 2600", "a2600", "a2600", RG_LOGO_PAD_A7800, RG_LOGO_HEADER_A7800, GAME_DATA); // TODO : add specific gfx
     add_emulator("Atari 7800", "a7800", "a78", RG_LOGO_PAD_A7800, RG_LOGO_HEADER_A7800, GAME_DATA);
     add_emulator("Amstrad CPC", "amstrad", "dsk", RG_LOGO_PAD_AMSTRAD, RG_LOGO_HEADER_AMSTRAD, GAME_DATA);
