@@ -30,10 +30,7 @@
  
 #include "MsxTypes.h"
 
-//typedef fs_file_t SaveState;
 typedef void SaveState;
-
-uint16_t saveMsxGetVersion(char *pathName);
 
 UInt32 saveMsxState(char *pathName);
 UInt32 saveGnwMsxData(char *pathName);

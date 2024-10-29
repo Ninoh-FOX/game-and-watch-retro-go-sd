@@ -14,146 +14,145 @@
 #include <stdio.h>
 #include "Board.h"
 
-static char *headerString0 = "bMSX0000";
-static char *headerString  = "bMSX0001";
+static char *headerString  = "bMSX0000";
 
 extern BoardInfo boardInfo;
-static SaveState *msxSaveState = NULL;  // This is really a fs_file_t
 
-/*
-uint16_t saveMsxGetVersion(char *pathName) {
-    char header[8];
-    msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
-    fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
-    fs_close(msxSaveState);
-    if (memcmp(headerString0, header, 8) == 0) {
-        return 0;
-    } else {
-        return 1;
+struct SaveStateSection {
+    UInt32 tag;
+    UInt32 offset;
+};
+
+// We have 31*8 Bytes available for sections info
+// Do not increase this value without reserving
+// another 256 bytes block for header
+#define MAX_SECTIONS 31
+
+typedef struct {
+    struct SaveStateSection sections[MAX_SECTIONS];
+    UInt16 section;
+} Savestate;
+
+static Savestate msxSaveState;
+
+extern BoardInfo boardInfo;
+
+static FILE *msxSaveFile;
+
+static UInt32 tagFromName(const char* tagName)
+{
+    UInt32 tag = 0;
+    UInt32 mod = 1;
+
+    while (*tagName) {
+        mod *= 19219;
+        tag += mod * *tagName++;
     }
+
+    return tag;
 }
-*/
 
 /* Savestate functions */
-UInt32 saveMsxState(char *pathName) {
-/*
-    msxSaveState = fs_open(pathName, FS_WRITE, FS_COMPRESS);
-    fs_write(msxSaveState, (unsigned char *)headerString, 8);
-    boardSaveState("mem0",0);
-    fs_close(msxSaveState);
-*/
-    return 0;
-}
+UInt32 saveMsxState(char *savePath) {
+    UInt32 size;
+    // Fill context data
+    msxSaveState.section = 0;
 
-UInt32 saveGnwMsxData(char *pathName) {
-/*
-    msxSaveState = fs_open(pathName, FS_WRITE, FS_COMPRESS);
-    fs_write(msxSaveState, (unsigned char *)headerString, 8);
+    msxSaveFile = fopen(savePath, "wb");
+    fwrite((unsigned char *)headerString, 1, 8, msxSaveFile);
+    fseek(msxSaveFile, 256, SEEK_SET); // Keep 256 Bytes free for offset header
+    boardSaveState("mem0",0);
     save_gnw_msx_data();
-    fs_close(msxSaveState);
-*/
-    return 0;
+    // Copy header data at the start of file (after header)
+    fseek(msxSaveFile, 8, SEEK_SET);
+    fwrite((UInt8 *)msxSaveState.sections, 1, sizeof(msxSaveState.sections[0])*MAX_SECTIONS, msxSaveFile);
+
+    size = ftell(msxSaveFile);
+    fclose(msxSaveFile);
+
+    return size;
 }
 
 void saveStateCreateForWrite(const char* fileName)
 {
-    // Nothing to do, file is previously opened in saveMsxState()
+    // Nothing to do
 }
 
 void saveStateSet(SaveState* state, const char* tagName, UInt32 value)
 {
     wdog_refresh();
-//    fs_write(state, (unsigned char *)&value, 4);
+    fwrite((unsigned char *)&value, 1, 4, msxSaveFile);
 }
 
 void saveStateSetBuffer(SaveState* state, const char* tagName, void* buffer, UInt32 length)
 {
     wdog_refresh();
-//    fs_write(state, buffer, length);
+    fwrite(buffer, 1, length, msxSaveFile);
 }
 
 SaveState* saveStateOpenForWrite(const char* fileName)
 {
-    // Nothing to do, all "files" are serialized in... serial
-    return msxSaveState;
+    // Update section
+    msxSaveState.sections[msxSaveState.section].tag = tagFromName(fileName);
+    msxSaveState.sections[msxSaveState.section].offset = ftell(msxSaveFile);
+    msxSaveState.section++;
+    return &msxSaveState;
 }
 
 void saveStateDestroy(void)
 {
-    // Nothing To Do; saveMsxState will handle closing the file
 }
 
 void saveStateClose(SaveState* state)
 {
-    // Nothing to do, all "files" are serialized in... serial
-}
-
-/* Loadstate v0 functions */
-UInt32 loadMsxStateV0(char *pathName) {
-/*
-    char header[8];
-    msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
-    fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
-    if (memcmp(headerString0, header, 8) == 0) {
-        boardInfo.loadState();
-        load_gnw_msx_data();
-    }
-    fs_close(msxSaveState);
-*/
-    return 0;
 }
 
 /* Loadstate functions */
-UInt32 loadMsxState(char *pathName) {
-/*
-    char header[8];
-    msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
-    fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
-    if (memcmp(headerString, header, 8) == 0) {
-        boardInfo.loadState();
-    }
-    fs_close(msxSaveState);
-*/
-    return 0;
-}
 
-UInt32 loadGnwMsxData(char *pathName) {
-/*
+UInt32 loadMsxState(char *savePath) {
     char header[8];
-    msxSaveState = fs_open(pathName, FS_READ, FS_COMPRESS);
-    fs_read(msxSaveState, (unsigned char *)header, sizeof(header));
+    UInt32 size = 0;
+
+    msxSaveFile = fopen(savePath, "rb");
+    fread((unsigned char *)header, 1, 8, msxSaveFile);
     if (memcmp(headerString, header, 8) == 0) {
+        // Copy sections header in structure
+        fread(msxSaveState.sections, 1, sizeof(msxSaveState.sections[0])*MAX_SECTIONS, msxSaveFile);
+        boardInfo.loadState();
         load_gnw_msx_data();
+        size = ftell(msxSaveFile);
     }
-    fs_close(msxSaveState);
-*/
-    return 0;
+    fclose(msxSaveFile);
+    return size;
 }
 
 SaveState* saveStateOpenForRead(const char* fileName)
 {
-    // Nothing to do, all "files" are serialized in... serial
-    return msxSaveState;
+    // find offset
+    UInt32 tag = tagFromName(fileName);
+    for (int i = 0; i<MAX_SECTIONS; i++) {
+        if (msxSaveState.sections[i].tag == tag) {
+            // Found tag
+            fseek(msxSaveFile, msxSaveState.sections[i].offset, SEEK_SET);
+            return &msxSaveState;
+        }
+    }
+    return &msxSaveState;
 }
 
 UInt32 saveStateGet(SaveState* state, const char* tagName, UInt32 defValue)
 {
-/*
     UInt32 value;
     wdog_refresh();
-    fs_read(state, (unsigned char *)&value, 4);
+    fread((unsigned char *)&value, 1, 4, msxSaveFile);
     return value;
-*/
-    return 0;
 }
 
 void saveStateGetBuffer(SaveState* state, const char* tagName, void* buffer, UInt32 length)
 {
-    wdog_refresh();
-//    fs_read(state, buffer, length);
+    fread(buffer, 1, length, msxSaveFile);
 }
 
 void saveStateCreateForRead(const char* fileName)
 {
-    // Nothing to do, file is previously opened in loadMsxState()
 }
