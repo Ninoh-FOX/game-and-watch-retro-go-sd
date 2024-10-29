@@ -214,9 +214,8 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
         return RG_SCANDIR_STOP;
     }
 
-    emu->roms.files[emu->roms.count++] = (retro_emulator_file_t) {
+    emu->roms.files[emu->roms.count] = (retro_emulator_file_t) {
         .name = remove_extension(entry->basename),
-        .ext = get_extension(entry->basename),
         .address = 0,
         .path = (char *)const_string(entry->path),
         .size = entry->size,
@@ -226,6 +225,12 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
         .img_state = IMG_STATE_UNKNOWN,
 #endif
     };
+
+    // Make sure ext points to a memory zone that will not be freed.
+    emu->roms.files[emu->roms.count].ext = get_extension(emu->roms.files[emu->roms.count].path);
+
+    emu->roms.count++;
+    
     emu->system->roms_count = emu->roms.count;
 
     return RG_SCANDIR_CONTINUE;
@@ -414,7 +419,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // odroid_settings_StartAction_set(load_state ? ODROID_START_ACTION_RESUME : ODROID_START_ACTION_NEWGAME);
     // odroid_settings_commit();
 
-    // create a copy in internal ram as ram used by ram_malloc will be erase by emulator
+    // create a copy in heap ram as ram used by ram_malloc will be erase by emulator
     retro_emulator_file_t *newfile = calloc(sizeof(retro_emulator_file_t),1);
     memcpy(newfile,file,sizeof(retro_emulator_file_t));
     newfile->name=calloc(strlen(file->name)+1,1);
@@ -620,6 +625,10 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     }
+
+    free(newfile->path);
+    free(newfile->name);
+    free(newfile);
 
     ahb_init();
     itc_init();
