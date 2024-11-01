@@ -49,6 +49,7 @@
 #include "gw_malloc.h"
 #include "gw_linker.h"
 #include "main_msx.h"
+#include "msx_database.h"
 
 extern BoardInfo boardInfo;
 static Properties* properties;
@@ -66,6 +67,8 @@ enum{
    MSX_GAME_DISK,
    MSX_GAME_HDIDE
 };
+
+static RomInfo game_info;
 
 static int msx_game_type = MSX_GAME_ROM;
 // Default is MSX2+
@@ -830,7 +833,7 @@ static void createOptionMenu(odroid_dialog_choice_t *options) {
 
 static void setPropertiesMsx(Machine *machine, int msxType) {
     int i = 0;
-    uint8_t ctrl_needed = false;//ACTIVE_FILE->extra[1]&0x80;
+    uint8_t ctrl_needed = game_info.ctrl_required;
     msx2_dif = 0;
     switch(msxType) {
         case 0: // MSX1
@@ -875,8 +878,10 @@ static void setPropertiesMsx(Machine *machine, int msxType) {
                 // forcing disabling second floppy controller without having
                 // to press ctrl key at boot
                 if (ctrl_needed) {
+                    printf("1\n");
                     strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK_.rom");
                 } else {
+                    printf("2\n");
                     strcpy(machine->slotInfo[i].name, "/bios/msx/PANASONICDISK.rom");
                 }
                 i++;
@@ -1099,7 +1104,7 @@ static void createMsxMachine(int msxType) {
 
 static void insertGame() {
     bool controls_found = true;
-    uint16_t mapper = ROM_UNKNOWN;//ACTIVE_FILE->extra[0];
+    uint16_t mapper = game_info.mapper;
 
     // default config
     msx_button_right_key = EC_RIGHT;
@@ -1113,14 +1118,9 @@ static void insertGame() {
     msx_button_start_key = EC_RETURN;
     msx_button_select_key = EC_CTRL;
 
-    // We suppose that we won't need more than 127 different
-    // configurations, change that if it happens one day
-    uint8_t controls_profile = 0;//ACTIVE_FILE->extra[1]&0x7F;
+    uint8_t controls_profile = game_info.button_profile;
 
     switch (controls_profile) {
-        case 0:   // Default configuration
-        case 0x7F: // No configuration
-        break;
         case 1: // Konami
             msx_button_a_key = EC_SPACE;
             msx_button_b_key = EC_N;
@@ -1657,6 +1657,8 @@ static void insertGame() {
             msx_button_start_key = EC_LSHIFT;
             msx_button_select_key = EC_Z;
         break;
+        case 0:    // Default configuration
+        case 0x7F: // No configuration
         default:
             controls_found = false;
         break;
@@ -1723,7 +1725,6 @@ static void insertGame() {
             }
 #endif
             insertDiskette(properties, 0, ACTIVE_FILE->path, NULL, -1);
-            insertCartridge(properties, 0, CARTNAME_SCC, NULL, ROM_SCC, -1);
 
             // We load SCC-I cartridge for disk games requiring it
             switch (mapper) {
@@ -1968,6 +1969,15 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     memset(msx_framebuffer, 0, sizeof(msx_framebuffer));
     
     audio_clear_buffers();
+
+    // Get game info from sha1 and database file
+    if (!msx_get_game_info(ACTIVE_FILE->path, &game_info)) {
+        game_info.mapper = ROM_UNKNOWN;
+        game_info.button_profile = 0x7F;
+        game_info.ctrl_required = false;
+    } else {
+        printf("Game info found mapper %d profile %d ctrl %d\n", game_info.mapper, game_info.button_profile, game_info.ctrl_required);
+    }
 
 #ifndef GNW_DISABLE_COMPRESSION
 /* To reserve correct amount of RAM for decompressing game   */

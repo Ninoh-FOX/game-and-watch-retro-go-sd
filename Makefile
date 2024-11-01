@@ -571,6 +571,7 @@ $(CORE_MSX)/Src/Board/Machine.c \
 $(CORE_MSX)/Src/Board/MSX.c \
 $(CORE_MSX)/Src/Input/InputEvent.c \
 Core/Src/porting/msx/main_msx.c \
+Core/Src/porting/msx/msx_database.c \
 Core/Src/porting/msx/save_msx.c
 endif
 
