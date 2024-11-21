@@ -304,7 +304,7 @@ HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
 
 C_DEFS =  \
--DIS_LITTLE_ENDIAN -DFCEU_VERSION_NUMERIC=9813 -DTARGET_GNW -DFCEU_NO_MALLOC -DLINUX_EMU -DFCEU_LOW_RAM -DENABLE_EMULATOR_NES -DFORCE_NOFRENDO=0 -DNES_MAPPER_NSF
+-DIS_LITTLE_ENDIAN -DFCEU_VERSION_NUMERIC=9813 -DTARGET_GNW -DFCEU_NO_MALLOC -DLINUX_EMU -DFCEU_LOW_RAM -DENABLE_EMULATOR_NES -DFORCE_NOFRENDO=0 -DNES_MAPPER_NSF -DSD_CARD=1
 
 #-DFCEU_ENABLE_GAMEGENIE_ROM -DCHEAT_CODES=1
 
@@ -314,7 +314,8 @@ C_INCLUDES =  \
 -I../external/fceumm-go/src/ \
 -I../external/fceumm-go/src/drivers/libretro/libretro-common/include \
 -I../retro-go-stm32/components/odroid \
--I./nes-fceumm
+-I./nes-fceumm \
+-I/opt/homebrew/include/
 
 
 ASFLAGS = $(AS_DEFS) $(AS_INCLUDES) $(OPT) -fdata-sections -ffunction-sections

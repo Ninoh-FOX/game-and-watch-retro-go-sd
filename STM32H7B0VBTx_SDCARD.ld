@@ -102,7 +102,6 @@ MEMORY
 
   /* FLASH */
   FLASH    (xr ) : ORIGIN = __INTFLASH__,        LENGTH =  __FLASH_LENGTH__
-  FLASH2   (xr ) : ORIGIN = 0x08100000,          LENGTH = __FLASH2_LENGTH__
 
   /* CORES */
   CORES    (x)   : ORIGIN = 0x0,                 LENGTH = 0xFFFFFFFF

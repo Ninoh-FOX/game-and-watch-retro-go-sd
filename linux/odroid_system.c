@@ -26,12 +26,13 @@ void odroid_system_init(int appId, int sampleRate)
     printf("%s: System ready!\n\n", __func__);
 }
 
-void odroid_system_emu_init(state_handler_t load, state_handler_t save, netplay_callback_t netplay_cb)
+void odroid_system_emu_init(state_handler_t load, state_handler_t save, screenshot_handler_t screenshot_cb)
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
     currentApp.handlers.loadState = load;
     currentApp.handlers.saveState = save;
+    currentApp.handlers.screenshot = screenshot_cb;
 
     printf("%s: Init done. GameId=%08X\n", __func__, currentApp.gameId);
 }

@@ -162,7 +162,7 @@ void *itc_malloc(size_t size)
 void *FCEU_gmalloc(uint32 size)
 {
    allocated_ram+=size;
-   printf("FCEU_gmalloc %ld bytes (new total = %ld)\n",size,allocated_ram);
+   printf("FCEU_gmalloc %d bytes (new total = %d)\n",size,allocated_ram);
    void *ret = calloc(1,size);
    return ret;
 }
@@ -170,7 +170,7 @@ void *FCEU_gmalloc(uint32 size)
 void *FCEU_malloc(uint32 size)
 {
    allocated_ram+=size;
-   printf("FCEU_malloc %ld bytes (new total = %ld)\n",size,allocated_ram);
+   printf("FCEU_malloc %d bytes (new total = %d)\n",size,allocated_ram);
    void *ret = (void*)calloc(1,size);
    return ret;
 }
@@ -189,40 +189,15 @@ void FCEU_gfree(void *ptr)
 
 /*-------------------------------*/
 
-static bool SaveState(char *savePathName, char *sramPathName)
+static bool SaveState(const char *savePathName)
 {
-    FILE* pFile;
-    uint64_t size = 0;
-    printf("SaveState\n");
-    uint8_t *buffer = (uint8_t*)malloc(1000000);
-    memstream_set_buffer(buffer, 1000000);
-
-    FCEUSS_Save_Mem();
-    size = memstream_get_last_size();
-    printf("size save = %llu\n", size);
-
-    pFile = fopen("./save.bin","wb");
-    if (pFile ){
-        fwrite(buffer,1,size,pFile);
-    }
-    fclose(pFile);
-    free(buffer);
+    FCEUSS_Save_Fs(savePathName);
     return true;
 }
 
-static bool LoadState(char *savePathName, char *sramPathName)
+static bool LoadState(const char *savePathName)
 {
-    FILE* pFile;
-    uint64_t size = 0;
-    printf("LoadState\n");
-    uint8_t *buffer = (uint8_t*)malloc(1000000);
-
-    pFile = fopen("./save.bin","r");
-    if (pFile ){
-        size = fread(buffer,1,1000000,pFile);
-    }
-    memstream_set_buffer((uint8_t*)buffer, size);
-    FCEUSS_Load_Mem();
+    FCEUSS_Load_Fs(savePathName);
     return true;
 }
 
@@ -274,10 +249,10 @@ void input_read_gamepad()
                 FCEU_FDSSelect();
                 break;
             case SDLK_F3:
-                SaveState("", "");
+                SaveState("./save.bin");
                 break;
             case SDLK_F4:
-                LoadState("", "");
+                LoadState("./save.bin");
                 break;
             default:
                 break;

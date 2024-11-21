@@ -60,6 +60,7 @@ static int32_t *sound = 0;
 
 static uint32_t fceu_joystick; /* player input data, 1 byte per player (1-4) */
 
+static void blit(uint8_t *src, uint16_t *framebuffer);
 static bool crop_overscan_v_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat);
 static bool crop_overscan_h_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat);
 static bool fds_eject_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat);
@@ -83,6 +84,7 @@ struct st_palettes {
    unsigned int data[64];
 };
 
+#if SD_CARD == 0
 static struct st_palettes palettes[] __attribute__((section(".extflash_emu_data"))) = {
    { "asqrealc", /*"AspiringSquire's Real palette",*/
       { 0x6c6c6c, 0x00268e, 0x0000a8, 0x400094,
@@ -445,6 +447,29 @@ static struct st_palettes palettes[] __attribute__((section(".extflash_emu_data"
          0xB7E5EB, 0xACACAC, 0x000000, 0x000000 }
    }
 };
+#else // Palette data should be stored in file
+static struct st_palettes palettes[] = {
+   { "asqrealc", /*"AspiringSquire's Real palette",*/
+      { 0x6c6c6c, 0x00268e, 0x0000a8, 0x400094,
+         0x700070, 0x780040, 0x700000, 0x621600,
+         0x442400, 0x343400, 0x005000, 0x004444,
+         0x004060, 0x000000, 0x101010, 0x101010,
+         0xbababa, 0x205cdc, 0x3838ff, 0x8020f0,
+         0xc000c0, 0xd01474, 0xd02020, 0xac4014,
+         0x7c5400, 0x586400, 0x008800, 0x007468,
+         0x00749c, 0x202020, 0x101010, 0x101010,
+         0xffffff, 0x4ca0ff, 0x8888ff, 0xc06cff,
+         0xff50ff, 0xff64b8, 0xff7878, 0xff9638,
+         0xdbab00, 0xa2ca20, 0x4adc4a, 0x2ccca4,
+         0x1cc2ea, 0x585858, 0x101010, 0x101010,
+         0xffffff, 0xb0d4ff, 0xc4c4ff, 0xe8b8ff,
+         0xffb0ff, 0xffb8e8, 0xffc4c4, 0xffd4a8,
+         0xffe890, 0xf0f4a4, 0xc0ffc0, 0xacf4f0,
+         0xa0e8ff, 0xc2c2c2, 0x202020, 0x101010 }
+   },
+};
+
+#endif
 
 void setCustomPalette(uint8_t palette_idx) {
       unsigned *palette_data = palettes[palette_idx].data;
@@ -473,16 +498,25 @@ void FCEUD_Message(char *s)
     printf("%s", s);
 }
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot)
+static bool SaveState(const char *savePathName)
 {
-//    FCEUSS_Save_Fs(savePathName);
-    return 0;
+    FCEUSS_Save_Fs(savePathName);
+    return true;
 }
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot)
+static bool LoadState(const char *savePathName)
 {
-//    FCEUSS_Load_Fs(savePathName);
+    FCEUSS_Load_Fs(savePathName);
     return true;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    blit(nes_framebuffer, lcd_get_active_buffer());
+    return lcd_get_active_buffer();
 }
 
 // TODO: Move to lcd.c/h
@@ -722,7 +756,6 @@ static void blit(uint8_t *src, uint16_t *framebuffer)
         assert(!"Unknown scaling mode");
         break;
     }
-    common_ingame_overlay();
 }
 
 static void update_sound_nes(int32_t *sound, uint16_t size) {
@@ -743,13 +776,13 @@ static void update_sound_nes(int32_t *sound, uint16_t size) {
 
 static size_t nes_getromdata(unsigned char **data)
 {
+    wdog_refresh();
+    unsigned char *dest = (unsigned char *)&_NES_FCEU_ROM_UNPACK_BUFFER;
+#ifndef GNW_DISABLE_COMPRESSION
     /* src pointer to the ROM data in the external flash (raw or LZ4) */
     const unsigned char *src = ROM_DATA;
-    unsigned char *dest = (unsigned char *)&_NES_FCEU_ROM_UNPACK_BUFFER;
     uint32_t available_size = (uint32_t)&_NES_FCEU_ROM_UNPACK_BUFFER_SIZE;
 
-    wdog_refresh();
-#ifndef GNW_DISABLE_COMPRESSION
     if(strcmp(ROM_EXT, "lzma") == 0){
         size_t n_decomp_bytes;
         n_decomp_bytes = lzma_inflate(dest, available_size, src, ROM_DATA_LENGTH);
@@ -760,7 +793,7 @@ static size_t nes_getromdata(unsigned char **data)
     else
 #endif
     {
-#ifdef FCEU_LOW_RAM
+#if defined(FCEU_LOW_RAM)
         // FDS disks has to be stored in ram for games
         // that wants to write to the disk
         if (ROM_DATA_LENGTH <= 262000) {
@@ -1046,7 +1079,7 @@ int app_main_nes_fceu(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     FCEUI_SetSoundVolume(150);
 
     odroid_system_init(APPID_NES, sndsamplerate);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
 
     if (FSettings.PAL) {
         lcd_set_refresh_rate(50);
@@ -1092,6 +1125,7 @@ int app_main_nes_fceu(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     void _blit()
     {
         blit(nes_framebuffer, lcd_get_active_buffer());
+        common_ingame_overlay();
     }
 
     while(1) {
