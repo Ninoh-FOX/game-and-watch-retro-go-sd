@@ -1127,6 +1127,7 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		-- sdpush --file $(CORES_DIR)/logo.bin --dest-path "/cores/" \
 		-- sdpush --file $(CORES_DIR)/celeste.bin --dest-path "/roms/homebrew/" \
 		$(MAPPERS_SDPUSH) \
+		-- sdpush --file $(MAPPERS_DIR)/mappers_table.bin --dest-path "/cores/mappers/" \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
 
