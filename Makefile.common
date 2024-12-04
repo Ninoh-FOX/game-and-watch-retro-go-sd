@@ -616,6 +616,10 @@ vpath %.c $(sort $(dir $(C_SOURCES) $(FATFS_C_SOURCES) $(NES_C_SOURCES) $(NES_FC
 MAPPER_SRCS := $(wildcard external/fceumm-go/src/boards/*.c)
 MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/__%.c, $(MAPPER_SRCS))
 MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/fceu-emu2413.c, $(MAPPER_SRCS))
+MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/mmc3.c, $(MAPPER_SRCS))
+MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/latch.c, $(MAPPER_SRCS))
+MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/vrcirq.c, $(MAPPER_SRCS))
+MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/eeprom_93C66.c, $(MAPPER_SRCS))
 MAPPER_NAMES := $(notdir $(basename $(subst -,_,$(MAPPER_SRCS))))
 
 # CXX

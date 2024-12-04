@@ -478,7 +478,7 @@ void setCustomPalette(uint8_t palette_idx) {
          base_palette[ i * 3 + 1 ] = ( data >>  8 ) & 0xff; /* green */
          base_palette[ i * 3 + 2 ] = ( data >>  0 ) & 0xff; /* blue */
       }
-      FCEUI_SetPaletteArray( base_palette );
+      FCEUI_SetPaletteArray( base_palette, 64 );
 }
 
 void FCEUD_PrintError(char *c)
@@ -532,8 +532,10 @@ static uint32_t palette_spaced_565[256];
 #define BLUE_EXPAND 3
 #define BUILD_PIXEL_RGB565(R,G,B) (((int) ((R)&0x1f) << RED_SHIFT) | ((int) ((G)&0x3f) << GREEN_SHIFT) | ((int) ((B)&0x1f) << BLUE_SHIFT))
 
-void FCEUD_SetPalette(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
+void FCEUD_SetPalette(uint16 index, uint8_t r, uint8_t g, uint8_t b)
 {
+   if (index >= 256)
+      return;
     uint16_t color_565 = BUILD_PIXEL_RGB565(r >> RED_EXPAND, g >> GREEN_EXPAND, b >> BLUE_EXPAND);
     palette565[index] = color_565;
     uint32_t sc = ((0b1111100000000000&color_565)<<10) | ((0b0000011111100000&color_565)<<5) | ((0b0000000000011111&color_565));

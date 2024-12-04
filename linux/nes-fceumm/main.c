@@ -105,10 +105,12 @@ uint32 ahb_allocated_ram = 0;
 uint32 itc_allocated_ram = 0;
 
 #define BUILD_PIXEL_RGB565(R,G,B) (((int) ((R)&0x1f) << RED_SHIFT) | ((int) ((G)&0x3f) << GREEN_SHIFT) | ((int) ((B)&0x1f) << BLUE_SHIFT))
-static uint16_t retro_palette[256];
+static uint16_t retro_palette[1024];
 
-void FCEUD_SetPalette(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
+void FCEUD_SetPalette(uint16_t index, uint8_t r, uint8_t g, uint8_t b)
 {
+    if (index >= 256)
+        return;
    retro_palette[index] = BUILD_PIXEL_RGB565(r >> RED_EXPAND, g >> GREEN_EXPAND, b >> BLUE_EXPAND);
 }
 
@@ -300,8 +302,6 @@ void odroid_display_force_refresh(void)
 {
     // forceVideoRefresh = true;
 }
-
-static uint16_t retro_palette[256];
 
 void nes_blitscreen(uint8_t *buffer)
 {
