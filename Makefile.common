@@ -1092,6 +1092,7 @@ create_sd_folders:
 create_sd_data: create_sd_folders $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash.bin
 	@$(PYTHON3) external/fceumm-go/gen_mappers_table.py $(MAPPERS_DIR)/mappers_table.bin
 	@$(PYTHON3) external/fceumm-go/gen_ines_database.py $(MAPPERS_DIR)/ines_correct.bin
+	@$(PYTHON3) tools/gen_fceu_palettes_table.py $(SD_FOLDER)/bios/nes/palettes.bin
 	@$(CP) -O binary --only-section=.overlay_nes $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes.bin
 	@$(CP) -O binary --only-section=.overlay_nes_fceu $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes_fceu.bin
 	@$(CP) -O binary --only-section=.overlay_gb $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/gb.bin
@@ -1134,6 +1135,7 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		$(MAPPERS_SDPUSH) \
 		-- sdpush --file $(MAPPERS_DIR)/mappers_table.bin --dest-path "/cores/mappers/" \
 		-- sdpush --file $(MAPPERS_DIR)/ines_correct.bin --dest-path "/cores/mappers/" \
+		-- sdpush --file $(SD_FOLDER)/bios/nes/palettes.bin --dest-path "/bios/nes/" \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
 
