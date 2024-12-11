@@ -435,6 +435,9 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     rg_reset_logo_buffers();
 #endif
 
+    // Refresh watchdog here in case previous actions did not refresh it
+    wdog_refresh();
+
     if(strcmp(system_name, "Nintendo Gameboy") == 0) {
 #if FORCE_GNUBOY == 1
         if (rg_storage_copy_file_to_ram("/cores/gb.bin", (char *)&__RAM_EMU_START__)) {
@@ -612,6 +615,11 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     ahb_init();
     itc_init();
     ram_start = 0;
+#if SD_CARD == 1
+    // some pointers were freed, set them to null
+    clear_flash_alloc_metadata();
+    rg_reset_logo_buffers();
+#endif
 }
 
 void emulators_init()
