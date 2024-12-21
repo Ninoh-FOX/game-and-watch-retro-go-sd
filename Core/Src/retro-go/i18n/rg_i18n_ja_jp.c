@@ -164,6 +164,7 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Theme_CoverH = "Coverflow横",
     .s_Theme_CoverLightV = "CoverLight縦",
     .s_Theme_CoverLightH = "CoverLight横",
+    .s_Caching_Game = "ゲームをキャッシュ中",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

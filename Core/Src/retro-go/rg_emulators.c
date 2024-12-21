@@ -413,8 +413,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // Copy game data from SD card to flash if needed
     // dsk files are read from sd card, do not copy them in flash
     if ((newfile->system->game_data_type != NO_GAME_DATA) && (strcasecmp(newfile->ext, "dsk") !=0)) {
-        newfile->address = store_file_in_flash(newfile->path, &newfile->size,
-                                           newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
+        odroid_overlay_cache_file_in_flash(newfile);
         ROM_DATA = newfile->address;
         ROM_EXT = newfile->ext;
         ROM_DATA_LENGTH = newfile->size;

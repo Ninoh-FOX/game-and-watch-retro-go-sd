@@ -163,6 +163,7 @@ const lang_t lang_it_it LANG_DATA = {
     .s_Theme_CoverH = "Galleria Oriz",
     .s_Theme_CoverLightV = "Mini Vert",
     .s_Theme_CoverLightH = "Mini Oriz",
+    .s_Caching_Game = "Caching del gioco",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

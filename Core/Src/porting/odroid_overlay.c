@@ -43,6 +43,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 #include "gui.h"
 #include "rg_rtc.h"
 #include "rg_i18n.h"
+#include "gw_flash_alloc.h"
 #ifdef ENABLE_EMULATOR_MSX
 #include "main_msx.h"
 #endif
@@ -1407,6 +1408,89 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
     odroid_audio_mute(false);
 
     return r;
+}
+
+void odroid_overlay_draw_progress_bar(const char *header, uint8_t progress)
+{
+    // Replace defines with local variables
+    int progress_bar_height = 12;
+    int border_thickness = 2;
+    int padding = 6;
+    int box_width = 250;
+    int box_padding = 6;
+
+    // Compute dynamic dimensions
+    int text_height = i18n_get_text_height();
+    int header_height = header ? (text_height + padding) : 0;
+    int content_height = header_height + progress_bar_height + 2 * padding;
+
+    // Center the box on the screen
+    int box_x = (ODROID_SCREEN_WIDTH - box_width) / 2;
+    int box_y = (ODROID_SCREEN_HEIGHT - content_height) / 2;
+
+    // Compute the width of the progress bar
+    int bar_width = box_width - 2 * padding;
+
+    // Colors
+    int box_color = curr_colors->bg_c;
+    int border_color = curr_colors->dis_c;
+    int progress_color = curr_colors->sel_c;
+    int header_color = curr_colors->sel_c;
+    int header_bg_color = curr_colors->main_c;
+
+    // Draw header if provided
+    int y_offset = box_y;
+    if (header)
+    {
+        // Draw header background and border
+        odroid_overlay_draw_rect(box_x - border_thickness, y_offset - border_thickness, 
+                                 box_width + 2 * border_thickness, header_height + 2 * border_thickness, 
+                                 border_thickness, border_color);
+
+        odroid_overlay_draw_fill_rect(box_x, y_offset, box_width, header_height, header_bg_color);
+
+        // Draw header text
+        int text_x = box_x + box_padding;
+        int text_y = y_offset + (header_height - text_height) / 2;
+        i18n_draw_text_line(text_x, text_y, box_width - 2 * box_padding, header, header_color, header_bg_color, 0, curr_lang);
+
+        y_offset += header_height;
+    }
+
+    // Draw box background and border
+    odroid_overlay_draw_fill_rect(box_x, y_offset, box_width, content_height, box_color);
+    odroid_overlay_draw_rect(box_x - border_thickness, y_offset - border_thickness, 
+                             box_width + 2 * border_thickness, content_height + 2 * border_thickness, 
+                             border_thickness, border_color);
+
+    // Draw progress bar border
+    int bar_x = box_x + padding;
+    int bar_y = y_offset + (content_height - progress_bar_height) / 2;
+    odroid_overlay_draw_rect(bar_x, bar_y, bar_width, progress_bar_height, border_thickness, border_color);
+
+    // Draw filled portion of the progress bar
+    int filled_width = (progress * (bar_width - 2 * border_thickness)) / 100;
+    odroid_overlay_draw_fill_rect(bar_x + border_thickness, bar_y + border_thickness, 
+                                  filled_width, progress_bar_height - 2 * border_thickness, progress_color);
+}
+
+int odroid_overlay_cache_file_in_flash(retro_emulator_file_t *file)
+{
+    void progress_cb(uint8_t progress)
+    {
+        lcd_sleep_while_swap_pending();
+
+        odroid_overlay_draw_progress_bar(curr_lang->s_Caching_Game, progress);
+
+        // Show
+        lcd_swap();
+    }
+
+    file->address = store_file_in_flash(file->path, &file->size,
+                                        file->system->game_data_type == GAME_DATA_BYTESWAP_16,
+                                        progress_cb);
+
+    return 0;
 }
 
 #endif

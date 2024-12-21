@@ -163,6 +163,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Theme_CoverH = "Deslizante H",
     .s_Theme_CoverLightV = "Encadeado V",
     .s_Theme_CoverLightH = "Encadeado H",
+    .s_Caching_Game = "Armazenando em cache o jogo",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

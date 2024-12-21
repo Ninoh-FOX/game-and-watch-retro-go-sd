@@ -166,6 +166,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Theme_CoverH = "커버플로우 가로",
     .s_Theme_CoverLightV = "커버플로우 V",
     .s_Theme_CoverLightH = "커버플로우",
+    .s_Caching_Game = "게임 캐싱 중",
 
     //=====================================================================
 

@@ -168,6 +168,7 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Theme_CoverH = "水平滚动", // horizontal
     .s_Theme_CoverLightV = "垂直欢滚",
     .s_Theme_CoverLightH = "水平欢滚",
+    .s_Caching_Game = "正在缓存游戏",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

@@ -163,6 +163,7 @@ const lang_t lang_ru_ru LANG_DATA = {
     .s_Theme_CoverH = "Coverflow H",
     .s_Theme_CoverLightV = "CoverLight V",
     .s_Theme_CoverLightH = "CoverLight H",
+    .s_Caching_Game = "Кэширование игры",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================
