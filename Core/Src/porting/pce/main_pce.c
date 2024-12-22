@@ -186,10 +186,10 @@ static bool SaveState(const char *savePathName) {
         return false;
     }
     size_t written = fwrite(pce_save_buf, SAVE_STATE_BUFFER_SIZE, 1, file);
+    fclose(file);
     if (!written) {
         return false;
     }
-    fclose(file);
     sprintf(pce_log,"%08lX",PCE.ROM_CRC);
     return true;
 }
