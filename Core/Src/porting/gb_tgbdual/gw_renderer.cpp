@@ -63,6 +63,13 @@ int gw_renderer::check_pad()
    odroid_gamepad_state_t joystick;
    odroid_input_read_gamepad(&joystick);
 
+   if (joystick.values[ODROID_INPUT_VOLUME]) {
+      // if Pause button is pressed, ignore
+      // pressed keys as it is used for some
+      // shortcuts (contrasts, volume, ...)
+      return 0;
+   }
+
    int joystick_state = 0;
    if (joystick.values[ODROID_INPUT_LEFT]) {
       joystick_state |= 1<<6;
