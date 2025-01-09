@@ -902,7 +902,6 @@ void gui_draw_coverlight_v(retro_emulator_file_t *file, int cover_position)
     }
 }
 
-/* Sylver */
 void gui_draw_coverflow_h(tab_t *tab) //------------
 {
     retro_emulator_t *emu = (retro_emulator_t *)tab->arg;
