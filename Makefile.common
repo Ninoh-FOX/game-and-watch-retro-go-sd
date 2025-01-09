@@ -17,14 +17,14 @@ CHECK_TOOLS ?= 1
 # Set to 1 to enable 16MB external flash support. (deprecated, use EXTFLASH_SIZE_MB instead!)
 LARGE_FLASH ?= 0
 
-# Set to 1 to enable sd card support
-SD_CARD ?= 0
+# Set to 0 to disable sd card support
+SD_CARD ?= 1
 
 # Configure where data is stored in the external flash by
 # setting EXTFLASH_OFFSET. Useful if the first 1MB are to be preserved.
 EXTFLASH_OFFSET ?= 0
 
-SINGLE_FONT ?= 0
+SINGLE_FONT ?= 1
 
 # Configure Game & Watch target device mario|zelda
 ifneq ($(findstring flash,$(MAKECMDGOALS)),flash)
