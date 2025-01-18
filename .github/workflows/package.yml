@@ -10,38 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout du dépôt avec sous-modules
+      # 1. Checkout the repository with submodules
       - name: Checkout repository with submodules
         uses: actions/checkout@v3
         with:
-          submodules: true  # Cloner les sous-modules avec --recurse-submodules
+          submodules: true  # Clone submodules with --recurse-submodules
 
-      # 2. Installer les dépendances nécessaires (binutils, Python, etc.)
+      # 2. Install necessary dependencies (binutils, Python, etc.)
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y binutils-arm-none-eabi python3 python3-pip libhidapi-hidraw0 libftdi1 libftdi1-2 make git wget
 
-      # 3. Installer le compilateur ARM
+      # 3. Install the ARM compiler
       - name: Install ARM Compiler
         run: |
           wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
           tar -xjf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
-          sudo mv gcc-arm-none-eabi-10.3-2021.10 /opt/gcc-arm
-          export PATH=$PATH:/opt/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin
+          mv gcc-arm-none-eabi-10.3-2021.10 $HOME/
+          echo "$HOME/gcc-arm-none-eabi-10.3-2021.10/bin" >> $GITHUB_ENV
 
-      # 4. Installer les dépendances Python à partir de requirements.txt
+      # 4. Install Python dependencies from requirements.txt
       - name: Install Python dependencies
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements.txt
 
-      # 5. Générer l'archive de mise à jour
+      # 5. Generate the update archive
       - name: Generate gw_update.tar
         run: |
           make GNW_TARGET=zelda COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 build_update_archive
 
-      # 6. Télécharger le fichier généré comme artefact
+      # 6. Upload the generated file as an artifact
       - name: Upload gw_update.tar as artifact
         uses: actions/upload-artifact@v3
         with:
