@@ -41,7 +41,7 @@ jobs:
 
       # 6. Upload the generated file as an artifact
       - name: Upload gw_update.tar as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gw_update.tar
           path: gw_update.tar
