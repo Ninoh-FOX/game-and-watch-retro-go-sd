@@ -169,7 +169,6 @@ typedef struct
     const char *s_Confirm_Reboot;
 #endif
     const char *s_Second_Unit;
-    const char *s_Version;
     const char *s_Author;
     const char *s_Author_;
     const char *s_UI_Mod;

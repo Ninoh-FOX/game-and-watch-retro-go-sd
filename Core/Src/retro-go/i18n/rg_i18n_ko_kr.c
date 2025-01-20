@@ -150,7 +150,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Options = "설정",
     .s_Power_off = "전원 종료",
     .s_Quit_to_menu = "매뉴로 나가기",
-    .s_Retro_Go_options = "Retro-Go",
+    .s_Retro_Go_options = "Retro-Go SD",
 
     .s_Font = "Font",
     .s_Colors = "Colors",
@@ -198,7 +198,6 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Confirm_Reboot = "Confirm reboot?",
 #endif
     .s_Second_Unit = "초",
-    .s_Version = "Ver.",
     .s_Author = "By",
     .s_Author_ = "\t\t+",
     .s_UI_Mod = "인터페이스 모드",
@@ -207,7 +206,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Debug_menu = "디버그 매뉴",
     .s_Reset_settings = "모든 설정 초기화",
     //.s_Close                  = "닫기",
-    .s_Retro_Go = "Retro-Go 정보= ",
+    .s_Retro_Go = "%s 정보= ",
     .s_Confirm_Reset_settings = "모든 설정을 재설정 하시겠습니까?",
 
     .s_Flash_JEDEC_ID = "플래시 JEDEC ID",

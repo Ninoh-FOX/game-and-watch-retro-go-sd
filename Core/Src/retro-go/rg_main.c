@@ -10,7 +10,7 @@
 #include "main.h"
 #include "rg_emulators.h"
 #include "gui.h"
-#include "githash.h"
+#include "gittag.h"
 #include "gw_lcd.h"
 #include "gw_buttons.h"
 #include "gw_flash.h"
@@ -415,16 +415,16 @@ static void GLOBAL_DATA handle_debug_menu()
 
 static void GLOBAL_DATA handle_about_menu()
 {
+    char dialog_title[128];
     odroid_dialog_choice_t choices[] = {
-            {-1, curr_lang->s_Version, GIT_HASH, 0, NULL},
             {-1, curr_lang->s_Author, "ducalex", 0, NULL},
             {-1, curr_lang->s_Author_, "kbeckmann", 0, NULL},
             {-1, curr_lang->s_Author_, "stacksmashing", 0, NULL},
             {-1, curr_lang->s_Author_, "Sylver Bruneau", 0, NULL},
             {-1, curr_lang->s_Author_, "bzhxx", 0, NULL},
-            {-1, curr_lang->s_UI_Mod, "orzeus", 0, NULL},
             {-1, curr_lang->s_Author_, "Benjamin Sølberg", 0, NULL},
             {-1, curr_lang->s_Author_, "Brian Pugh", 0, NULL},
+            {-1, curr_lang->s_UI_Mod, "orzeus", 0, NULL},
             ODROID_DIALOG_CHOICE_SEPARATOR,
             {-1, curr_lang->s_Lang, (char *)curr_lang->s_LangAuthor, 0, NULL},
             ODROID_DIALOG_CHOICE_SEPARATOR,
@@ -434,7 +434,8 @@ static void GLOBAL_DATA handle_about_menu()
             {0, curr_lang->s_Close, "", 1, NULL},
             ODROID_DIALOG_CHOICE_LAST};
 
-    int sel = odroid_overlay_dialog(curr_lang->s_Retro_Go, choices, -1, &gui_redraw_callback);
+    snprintf(dialog_title, sizeof(dialog_title), curr_lang->s_Retro_Go, GIT_TAG);
+    int sel = odroid_overlay_dialog(dialog_title, choices, -1, &gui_redraw_callback);
     if (sel == 1)
     {
         // Reset settings

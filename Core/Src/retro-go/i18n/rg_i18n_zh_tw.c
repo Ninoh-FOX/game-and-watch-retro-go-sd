@@ -194,7 +194,6 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Confirm_Reboot = "您確定要重啟設備？",
 #endif
     .s_Second_Unit = "秒",
-    .s_Version = "版　　本：",
     .s_Author = "特別貢獻：",
     .s_Author_ = "　　　　：",
     .s_UI_Mod = "介面美化：",
@@ -203,7 +202,7 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Debug_menu = "∞ 調試選項",
     .s_Reset_settings = "≡ 恢復預設",
     //.s_Close                  = "Close",
-    .s_Retro_Go = "關於 Retro-Go",
+    .s_Retro_Go = "關於 %s",
     .s_Confirm_Reset_settings = "您確定要恢復所有設定數據？",
 
     .s_Flash_JEDEC_ID = "存儲 JEDEC ID",

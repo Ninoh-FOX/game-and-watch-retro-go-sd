@@ -200,7 +200,6 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Confirm_Reboot = "您确定要重启设备？",
 #endif
     .s_Second_Unit = "秒",
-    .s_Version = "版　　本：",
     .s_Author = "特别贡献：",
     .s_Author_ = "　　　　：",
     .s_UI_Mod = "界面美化：",
@@ -209,7 +208,7 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Debug_menu = "≈ 调试信息",
     .s_Reset_settings = "≡ 重置设定",
     //.s_Close                  = "Close",
-    .s_Retro_Go = "关于 Retro-Go",
+    .s_Retro_Go = "关于 %s",
     .s_Confirm_Reset_settings = "您确定要重置所有设定信息？",
 
     .s_Flash_JEDEC_ID = "存储 JEDEC ID",

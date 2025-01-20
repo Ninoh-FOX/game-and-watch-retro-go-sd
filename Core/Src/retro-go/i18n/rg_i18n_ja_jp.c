@@ -148,7 +148,7 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Options = "オプション",
     .s_Power_off = "電源オフ",
     .s_Quit_to_menu = "Menuに戻る",
-    .s_Retro_Go_options = "Retro-Go",
+    .s_Retro_Go_options = "Retro-Go SD",
 
     .s_Font = "フォント",
     .s_Colors = "色",
@@ -196,7 +196,6 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Confirm_Reboot = "再起動してよろしいですか？",
 #endif
     .s_Second_Unit = "s",
-    .s_Version = "Ver.",
     .s_Author = "By",
     .s_Author_ = "\t\t+",
     .s_UI_Mod = "UI Mod",
@@ -205,7 +204,7 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Debug_menu = "デバッグメニュー",
     .s_Reset_settings = "設定をリセット",
     //.s_Close                   = "閉じる",
-    .s_Retro_Go = "Retro-Goについて",
+    .s_Retro_Go = "%sについて",
     .s_Confirm_Reset_settings = "全ての設定をリセットしますか?",
 
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

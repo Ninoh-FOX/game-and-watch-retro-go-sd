@@ -11,7 +11,6 @@
 #include "odroid_colors.h"
 #include "odroid_overlay.h"
 #include "odroid_input.h"
-#include "githash.h"
 #include "config.h"
 #include "gui.h"
 #include "error_screens.h"

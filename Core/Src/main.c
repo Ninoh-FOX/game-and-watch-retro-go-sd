@@ -29,7 +29,7 @@
 #include "gw_sdcard.h"
 #include "gw_audio.h"
 #include "gw_linker.h"
-#include "githash.h"
+#include "gittag.h"
 #include "bitmaps.h"
 
 #include "odroid_colors.h"
@@ -147,7 +147,7 @@ __attribute__((optimize("-O0"))) void BSOD(BSOD_t fault, uint32_t pc, uint32_t l
 
   __disable_irq();
 
-  snprintf(msg, sizeof(msg), "FATAL EXCEPTION: %s %s\nPC=0x%08lx LR=0x%08lx\n", fault_list[fault], GIT_HASH, pc, lr);
+  snprintf(msg, sizeof(msg), "FATAL EXCEPTION: %s %s\nPC=0x%08lx LR=0x%08lx\n", fault_list[fault], GIT_TAG, pc, lr);
 
   lcd_sync();
   lcd_reset_active_buffer();

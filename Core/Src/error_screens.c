@@ -9,7 +9,7 @@
 #include "appid.h"
 #include "main.h"
 #include "gui.h"
-#include "githash.h"
+#include "gittag.h"
 #include "main.h"
 #include "gw_lcd.h"
 #include "gw_buttons.h"
@@ -63,5 +63,5 @@ void draw_error_screen(const char *main_line, const char *line_1, const char *li
     if (line_2) {
         odroid_overlay_draw_text_line(compute_x(line_2), 25 * 8, strlen(line_2) * 8, line_2, curr_colors->dis_c, curr_colors->bg_c);
     }
-    odroid_overlay_draw_text_line(ODROID_SCREEN_WIDTH - strlen(GIT_HASH) * 8 - 4, 29 * 8 - 4, strlen(GIT_HASH) * 8, GIT_HASH, curr_colors->sel_c, curr_colors->bg_c);
+    odroid_overlay_draw_text_line(ODROID_SCREEN_WIDTH - strlen(GIT_TAG) * 8 - 4, 29 * 8 - 4, strlen(GIT_TAG) * 8, GIT_TAG, curr_colors->sel_c, curr_colors->bg_c);
 }
