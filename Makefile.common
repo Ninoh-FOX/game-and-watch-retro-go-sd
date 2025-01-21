@@ -1073,6 +1073,7 @@ SD_FOLDER := sd_content
 CORES_DIR := $(SD_FOLDER)/cores
 MAPPERS_DIR := $(CORES_DIR)/mappers
 HOMEBREWS_FOLDER := $(SD_FOLDER)/roms/homebrew
+RELEASE_FOLDER := release
 
 $(MAPPERS_DIR)/mapper_%.bin: $(BUILD_DIR)/$(TARGET).elf
 	@$(CP) -O binary --only-section=.overlay_nes_fceu_$* $< $@
@@ -1088,6 +1089,7 @@ create_sd_folders:
 	$(V)mkdir -p $(SD_FOLDER)/bios/msx
 	$(V)mkdir -p $(SD_FOLDER)/bios/nes
 	$(V)mkdir -p $(HOMEBREWS_FOLDER)
+	$(V)mkdir -p $(RELEASE_FOLDER)
 
 create_sd_data: create_sd_folders $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash.bin
 	@$(PYTHON3) external/fceumm-go/gen_mappers_table.py $(MAPPERS_DIR)/mappers_table.bin
@@ -1139,8 +1141,8 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
 
-build_update_archive: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin create_sd_data
-	tar --format=ustar -cf gw_update.tar -C sd_content $$(find sd_content -mindepth 1 -maxdepth 1 -exec basename {} \;)
+release: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin create_sd_data
+	tar --format=ustar -cf $(RELEASE_FOLDER)/gw_update.tar -C sd_content $$(find sd_content -mindepth 1 -maxdepth 1 -exec basename {} \;)
 
 monitor:
 	@$(GNWMANAGER) monitor
@@ -1302,6 +1304,7 @@ clean:
 	$(V)$(ECHO) [ RM ] $(BUILD_DIR)
 	$(V)-rm -fR $(BUILD_DIR)
 	$(V)-rm -fR $(SD_FOLDER)
+	$(V)-rm -fR $(RELEASE_FOLDER)
 	$(V)-rm -fR Core/Src/porting/zelda3/zelda_assets.c
 	$(V)-rm -fR external/zelda3/tables/zelda3.sfc
 	$(V)$(MAKE) -C external/zelda3 clean

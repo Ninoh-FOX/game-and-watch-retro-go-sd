@@ -37,11 +37,4 @@ jobs:
       # 5. Generate the update archive
       - name: Generate gw_update.tar
         run: |
-          make -j$(nproc) GNW_TARGET=zelda COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 build_update_archive
-
-      # 6. Upload the generated file as an artifact
-      - name: Upload gw_update.tar as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: gw_update.tar
-          path: gw_update.tar
+          make -j$(nproc) GNW_TARGET=zelda COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 release
