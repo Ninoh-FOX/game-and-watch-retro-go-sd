@@ -79,19 +79,20 @@ jobs:
       # 6. Create a release and upload files
       - name: Create Release
         uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body: |
-            Automatic release for tag ${{ github.ref_name }}.
-          draft: false
-          prerelease: false
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Automatic release for tag ${{ github.ref }}.
+          draft: false
+          prerelease: false
 
       - name: Upload firmware_update.bin to Release
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
           asset_path: release/firmware_update.bin
@@ -100,6 +101,8 @@ jobs:
 
       - name: Upload gw_update.tar to Release
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
           asset_path: release/gw_update.tar
