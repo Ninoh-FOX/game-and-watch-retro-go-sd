@@ -79,6 +79,7 @@ jobs:
       # 6. Create a release and upload files
       - name: Create Release
         uses: actions/create-release@v1
+        id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
