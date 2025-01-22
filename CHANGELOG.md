@@ -7,7 +7,7 @@
 
 ## Prerequisites
 To install this version, make sure you have:
-- A Game & Watch console with a SD card reader and the [custom bootloader](https://github.com/sylverb/game-and-watch-bootloader) installed.
+- A Game & Watch console with a SD card reader and the [Game & Watch Bootloader](https://github.com/sylverb/game-and-watch-bootloader) installed.
 - A micro SD card formatted as FAT32 or exFAT.
 
 ## Installation Instructions
