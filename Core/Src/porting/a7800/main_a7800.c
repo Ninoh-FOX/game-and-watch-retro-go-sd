@@ -27,8 +27,10 @@
 
 #define ROM_BUFF_LENGTH 131200 // 128kB + header
 #define TIA_MAX_LENGTH 624
+#ifndef GNW_DISABLE_COMPRESSION
 // Memory to handle compressed roms
 static uint8_t rom_memory[ROM_BUFF_LENGTH];
+#endif
 
 static int videoWidth                  = 320;
 static int videoHeight                 = 240;
@@ -40,12 +42,80 @@ static uint8_t *pokeyMixBuffer         = NULL;
 
 static uint8_t save_buffer[32832];
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot) {
-    return 0;
+static bool LoadState(const char *savePathName) {
+    FILE *file = fopen(savePathName, "rb");
+    if (file == NULL) {
+        return false;
+    }
+
+    size_t read = fread(save_buffer, sizeof(save_buffer), 1, file);
+
+    fclose(file);
+
+    if ((save_buffer[0] == '7') &&
+        (save_buffer[1] == '8') &&
+        (save_buffer[2] == '0') &&
+        (save_buffer[3] == '0')) {
+            prosystem_Load((const char *)save_buffer+4);
+    } else {
+        return false;
+    }
+
+    return true;
 }
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot) {
-    return 0;
+static bool SaveState(const char *savePathName) {
+    save_buffer[0] = '7';
+    save_buffer[1] = '8';
+    save_buffer[2] = '0';
+    save_buffer[3] = '0';
+    int size = prosystem_Save((char *)save_buffer+4) + 4;
+
+    FILE *file = fopen(savePathName, "wb");
+    if (file == NULL) {
+        fclose(file);
+        return false;
+    }
+
+    size_t written = fwrite(save_buffer, size, 1, file);
+
+    fclose(file);
+    
+    if (!written) {
+        return false;
+    }
+
+    return true;
+}
+
+#define BLIT_VIDEO_BUFFER(typename_t, src, palette, width, height, pitch, dst) \
+   {                                                                           \
+      typename_t *surface = (typename_t*)dst;                                  \
+      uint32_t x, y;                                                           \
+                                                                               \
+      for(y = 0; y < height; y++)                                              \
+      {                                                                        \
+         typename_t *surface_ptr = surface;                                    \
+         const uint8_t *src_ptr  = src;                                        \
+                                                                               \
+         for(x = 0; x < width; x++)                                            \
+            *(surface_ptr++) = *(palette + *(src_ptr++));                      \
+                                                                               \
+         surface += pitch;                                                     \
+         src     += width;                                                     \
+      }                                                                        \
+   }
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+
+    uint8_t *buffer = maria_surface + ((maria_visibleArea.top - maria_displayArea.top) * Rect_GetLength(&maria_visibleArea));
+    BLIT_VIDEO_BUFFER(uint16_t, buffer, display_palette16, 320, 240, 320, lcd_get_active_buffer());
+
+    return lcd_get_active_buffer();
 }
 
 static size_t getromdata(unsigned char **data) {
@@ -67,24 +137,6 @@ static size_t getromdata(unsigned char **data) {
         return ROM_DATA_LENGTH;
     }
 }
-
-#define BLIT_VIDEO_BUFFER(typename_t, src, palette, width, height, pitch, dst) \
-   {                                                                           \
-      typename_t *surface = (typename_t*)dst;                                  \
-      uint32_t x, y;                                                           \
-                                                                               \
-      for(y = 0; y < height; y++)                                              \
-      {                                                                        \
-         typename_t *surface_ptr = surface;                                    \
-         const uint8_t *src_ptr  = src;                                        \
-                                                                               \
-         for(x = 0; x < width; x++)                                            \
-            *(surface_ptr++) = *(palette + *(src_ptr++));                      \
-                                                                               \
-         surface += pitch;                                                     \
-         src     += width;                                                     \
-      }                                                                        \
-   }
 
 static void display_ResetPalette(void)
 {
@@ -228,7 +280,7 @@ int app_main_a7800(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     common_emu_state.frame_time_10us = (uint16_t)(100000 / prosystem_frequency + 0.5f);
 
     odroid_system_init(APPID_A7800, tia_size*prosystem_frequency); // 31200Hz for PAL, 31440Hz for NTSC
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
 
     // Init Sound
     audio_start_playing(tia_size);
