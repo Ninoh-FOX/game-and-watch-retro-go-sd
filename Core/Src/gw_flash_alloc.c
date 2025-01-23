@@ -74,6 +74,10 @@ static void initialize_flash_pointer()
 
 static void update_flash_pointer(uint32_t new_pointer)
 {
+    if (metadata == NULL)
+    {
+        metadata = ram_calloc(1, sizeof(Metadata));
+    }
     metadata->flash_write_pointer = new_pointer;
     save_metadata();
 }
@@ -188,8 +192,16 @@ static bool circular_flash_write(const char *file_path,
     return true;
 }
 
+// Clear the metadata in RAM only, to call if ram has been freed
 void clear_flash_alloc_metadata() {
     metadata = NULL;
+}
+
+// Clear all metadata and delete the metadata file
+void flash_alloc_reset()
+{
+    metadata = NULL;
+    remove(METADATA_FILE);
 }
 
 uint8_t *store_file_in_flash(const char *file_path, uint32_t *file_size_p, bool byte_swap, void_progress_cb progress_cb)

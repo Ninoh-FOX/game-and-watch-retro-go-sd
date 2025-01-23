@@ -21,6 +21,9 @@
 #include "error_screens.h"
 #include "gw_malloc.h"
 #include "gw_linker.h"
+#if SD_CARD == 1
+#include "gw_flash_alloc.h"
+#endif
 
 #if !defined(COVERFLOW)
 #define COVERFLOW 0
@@ -442,6 +445,9 @@ static void GLOBAL_DATA handle_about_menu()
         if (odroid_overlay_confirm(curr_lang->s_Confirm_Reset_settings, false, &gui_redraw_callback) == 1)
         {
             odroid_settings_reset();
+            #if SD_CARD == 1
+                flash_alloc_reset();
+            #endif
             odroid_system_switch_app(0); // reset
         }
     }
