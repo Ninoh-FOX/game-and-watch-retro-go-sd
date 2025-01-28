@@ -17,7 +17,8 @@
 #define AMSTRAD_SAMPLE_RATE 22050
 #define AUDIO_BUFFER_LENGTH_AMSTRAD  (AMSTRAD_SAMPLE_RATE / AMSTRAD_FPS)
 
-#define AMSTRAD_DISK_EXTENSION "cdk"
+#define AMSTRAD_DISK_EXTENSION "dsk"
+#define AMSTRAD_DISK_EXTENSION_COMPRESSED "cdk"
 
 typedef enum
 {
@@ -193,9 +194,15 @@ static int selected_controls_index = 0;
 static char disk_name[128];
 static int selected_disk_index = 0;
 
+#if SD_CARD == 1
+char DISKA_NAME[256] = "\0";
+char DISKB_NAME[256] = "\0";
+char cart_name[16] = "\0";
+#else
 char DISKA_NAME[16] = "\0";
 char DISKB_NAME[16] = "\0";
 char cart_name[16] = "\0";
+#endif
 int emu_status;
 
 static odroid_gamepad_state_t previous_joystick_state;
@@ -262,11 +269,11 @@ static char *headerString = "AMST0000";
 //extern int cap32_save_state(fs_file_t *file);
 //extern int cap32_load_state(fs_file_t *file);
 
-bool saveAmstradState(char *savePathName, char *sramPathName, int slot) {
+bool saveAmstradState(const char *savePathName) {
     return 0;
 }
 
-bool loadAmstradState(char *savePathName, char *sramPathName, int slot) {
+bool loadAmstradState(const char *savePathName) {
     return true;
 }
 
@@ -528,6 +535,7 @@ static bool update_keyboard_cb(odroid_dialog_choice_t *option, odroid_dialog_eve
     return event == ODROID_DIALOG_ENTER;
 }
 
+#if 0
 static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
     char game_name[128];
@@ -564,6 +572,7 @@ static bool update_disk_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t
     strcpy(option->value, disk_file->name);
     return event == ODROID_DIALOG_ENTER;
 }
+#endif
 
 static bool update_palette_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
 {
@@ -637,12 +646,14 @@ static void createOptionMenu(odroid_dialog_choice_t *options)
     options[index].enabled = 1;
     options[index].update_cb = &update_palette_cb;
     index++;
+#if 0
     options[index].id = 100;
     options[index].label = curr_lang->s_amd_Change_Dsk;
     options[index].value = disk_name;
     options[index].enabled = 1;
     options[index].update_cb = &update_disk_cb;
     index++;
+#endif
     options[index].id = 100;
     options[index].label = curr_lang->s_amd_Controls;
     options[index].value = controls_name;
@@ -839,7 +850,7 @@ __attribute__((optimize("unroll-loops"))) static inline void blit_normal(uint8_t
     }
 }
 
-__attribute__((optimize("unroll-loops"))) static inline void screen_blit_nn(uint8_t *msx_fb, uint16_t *framebuffer /*int32_t dest_width, int32_t dest_height*/)
+__attribute__((optimize("unroll-loops"))) static inline void screen_blit_nn(uint8_t *fb, uint16_t *framebuffer /*int32_t dest_width, int32_t dest_height*/)
 {
     int src_x_offset = 0;
     int src_y_offset = 0;
@@ -858,7 +869,7 @@ __attribute__((optimize("unroll-loops"))) static inline void screen_blit_nn(uint
         {
             x2 = ((j * x_ratio) >> 16);
             y2 = ((i * y_ratio) >> 16);
-            uint8_t b2 = msx_fb[((y2 + src_y_offset) * image_buffer_current_width) + x2 + src_x_offset];
+            uint8_t b2 = fb[((y2 + src_y_offset) * image_buffer_current_width) + x2 + src_x_offset];
             framebuffer[((i + wpad) * WIDTH) + j + hpad] = palette565[b2];
         }
     }
@@ -1023,6 +1034,7 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     capmain(0, NULL);
     amstrad_set_audio_buffer((int8_t *)soundBuffer, sizeof(soundBuffer));
 
+#if SD_CARD != 1
     if (0 == strcmp(ACTIVE_FILE->ext, AMSTRAD_DISK_EXTENSION))
     {
         if (selected_disk_index == -1) {
@@ -1038,6 +1050,13 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, int8_t save_slot
             printf("attach_disk_buffer %d\n", disk_load_result);
         }
     }
+#else
+    if (0 == strcmp(ACTIVE_FILE->ext, AMSTRAD_DISK_EXTENSION))
+    {
+        disk_load_result = attach_disk(ACTIVE_FILE->path, 0);
+        printf("attach_disk %d\n", disk_load_result);
+    }
+#endif
 
     cap32_set_palette(selected_palette_index);
 

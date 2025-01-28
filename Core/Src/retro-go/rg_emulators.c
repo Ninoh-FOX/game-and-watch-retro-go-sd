@@ -587,13 +587,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 //#endif
     } else if(strcmp(system_name, "Amstrad CPC") == 0)  {
-#ifdef ENABLE_EMULATOR_AMSTRAD
+//#ifdef ENABLE_EMULATOR_AMSTRAD
       if (rg_storage_copy_file_to_ram("/cores/amstrad.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_AMSTRAD_BSS_START, 0x0, (size_t)&_OVERLAY_AMSTRAD_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_AMSTRAD_SIZE);
         app_main_amstrad(load_state, start_paused, save_slot);
       }
-#endif
+//#endif
     } else if(strcmp(system_name, "Zelda3") == 0)  {
 #ifdef ENABLE_HOMEBREW_ZELDA3
       if (rg_storage_copy_file_to_ram("/cores/zelda3.bin", (char *)&__RAM_EMU_START__)) {

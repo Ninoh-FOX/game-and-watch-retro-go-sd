@@ -12,7 +12,7 @@ endif
 
 ROMS_A2600 := 
 ROMS_A7800 := y
-ROMS_AMSTRAD := 
+ROMS_AMSTRAD := y
 ROMS_GB := y
 ROMS_GW := y
 ROMS_MD := y
