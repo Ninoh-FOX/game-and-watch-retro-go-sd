@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include "main.h"
 #include "crc32.h"
 #include "gw_flash.h"
@@ -36,7 +37,17 @@ static uint32_t flash_write_pointer = 0;
 
 static uint32_t compute_file_crc32(const char *file_path)
 {
-    return crc32_le(0, (const uint8_t *)file_path, strlen(file_path));
+    // Include file modification time or content in CRC32 calculation
+    struct stat file_stat;
+    if (stat(file_path, &file_stat) == 0) {
+        uint32_t crc = crc32_le(0, (const uint8_t *)file_path, strlen(file_path));
+        crc = crc32_le(crc, (const uint8_t *)&file_stat.st_mtime, sizeof(file_stat.st_mtime));
+        printf("file time %ld\n", file_stat.st_mtime);
+        return crc;
+    } else {
+        return crc32_le(0, (const uint8_t *)file_path, strlen(file_path));
+    }
+    return 0;
 }
 
 static uint32_t align_to_next_block(uint32_t pointer)

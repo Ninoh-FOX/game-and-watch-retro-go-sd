@@ -2,8 +2,8 @@
 
 ## What's New
 
-### Version 0.1.0
-- Initial release
+### Version 0.2.0
+- Improved flash caching system to refresh content if the cached file has been modified
 
 ## Prerequisites
 To install this version, make sure you have:

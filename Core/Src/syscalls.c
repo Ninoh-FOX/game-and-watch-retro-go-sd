@@ -4,6 +4,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
+#include <stdio.h>
 #include "rg_rtc.h"
 #include "ff.h"
 
@@ -182,6 +184,24 @@ off_t _lseek(int file, off_t offset, int whence) {
     return new_offset;
 }
 
+static time_t fatfs_to_unix_timestamp(WORD fdate, WORD ftime) {
+    struct tm t;
+
+    // Extract date
+    t.tm_year  = ((fdate >> 9) & 0x7F) + 80; // Years since 1900
+    t.tm_mon   = ((fdate >> 5) & 0x0F) - 1;  // Month (0-11)
+    t.tm_mday  = (fdate & 0x1F);             // Day (1-31)
+
+    // Extract time
+    t.tm_hour  = (ftime >> 11) & 0x1F;       // Hour (0-23)
+    t.tm_min   = (ftime >> 5) & 0x3F;        // Minute (0-59)
+    t.tm_sec   = (ftime & 0x1F) * 2;         // Second (0-59)
+
+    t.tm_isdst = -1; // Daylight Saving Time flag
+
+    return mktime(&t);
+}
+
 int _fstat(int file, struct stat *st) {
     file = file - FATFS_FD_OFFSET;
     if (file < 0 || file >= MAX_OPEN_FILES || !file_table[file].is_open) {
@@ -191,6 +211,48 @@ int _fstat(int file, struct stat *st) {
 
     st->st_size = f_size(&file_table[file].file);
     st->st_mode = S_IFREG;
+    // TODO : fill st->st_mtime if needed
+    return 0;
+}
+
+int stat(const char *path, struct stat *st) {
+    FILINFO fno;
+    FRESULT res;
+
+    // Use FatFs to get file information
+    res = f_stat(path, &fno);
+    if (res != FR_OK) {
+        // Map FatFs error to errno
+        switch (res) {
+            case FR_NO_FILE:
+            case FR_NO_PATH:
+                errno = ENOENT;  // No such file or directory
+                break;
+            case FR_DENIED:
+                errno = EACCES;  // Permission denied
+                break;
+            case FR_INVALID_NAME:
+                errno = EINVAL;  // Invalid path
+                break;
+            default:
+                errno = EIO;     // I/O error
+                break;
+        }
+        return -1;
+    }
+
+    // Populate the stat structure
+    st->st_size = fno.fsize;  // File size
+    if (fno.fattrib & AM_DIR) {
+        st->st_mode = S_IFDIR;  // Directory
+    } else {
+        st->st_mode = S_IFREG;  // Regular file
+    }
+
+    // Set modification time
+    st->st_mtime = fatfs_to_unix_timestamp(fno.fdate, fno.ftime);
+    printf("st->st_mtime = %lld\n", st->st_mtime);
+
     return 0;
 }
 
