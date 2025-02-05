@@ -45,6 +45,7 @@
 #define COVER_MAX_HEIGHT (100)
 #define COVER_MAX_WIDTH (186)
 
+static listbox_item_t *global_items = NULL;
 
 #if COVERFLOW != 0
 /* instances for JPEG decoder */
@@ -246,6 +247,11 @@ void gui_sort_list(tab_t *tab, int sort_mode)
 
 void gui_resize_list(tab_t *tab, int new_size)
 {
+    if (global_items == NULL)
+    {
+        // we will reuse the same buffer for all lists
+        global_items = ram_malloc(1000 * sizeof(listbox_item_t));
+    }
     int cur_size = tab->listbox.length;
 
     if (new_size == cur_size)
@@ -253,12 +259,11 @@ void gui_resize_list(tab_t *tab, int new_size)
 
     if (new_size == 0)
     {
-        rg_free(tab->listbox.items);
         tab->listbox.items = NULL;
     }
     else
     {
-        tab->listbox.items = rg_realloc(tab->listbox.items, new_size * sizeof(listbox_item_t));
+        tab->listbox.items = global_items; // We use the global buffer
         for (int i = cur_size; i < new_size; i++)
             memset(&tab->listbox.items[i], 0, sizeof(listbox_item_t));
     }
