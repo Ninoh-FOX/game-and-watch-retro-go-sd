@@ -106,6 +106,9 @@ MEMORY
 
   /* CORES */
   CORES    (x)   : ORIGIN = 0x0,                 LENGTH = 0xFFFFFFFF
+
+  /* RODATA */
+  RODATA   (x)   : ORIGIN = __EXTFLASH_BASE__,                 LENGTH = 0xFFFFFFFF
 }
 
 
@@ -360,7 +363,7 @@ INCLUDE build/fceumm_mappers.ld
   }
   _OVERLAY_MD_BSS_SIZE = SIZEOF(.overlay_md_bss);
 
-.overlay_a2600 __RAM_EMU_START__ : {
+  .overlay_a2600 __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_a2600_start__ = .;
     build/a2600/*.o (.data .data* .text .text* .rodata .rodata* .ARM.extab.text.* .ARM.exidx.text.*)
@@ -425,6 +428,15 @@ INCLUDE build/fceumm_mappers.ld
     ASSERT(ABSOLUTE(_OVERLAY_AMSTRAD_BSS_END) < __RAM_EMU_END__, "Error: AMSTRAD BSS overflow");
   }
   _OVERLAY_AMSTRAD_BSS_SIZE = SIZEOF(.overlay_amstrad_bss);
+
+  .rodata_zelda3 :
+  {
+    . = ALIGN(4);
+    . = ALIGN(4);
+    __rodata_zelda3_start__ = .;
+    build/zelda3/*.o (.rodata .rodata*)
+    __rodata_zelda3_end__ = .;
+  } > RODATA
 
   .overlay_zelda3 __RAM_EMU_START__ : {
     . = ALIGN(4);
@@ -546,13 +558,6 @@ INCLUDE build/fceumm_mappers.ld
     . = . + SIZEOF(.overlay_md_bss);
   } >RAM_EMU
 
-  ._ram (NOLOAD) :
-  {
-    . = ALIGN(4);
-    *(.emulator_data)
-    __ram_end__ = .;
-  } > RAM
-
   ._ahbram (NOLOAD) :
   {
     __ahbram_start__ = .;
@@ -657,6 +662,12 @@ INCLUDE build/fceumm_mappers.ld
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
   } >DTCMRAM AT> FLASH
+
+  ._flash_end :
+  {
+    . = ALIGN(4);
+    __flash_end__ = .;
+  } >FLASH
 
   /* Uninitialized data section */
   . = ALIGN(4);

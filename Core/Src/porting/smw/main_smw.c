@@ -7,6 +7,7 @@
 #include "gw_lcd.h"
 #include "gw_linker.h"
 #include "gw_buttons.h"
+#include "gw_malloc.h"
 #include "lzma.h"
 
 #include "stm32h7xx_hal.h"
@@ -15,8 +16,9 @@
 #include "rom_manager.h"
 #include "appid.h"
 #include "rg_i18n.h"
+#include "odroid_overlay.h"
 
-#include "smw/smw_assets.h"
+#include "smw_borders.h"
 
 #include "smw/assets/smw_assets.h"
 #include "smw/src/config.h"
@@ -63,7 +65,7 @@ static odroid_gamepad_state_t joystick;
 
 void NORETURN Die(const char *error) {
   printf("Error: %s\n", error);
-  assert(!"Die in SMW");
+  abort();
 }
 
 
@@ -90,8 +92,15 @@ static bool VerifyAssetsFile(const uint8 *data, size_t length) {
 }
 
 static void LoadAssets() {
+  const uint8_t *smw_assets;
+  uint32_t smw_assets_length = 0;
+  smw_assets = (const uint8_t *)odroid_overlay_cache_file_in_flash("/roms/homebrew/smw_assets.dat", &smw_assets_length, false);
+
+  if (smw_assets == NULL)
+    Die("Missing /roms/homebrew/smw_assets.dat file");
+
   if (!VerifyAssetsFile(smw_assets, smw_assets_length))
-    Die("Mismatching assets file - Please re run 'python assets/restool.py'");
+    Die("Mismatching /roms/homebrew/smw_assets.dat file");
 
   // Load some assets with assets in extflash
   LoadAssetsChunk(smw_assets_length, smw_assets);
@@ -102,7 +111,6 @@ static void LoadAssets() {
       assert(!"Missing asset");
     }
   }
-
 }
 
 MemBlk FindInAssetArray(int asset, int idx) {
@@ -116,6 +124,38 @@ const uint8 *FindPtrInAsset(int asset, uint32 addr) {
 
 void RtlDrawPpuFrame(uint8 *pixel_buffer, size_t pitch, uint32 render_flags) {
   g_rtl_game_info->draw_ppu_frame();
+}
+
+#define OVERLAY_COLOR_565 0xFFFF
+#define BORDER_COLOR_565 0x1082  // Dark Dark Gray
+
+#define BORDER_HEIGHT 240
+#define BORDER_WIDTH 32
+
+#define BORDER_Y_OFFSET (((GW_LCD_HEIGHT) - (BORDER_HEIGHT)) / 2)
+
+void draw_border_smw(pixel_t * fb){
+    uint32_t start, bit_index;
+    start = 0;
+    bit_index = 0;
+    for(uint16_t i=0; i < BORDER_HEIGHT; i++){
+        uint32_t offset = start + i * GW_LCD_WIDTH;
+        for(uint8_t j=0; j < BORDER_WIDTH; j++){
+            fb[offset + j] = 
+                (IMG_BORDER_LEFT_SMW[bit_index >> 3] << (bit_index & 0x07)) & 0x80 ? BORDER_COLOR_565 : 0x0000;
+            bit_index++;
+        }
+    }
+    start = 32 + 256;
+    bit_index = 0;
+    for(uint16_t i=0; i < BORDER_HEIGHT; i++){
+        uint32_t offset = start + i * GW_LCD_WIDTH;
+        for(uint8_t j=0; j < BORDER_WIDTH; j++){
+            fb[offset + j] = 
+                (IMG_BORDER_RIGHT_SMW[bit_index >> 3] << (bit_index & 0x07)) & 0x80 ? BORDER_COLOR_565 : 0x0000;
+            bit_index++;
+        }
+    }
 }
 
 static void DrawPpuFrame(uint16_t* framebuffer) {
@@ -154,31 +194,74 @@ static void HandleCommand(uint32 j, bool pressed) {
   }*/
 }
 
+static FILE *savestate_file;
+static char savestate_path[255];
 
 void writeSaveStateInitImpl() {
+  savestate_file = fopen(savestate_path, "wb");
 }
 
 void writeSaveStateImpl(uint8_t* data, size_t size) {
+  if (savestate_file)
+    fwrite(data, 1, size, savestate_file);
 }
 
 void writeSaveStateFinalizeImpl() {
+  if (savestate_file) {
+    fclose(savestate_file);
+    savestate_file = NULL;
+  }
 }
 
 void readSaveStateInitImpl() {
+  savestate_file = fopen(savestate_path, "rb");
 }
 void readSaveStateImpl(uint8_t* data, size_t size) {
+ if (savestate_file != NULL) {
+    wdog_refresh();
+    fread(data, 1, size, savestate_file);
+  } else {
+    memset(data, 0, size);
+  }
 }
 void readSaveStateFinalizeImpl() {
+  if (savestate_file) {
+    fclose(savestate_file);
+    savestate_file = NULL;
+  }
 }
 
 static bool smw_system_SaveState(char *savePathName, char *sramPathName, int slot) {
   printf("Saving state...\n");
+  odroid_audio_mute(true);
+
+  // Save state
+  strcpy(savestate_path, savePathName);
+  RtlSaveLoad(kSaveLoad_Save, 0);
+
+  odroid_audio_mute(false);
   return true;
 }
 
 static bool smw_system_LoadState(char *savePathName, char *sramPathName, int slot) {
   printf("Loading state...\n");
+  odroid_audio_mute(true);
+
+  // Load state
+  strcpy(savestate_path, savePathName);
+  RtlSaveLoad(kSaveLoad_Load, 0);
+
+  odroid_audio_mute(false);
   return true;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    DrawPpuFrame(lcd_get_active_buffer());
+    return lcd_get_active_buffer();
 }
 
 static void smw_sound_start()
@@ -214,9 +297,11 @@ static bool reset_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event
 /* Main */
 int app_main_smw(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
+  ram_start = (uint32_t)&_OVERLAY_SMW_BSS_END;
+
   printf("SMW start\n");
   odroid_system_init(APPID_SMW, SMW_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&smw_system_LoadState, &smw_system_SaveState, NULL);
+  odroid_system_emu_init(&smw_system_LoadState, &smw_system_SaveState, &Screenshot);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;

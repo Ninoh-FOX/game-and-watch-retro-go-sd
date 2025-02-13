@@ -454,7 +454,7 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // Copy game data from SD card to flash if needed
     // dsk files are read from sd card, do not copy them in flash
     if ((newfile->system->game_data_type != NO_GAME_DATA) && (strcasecmp(newfile->ext, "dsk") !=0)) {
-        odroid_overlay_cache_file_in_flash(newfile);
+        newfile->address = odroid_overlay_cache_file_in_flash(newfile->path, &(newfile->size), newfile->system->game_data_type == GAME_DATA_BYTESWAP_16);
         ROM_DATA = newfile->address;
         ROM_EXT = newfile->ext;
         ROM_DATA_LENGTH = newfile->size;
@@ -594,22 +594,6 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         app_main_amstrad(load_state, start_paused, save_slot);
       }
 //#endif
-    } else if(strcmp(system_name, "Zelda3") == 0)  {
-#ifdef ENABLE_HOMEBREW_ZELDA3
-      if (rg_storage_copy_file_to_ram("/cores/zelda3.bin", (char *)&__RAM_EMU_START__)) {
-        memset(&_OVERLAY_ZELDA3_BSS_START, 0x0, (size_t)&_OVERLAY_ZELDA3_BSS_SIZE);
-        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_ZELDA3_SIZE);
-        app_main_zelda3(load_state, start_paused, save_slot);
-      }
-#endif
-    } else if(strcmp(system_name, "SMW") == 0)  {
-#ifdef ENABLE_HOMEBREW_SMW
-      if (rg_storage_copy_file_to_ram("/cores/smw.bin", (char *)&__RAM_EMU_START__)) {
-        memset(&_OVERLAY_SMW_BSS_START, 0x0, (size_t)&_OVERLAY_SMW_BSS_SIZE);
-        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_SMW_SIZE);
-        app_main_smw(load_state, start_paused, save_slot);
-      }
-#endif
     } else if(strcmp(system_name, "Philips Vectrex") == 0)  {
 #ifdef ENABLE_EMULATOR_VIDEOPAC
       if (rg_storage_copy_file_to_ram("/cores/videopac.bin", (char *)&__RAM_EMU_START__)) {
@@ -619,11 +603,20 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
 #endif
     } else if(strcmp(system_name, "Homebrew") == 0)  {
-//#ifdef ENABLE_EMULATOR_CELESTE
       if (rg_storage_copy_file_to_ram(ACTIVE_FILE->path, (char *)&__RAM_EMU_START__)) {
-        memset(&_OVERLAY_CELESTE_BSS_START, 0x0, (size_t)&_OVERLAY_CELESTE_BSS_SIZE);
-        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_CELESTE_SIZE);
-        app_main_celeste(load_state, start_paused, save_slot);
+        if (strcmp(newfile->name,"celeste") == 0) {
+            memset(&_OVERLAY_CELESTE_BSS_START, 0x0, (size_t)&_OVERLAY_CELESTE_BSS_SIZE);
+            SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_CELESTE_SIZE);
+            app_main_celeste(load_state, start_paused, save_slot);
+/*        } else if (strcmp(newfile->name,"Zelda 3") == 0) {
+            memset(&_OVERLAY_ZELDA3_BSS_START, 0x0, (size_t)&_OVERLAY_ZELDA3_BSS_SIZE);
+            SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_ZELDA3_SIZE);
+            app_main_zelda3(load_state, start_paused, save_slot);*/
+        } else if (strcmp(newfile->name,"Super Mario World") == 0) {
+            memset(&_OVERLAY_SMW_BSS_START, 0x0, (size_t)&_OVERLAY_SMW_BSS_SIZE);
+            SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_SMW_SIZE);
+            app_main_smw(load_state, start_paused, save_slot);
+        }
 #if 0
         uint32_t* ram_start = (uint32_t *)&__RAM_EMU_START__;
         uint32_t initial_sp = ram_start[0];
@@ -637,7 +630,6 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         app_entry();
 #endif
       }
-//#endif
     } else if(strcmp(system_name, "Tamagotchi") == 0) {
 #ifdef ENABLE_EMULATOR_TAMA
       if (rg_storage_copy_file_to_ram("/cores/tama.bin", (char *)&__RAM_EMU_START__)) {

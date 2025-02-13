@@ -35,6 +35,12 @@ function print_usage {
 	echo -e "$symbol\t$usage / $length\t($free bytes free ($freehr MB))"
 }
 
+function print_simple_usage {
+	symbol=$1
+	usage=$(get_section_length $symbol)
+	echo -e "$symbol\t$usage"
+}
+
 print_usage itcram   __ITCMRAM_LENGTH__
 
 # DTCRAM is a special case
@@ -59,6 +65,7 @@ print_usage ram_emu_a2600  __RAM_EMU_LENGTH__
 print_usage ram_emu_a7800  __RAM_EMU_LENGTH__
 print_usage ram_emu_amstrad  __RAM_EMU_LENGTH__
 print_usage ram_emu_zelda3  __RAM_EMU_LENGTH__
+print_simple_usage rodata_zelda3
 print_usage ram_emu_smw  __RAM_EMU_LENGTH__
 print_usage ram_emu_videopac  __RAM_EMU_LENGTH__
 print_usage ram_emu_celeste  __RAM_EMU_LENGTH__

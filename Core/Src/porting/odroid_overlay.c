@@ -1472,10 +1472,11 @@ void odroid_overlay_draw_progress_bar(const char *header, uint8_t progress)
                                   filled_width, progress_bar_height - 2 * border_thickness, progress_color);
 }
 
-int odroid_overlay_cache_file_in_flash(retro_emulator_file_t *file)
+uint8_t *odroid_overlay_cache_file_in_flash(const char *file_path, uint32_t *file_size_p, bool byte_swap)
 {
     void progress_cb(uint8_t progress)
     {
+        printf("Caching progress: %d%%\n", progress);
         lcd_sleep_while_swap_pending();
 
         odroid_overlay_draw_progress_bar(curr_lang->s_Caching_Game, progress);
@@ -1484,11 +1485,9 @@ int odroid_overlay_cache_file_in_flash(retro_emulator_file_t *file)
         lcd_swap();
     }
 
-    file->address = store_file_in_flash(file->path, &file->size,
-                                        file->system->game_data_type == GAME_DATA_BYTESWAP_16,
-                                        progress_cb);
-
-    return 0;
+    return store_file_in_flash(file_path, file_size_p,
+                               byte_swap,
+                               progress_cb);
 }
 
 #endif

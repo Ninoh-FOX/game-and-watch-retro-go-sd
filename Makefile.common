@@ -897,9 +897,6 @@ endef
 # generate all zelda3 object prerequisite rules
 $(eval $(foreach obj,$(ZELDA3_C_SOURCES),$(call zelda3_obj_prereq_gen,$(obj))))
 
-Core/Src/porting/zelda3/zelda_assets.c: scripts/zelda3/update_assets.py external/zelda3/tables/zelda3_assets.dat | $(BUILD_DIR)
-	$(PYTHON3) ./scripts/zelda3/update_assets.py
-
 ifneq ("$(ZELDA3_LOCALIZED_ROM)","")
 external/zelda3/tables/zelda3_assets.dat: roms/zelda3/zelda3.sfc $(ZELDA3_LOCALIZED_ROM) | $(BUILD_DIR)
 	$(ECHO) "Extracting dialogues from localized ROM: $<"
@@ -968,9 +965,6 @@ endef
 
 # generate all smw object prerequisite rules
 $(eval $(foreach obj,$(SMW_C_SOURCES),$(call smw_obj_prereq_gen,$(obj))))
-
-Core/Src/porting/smw/smw_assets.c: scripts/smw/update_assets.py external/smw/smw_assets.dat | $(BUILD_DIR)
-	$(PYTHON3) ./scripts/smw/update_assets.py
 
 external/smw/smw_assets.dat: roms/smw/smw.sfc | $(BUILD_DIR)
 	cp $< external/smw/assets/smw.sfc
@@ -1111,6 +1105,7 @@ create_sd_data: create_sd_folders $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash
 	@$(CP) -O binary --only-section=.overlay_videopac $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/videopac.bin
 	@$(CP) -O binary --only-section=.overlay_tama $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/tama.bin
 	@$(CP) -O binary --only-section=.overlay_celeste $(BUILD_DIR)/$(TARGET).elf $(HOMEBREWS_FOLDER)/celeste.bin
+	@$(CP) -O binary --only-section=.overlay_smw $(BUILD_DIR)/$(TARGET).elf "$(HOMEBREWS_FOLDER)/Super Mario World.bin"
 	@$(CP) -O binary --only-section=.overlay_graphics $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/logo.bin
 	@$(V)cp build/gw_retro_go_intflash.bin $(SD_FOLDER)/update_bank2.bin
 
@@ -1134,7 +1129,7 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		-- sdpush --file $(CORES_DIR)/tama.bin --dest-path "/cores/" \
 		-- sdpush --file $(CORES_DIR)/logo.bin --dest-path "/cores/" \
 		-- sdpush --file $(HOMEBREWS_FOLDER)/celeste.bin --dest-path "/roms/homebrew/" \
-		$(MAPPERS_SDPUSH) \
+		-- sdpush --file "$(HOMEBREWS_FOLDER)/Super Mario World.bin" --dest-path "/roms/homebrew/" \
 		-- sdpush --file $(MAPPERS_DIR)/mappers_table.bin --dest-path "/cores/mappers/" \
 		-- sdpush --file $(MAPPERS_DIR)/ines_correct.bin --dest-path "/cores/mappers/" \
 		-- sdpush --file $(SD_FOLDER)/bios/nes/palettes.bin --dest-path "/bios/nes/" \
@@ -1316,11 +1311,7 @@ clean:
 	$(V)-rm -fR $(BUILD_DIR)
 	$(V)-rm -fR $(SD_FOLDER)
 	$(V)-rm -fR $(RELEASE_FOLDER)
-	$(V)-rm -fR Core/Src/porting/zelda3/zelda_assets.c
-	$(V)-rm -fR external/zelda3/tables/zelda3.sfc
 	$(V)$(MAKE) -C external/zelda3 clean
-	$(V)-rm -fR Core/Src/porting/smw/smw_assets.c
-	$(V)-rm -fR external/smw/assets/smw.sfc
 	$(V)$(MAKE) -C external/smw clean
 	$(V)@$(MAKE) -C external/firmware_update clean
 

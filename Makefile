@@ -842,13 +842,10 @@ $(CORE_ZELDA3)/tagalong.c \
 $(CORE_ZELDA3)/third_party/opus-1.3.1-stripped/opus_decoder_amalgam.c \
 $(CORE_ZELDA3)/tile_detect.c \
 $(CORE_ZELDA3)/overlord.c \
-Core/Src/porting/zelda3/main_zelda3.c \
-Core/Src/porting/zelda3/zelda_assets.c
+Core/Src/porting/zelda3/main_zelda3.c
 endif
 
 SMW_C_SOURCES = 
-
-ifneq ("$(wildcard roms/smw/smw.sfc)","")
 CORE_SMW = external/smw
 SMW_C_SOURCES += \
 $(CORE_SMW)/src/smw_rtl.c \
@@ -877,9 +874,7 @@ $(CORE_SMW)/src/snes/snes.c \
 $(CORE_SMW)/src/snes/cpu.c \
 $(CORE_SMW)/src/snes/cart.c \
 $(CORE_SMW)/src/tracing.c \
-Core/Src/porting/smw/main_smw.c \
-Core/Src/porting/smw/smw_assets.c
-endif
+Core/Src/porting/smw/main_smw.c
 
 GNUBOY_C_INCLUDES +=  \
 -ICore/Inc \

@@ -42,7 +42,6 @@ static uint32_t compute_file_crc32(const char *file_path)
     if (stat(file_path, &file_stat) == 0) {
         uint32_t crc = crc32_le(0, (const uint8_t *)file_path, strlen(file_path));
         crc = crc32_le(crc, (const uint8_t *)&file_stat.st_mtime, sizeof(file_stat.st_mtime));
-        printf("file time %ld\n", file_stat.st_mtime);
         return crc;
     } else {
         return crc32_le(0, (const uint8_t *)file_path, strlen(file_path));

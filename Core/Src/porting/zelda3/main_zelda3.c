@@ -7,6 +7,7 @@
 #include "gw_lcd.h"
 #include "gw_linker.h"
 #include "gw_buttons.h"
+#include "gw_malloc.h"
 #include "lzma.h"
 #include "bq24072.h"
 
@@ -17,7 +18,7 @@
 #include "appid.h"
 #include "rg_i18n.h"
 
-#include "zelda3/zelda_assets.h"
+#include "zelda3_borders.h"
 
 #include "zelda3/assets.h"
 #include "zelda3/config.h"
@@ -49,12 +50,7 @@ static uint32 renderedFrameCtr = 0;
 #endif /* LIMIT_30FPS */
 #define ZELDA3_AUDIO_BUFFER_LENGTH 534  // When limited to 30 fps, audio is generated for two frames at once
 
-int16_t audiobuffer_zelda3[ZELDA3_AUDIO_BUFFER_LENGTH];
-
-uint8_t savestateBuffer[4096];
-uint16_t bufferCount = 0;
-uint32_t dstPos = 0;
-uint8_t* save_address;
+static int16_t audiobuffer_zelda3[ZELDA3_AUDIO_BUFFER_LENGTH];
 
 const uint8 *g_asset_ptrs[kNumberOfAssets];
 uint32 g_asset_sizes[kNumberOfAssets];
@@ -66,7 +62,7 @@ static odroid_gamepad_state_t joystick;
 
 void NORETURN Die(const char *error) {
   printf("Error: %s\n", error);
-  assert(!"Die in zelda3");
+  abort();
 }
 
 
@@ -84,13 +80,16 @@ static void LoadAssetsChunk(size_t length, uint8* data) {
 }
 
 static void LoadAssets() {
-
-  uint8 *data = (uint8 *)zelda_assets;
+  uint32_t zelda_assets_length;
+  uint8 *zelda_assets = odroid_overlay_cache_file_in_flash("/roms/homebrew/zelda3_assets.dat", &zelda_assets_length, false);;
   static const char kAssetsSig[] = { kAssets_Sig };
 
+  if (zelda_assets == NULL)
+    Die("Missing /roms/homebrew/zelda3_assets.dat file");
+
   if (zelda_assets_length < 16 + 32 + 32 + 8 + kNumberOfAssets * 4 ||
-      memcmp(data, kAssetsSig, 48) != 0 ||
-      *(uint32*)(data + 80) != kNumberOfAssets)
+      memcmp(zelda_assets, kAssetsSig, 48) != 0 ||
+      *(uint32*)(zelda_assets + 80) != kNumberOfAssets)
     Die("Invalid assets file");
 
   // Load some assets with assets in extflash
@@ -102,13 +101,42 @@ static void LoadAssets() {
       assert(!"Missing asset");
     }
   }
-
 }
 
 MemBlk FindInAssetArray(int asset, int idx) {
   return FindIndexInMemblk((MemBlk) { g_asset_ptrs[asset], g_asset_sizes[asset] }, idx);
 }
 
+#define BORDER_COLOR_565 0x1082  // Dark Dark Gray
+
+#define BORDER_HEIGHT 240
+#define BORDER_WIDTH 32
+
+#define BORDER_Y_OFFSET (((GW_LCD_HEIGHT) - (BORDER_HEIGHT)) / 2)
+
+void draw_border_zelda3(pixel_t * fb){
+    uint32_t start, bit_index;
+    start = 0;
+    bit_index = 0;
+    for(uint16_t i=0; i < BORDER_HEIGHT; i++){
+        uint32_t offset = start + i * GW_LCD_WIDTH;
+        for(uint8_t j=0; j < BORDER_WIDTH; j++){
+            fb[offset + j] = 
+                (IMG_BORDER_ZELDA3[bit_index >> 3] << (bit_index & 0x07)) & 0x80 ? BORDER_COLOR_565 : 0x0000;
+            bit_index++;
+        }
+    }
+    start = 32 + 256;
+    bit_index = 0;
+    for(uint16_t i=0; i < BORDER_HEIGHT; i++){
+        uint32_t offset = start + i * GW_LCD_WIDTH;
+        for(uint8_t j=0; j < BORDER_WIDTH; j++){
+            fb[offset + j] = 
+                (IMG_BORDER_ZELDA3[bit_index >> 3] << (bit_index & 0x07)) & 0x80 ? BORDER_COLOR_565 : 0x0000;
+            bit_index++;
+        }
+    }
+}
 
 int8_t current_scaling = ODROID_DISPLAY_SCALING_COUNT+1;
 static void DrawPpuFrame(uint16_t* framebuffer) {
@@ -181,29 +209,72 @@ static void HandleCommand(uint32 j, bool pressed) {
   }*/
 }
 
+static FILE *savestate_file;
+static char savestate_path[255];
+
 void writeSaveStateInitImpl() {
+  savestate_file = fopen(savestate_path, "wb");
 }
 void writeSaveStateImpl(uint8_t* data, size_t size) {
+  if (savestate_file)
+    fwrite(data, 1, size, savestate_file);
 }
 void writeSaveStateFinalizeImpl() {
+  if (savestate_file) {
+    fclose(savestate_file);
+    savestate_file = NULL;
+  }
 }
 
 void readSaveStateInitImpl() {
+  savestate_file = fopen(savestate_path, "rb");
 }
-
 void readSaveStateImpl(uint8_t* data, size_t size) {
+ if (savestate_file != NULL) {
+    wdog_refresh();
+    fread(data, 1, size, savestate_file);
+  } else {
+    memset(data, 0, size);
+  }
 }
 void readSaveStateFinalizeImpl() {
+  if (savestate_file) {
+    fclose(savestate_file);
+    savestate_file = NULL;
+  }
 }
 
 static bool zelda3_system_SaveState(char *savePathName, char *sramPathName, int slot) {
   printf("Saving state...\n");
+  odroid_audio_mute(true);
+
+  // Save state
+  strcpy(savestate_path, savePathName);
+  RtlSaveLoad(kSaveLoad_Save, 0);
+
+  odroid_audio_mute(false);
   return true;
 }
 
 static bool zelda3_system_LoadState(char *savePathName, char *sramPathName, int slot) {
   printf("Loading state...\n");
+  odroid_audio_mute(true);
+
+  // Load state
+  strcpy(savestate_path, savePathName);
+  RtlSaveLoad(kSaveLoad_Load, 0);
+
+  odroid_audio_mute(false);
   return true;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+    DrawPpuFrame(lcd_get_active_buffer());
+    return lcd_get_active_buffer();
 }
 
 static void zelda3_sound_start()
@@ -239,9 +310,10 @@ static bool reset_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event
 /* Main */
 int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
+  ram_start = (uint32_t)&_OVERLAY_ZELDA3_BSS_END;
   printf("Zelda3 start\n");
   odroid_system_init(APPID_ZELDA3, ZELDA3_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, NULL);
+  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;
