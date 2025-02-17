@@ -2,8 +2,9 @@
 
 ## What's New
 
-### Version 0.3.0
-- Add Super Mario World port support, smw_assets.dat needed (not provided for copyright reasons). Check README.md to know how to generate it.
+### Version 0.3.1
+- Fix Colecovision not working
+- Add Zelda 3 port support, zelda3_assets.dat needed (not provided for copyright reasons). Check README.md to know how to generate it.
 
 ## Prerequisites
 To install this version, make sure you have:
