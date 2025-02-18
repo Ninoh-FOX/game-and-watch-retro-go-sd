@@ -2,9 +2,9 @@
 
 ## What's New
 
-### Version 0.3.1
-- Fix Colecovision not working
-- Add Zelda 3 port support, zelda3_assets.dat needed (not provided for copyright reasons). Check README.md to know how to generate it.
+### Version 0.3.2
+- Fix Zelda 3 crash when entering sanctuary
+- Add support for different languages in Zelda 3 (check README.md file for instructions to buld assets file with various languages). Current language can be set in in-game options menu.
 
 ## Prerequisites
 To install this version, make sure you have:
