@@ -40,9 +40,10 @@ static uint32_t flash_write_pointer = 0;
 typedef struct
 {
     unsigned int external_flash_size : 24;
+    unsigned int must_be_4: 4;
     unsigned int is_mario : 1;
     unsigned int is_zelda : 1;
-    unsigned int _padding : 6;  // Padding to align to byte boundary
+    unsigned int _padding : 2;  // Padding to align to byte boundary
 } Bank1FirmwareMetadata;
 #pragma pack(pop)
 
@@ -71,7 +72,11 @@ static uint32_t align_to_next_block(uint32_t pointer)
 static void load_bank1_firmware_metadata()
 {
     // Load firmware data from bank1 firmware's HDMI-CEC field in vector table.
-    bank1_firmware_metadata = *(Bank1FirmwareMetadata*)(0x08001B8);
+    bank1_firmware_metadata = *(Bank1FirmwareMetadata*)(0x080001B8);
+    if(bank1_firmware_metadata.must_be_4 != 4){
+        // This data came from an uncontrolled source; 0 everything out.
+        bank1_firmware_metadata = (Bank1FirmwareMetadata){0};
+    }
 }
 
 static uint32_t get_extflash_base()
