@@ -28,12 +28,25 @@ typedef struct
 typedef struct
 {
     FileMetadata files[MAX_FILES];
-    uint32_t flash_write_pointer;
+    uint32_t flash_write_pointer;  // A value like 0x9YYYYYYY; the current location we should write to.
+    uint32_t flash_write_base;     // A value like 0x9YYYYYYY; the starting point we are allowed to write to.
     uint16_t last_written_slot_index;
 } Metadata;
 
 static Metadata *metadata = NULL;
 static uint32_t flash_write_pointer = 0;
+
+#pragma pack(push, 1)
+typedef struct
+{
+    unsigned int external_flash_size : 24;
+    unsigned int is_mario : 1;
+    unsigned int is_zelda : 1;
+    unsigned int _padding : 6;  // Padding to align to byte boundary
+} Bank1FirmwareMetadata;
+#pragma pack(pop)
+
+Bank1FirmwareMetadata bank1_firmware_metadata;
 
 static uint32_t compute_file_crc32(const char *file_path)
 {
@@ -55,15 +68,50 @@ static uint32_t align_to_next_block(uint32_t pointer)
     return (pointer + block_size - 1) & ~(block_size - 1);
 }
 
+static void load_bank1_firmware_metadata()
+{
+    // Load firmware data from bank1 firmware's HDMI-CEC field in vector table.
+    bank1_firmware_metadata = *(Bank1FirmwareMetadata*)(0x08001B8);
+}
+
+static uint32_t get_extflash_base()
+{
+    load_bank1_firmware_metadata();
+    return align_to_next_block(((uint32_t)&__EXTFLASH_BASE__) + (bank1_firmware_metadata.external_flash_size << 12));
+}
+
 static void load_metadata()
 {
+    if (metadata == NULL)
+    {
+        metadata = ram_calloc(1, sizeof(Metadata));
+    }
+
+    uint32_t base = get_extflash_base();
+
     FILE *file = fopen(METADATA_FILE, "rb");
     if (!file)
     {
-        metadata->flash_write_pointer = (uint32_t)&__EXTFLASH_BASE__;
+        // File does not exist; invalidate_cache
+        metadata->flash_write_base = base;
+        metadata->flash_write_pointer = metadata->flash_write_base;
         return;
     }
+    fseek(file, 0, SEEK_END);
+    if(ftell(file) != sizeof(Metadata)){
+        // Stored metadata doesn't match our current structure; invalidate cache.
+        metadata->flash_write_base = base;
+        metadata->flash_write_pointer = metadata->flash_write_base;
+        return;
+    }
+    fseek(file, 0, SEEK_SET);
     fread(metadata, sizeof(Metadata), 1, file);
+    if(metadata->flash_write_base != base){
+        // The stored base address does not match whats currently in bank 1; invalidate cache.
+        metadata->flash_write_base = base;
+        metadata->flash_write_pointer = metadata->flash_write_base;
+        return;
+    } 
     fclose(file);
 }
 
@@ -141,22 +189,23 @@ static bool circular_flash_write(const char *file_path,
         *data_size = ftell(file);
         fseek(file, 0, SEEK_SET);
     }
+    uint32_t flash_write_base = get_extflash_base();
 
     // If there is not enough space available, write the file at the beginning of the flash
-    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + *data_size > OSPI_GetFlashSize())
+    if (flash_write_pointer - flash_write_base + *data_size > OSPI_GetFlashSize())
     {
-        flash_write_pointer = align_to_next_block((uint32_t)&__EXTFLASH_BASE__);
+        flash_write_pointer = flash_write_base;
     }
 
     // Data are larger than flash size ... Abort
-    if (flash_write_pointer - (uint32_t)&__EXTFLASH_START__ + *data_size > OSPI_GetFlashSize())
+    if (flash_write_pointer - flash_write_base + *data_size > OSPI_GetFlashSize())
     {
         fclose(file);
         return false;
     }
 
     uint32_t old_flash_write_pointer = flash_write_pointer;
-    uint32_t address_in_flash = flash_write_pointer - (uint32_t)&__EXTFLASH_BASE__;
+    uint32_t address_in_flash = flash_write_pointer - flash_write_base;
     uint32_t block_size = OSPI_GetSmallestEraseSize();
 
     OSPI_DisableMemoryMappedMode();
