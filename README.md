@@ -71,11 +71,9 @@ Supported emulators:
 - Sega Genesis / Megadrive (md)
 - Sega Master System (sms)
 - Sega SG-1000 (sg)
+- Tamagotchi P1 (tama)
 - Videopac / Odyssey2 (videopac)
 - Watara Supervision (wsv)
-
-To be restored
-- Tamagotchi P1 (tama)
 
 Supported SNES game _ports_:
 

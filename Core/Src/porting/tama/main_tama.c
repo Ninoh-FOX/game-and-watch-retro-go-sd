@@ -48,11 +48,13 @@ static bool_t tama_lcd_icons[TAMA_MAX_ICON_NUM] __attribute__((aligned(4)));
 static int8_t tama_audio[TAMA_CLOCKS_PER_FRAME] __attribute__((aligned(4)));
 static uint8_t tama_sound_period = 0;
 
+static void blit();
+
 #define SAVE_STATE_BUFFER_SIZE 4192
 static uint8_t save_buffer[SAVE_STATE_BUFFER_SIZE];
 static int8_t  current_save_slot;
 static bool_t  current_load_state;
-static char    readSavePathName[/*FS_MAX_PATH_SIZE*/10];
+static char    readSavePathName[256];
 
 static state_t *state;
 static volatile bool reload;
@@ -102,28 +104,79 @@ static void display_ram_overlay() {
 // ************* Game rom loading *************
 
 static void load_rom() {
-    /* Load and convert rom */
-    for (int i = 0; i < ROM_DATA_LENGTH / 2; i++) {
-        tama_rom[i] = ROM_DATA[i * 2 + 1] | ((ROM_DATA[i * 2] & 0xF) << 8);
+    uint8_t buffer[256];
+    size_t bytesRead;
+    size_t romIndex = 0;
+
+    FILE *file = fopen(ACTIVE_FILE->path, "rb");
+    if (!file) {
+        printf("Failed to open ROM file: %s\n", ACTIVE_FILE->path);
+        return;
     }
+
+    while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0 && romIndex < TAMA_ROM_SIZE_MAX) {
+        for (size_t i = 0; i < bytesRead / 2 && romIndex < TAMA_ROM_SIZE_MAX; i++) {
+            tama_rom[romIndex++] = buffer[i * 2 + 1] | ((buffer[i * 2] & 0xF) << 8);
+        }
+    }
+
+    fclose(file);
 }
 
 // ************* Game state loading and saving *************
 
 static bool LoadStateFromFile() {
-    printf("LoadState: loading %s...\n",readSavePathName);
+    printf("LoadState: loading %s...\n", readSavePathName);
+    FILE *file = fopen(readSavePathName, "rb");
+    if (file != NULL) {
+        fread(save_buffer, 1, SAVE_STATE_BUFFER_SIZE, file);
+        fclose(file);
+        if (!tama_state_load(save_buffer)) {
+            printf("LoadState: failed.\n");
+            return false;
+        }
+        tamalib_refresh_hw();
+        printf("LoadState: done.\n");
+    } else {
+        printf("LoadState: file not found.\n");
+        return false;
+    }
     return true;
 }
 
 // Called by the Reload in game menu option
-static bool LoadState(char *savePathName, char *sramPathName, int slot) {
-    printf("Loading : %s", savePathName);
+static bool LoadState(const char *savePathName) {
+    printf("Loading : %s\n", savePathName);
+    strcpy(readSavePathName, savePathName);
+    current_load_state = true;
+    reload = true;
     return true;
 }
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot) {
-    printf("SaveState: saving %s ...\n",savePathName);
-    return true;
+static bool SaveState(const char *savePathName) {
+    printf("SaveState: saving %s ...\n", savePathName);
+    bool result = false;
+    result = tama_state_save(save_buffer);
+    if (result) {
+        FILE *file = fopen(savePathName, "wb");
+        if (file != NULL) {
+            fwrite(save_buffer, 1, SAVE_STATE_BUFFER_SIZE, file);
+            fclose(file);
+            printf("SaveState: done.\n");
+        } else {
+            printf("SaveState: failed to open file.\n");
+        }
+    } else {
+        printf("SaveState: failed.\n");
+    }
+    return result;
+}
+
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+    blit();
+    return lcd_get_active_buffer();
 }
 
 // ************* Tamalib HAL <-> GW HAL *************
@@ -339,7 +392,6 @@ static void emulate_next_frame(bool *fast_forward_ptr, u64_t *total_fast_forward
 
 // ************* Initialization and main game loop *************
 
-static bool odroid_system_initialized = false;
 static void main_tama(uint8_t start_paused) {
     odroid_gamepad_state_t joystick;
 
@@ -348,13 +400,6 @@ static void main_tama(uint8_t start_paused) {
     memset(tama_lcd, 0, sizeof(tama_lcd));
     memset(tama_lcd_icons, 0, sizeof(tama_lcd_icons));
     memset(tama_audio, -1, sizeof(tama_audio));
-
-    /* Initialize odroid system */
-    if (!odroid_system_initialized) {
-        odroid_system_init(APPID_TAMA, TAMA_SAMPLE_RATE);
-        odroid_system_initialized = true;
-    }
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
 
     /* Initialize LCD */
     lcd_set_refresh_rate(TAMA_LCD_FPS);
@@ -469,9 +514,13 @@ static void main_tama(uint8_t start_paused) {
 }
 
 _Noreturn void app_main_tama(uint8_t load_state, uint8_t start_paused, int8_t save_slot) {
+    odroid_system_init(APPID_TAMA, TAMA_SAMPLE_RATE);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
+
     if (load_state) {
         current_save_slot = save_slot;
-        odroid_system_get_save_path(readSavePathName, sizeof(readSavePathName), save_slot);
+        printf("load state %d\n", save_slot);
+        odroid_system_emu_load_state(save_slot);
 
         current_load_state = true;
     } else {

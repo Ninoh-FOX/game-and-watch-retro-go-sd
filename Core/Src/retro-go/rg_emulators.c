@@ -613,13 +613,11 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
 #endif
       }
     } else if(strcmp(system_name, "Tamagotchi") == 0) {
-#ifdef ENABLE_EMULATOR_TAMA
       if (rg_storage_copy_file_to_ram("/cores/tama.bin", (char *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_TAMA_BSS_START, 0x0, (size_t)&_OVERLAY_TAMA_BSS_SIZE);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_TAMA_SIZE);
         app_main_tama(load_state, start_paused, save_slot);
       }
-#endif
     }
 
     free(newfile);
@@ -651,7 +649,7 @@ void emulators_init()
     add_emulator("Atari 7800", "a7800", "a78", RG_LOGO_PAD_A7800, RG_LOGO_HEADER_A7800, GAME_DATA);
     add_emulator("Amstrad CPC", "amstrad", "dsk", RG_LOGO_PAD_AMSTRAD, RG_LOGO_HEADER_AMSTRAD, GAME_DATA);
 //    add_emulator("Philips Vectrex", "videopac", "bin", "o2em-go", 0, &pad_gb, &header_gb); // TODO : change graphics
-//    add_emulator("Tamagotchi", "tama", "b", RG_LOGO_PAD_TAMA, RG_LOGO_HEADER_TAMA, NO_GAME_DATA);
+    add_emulator("Tamagotchi", "tama", "b", RG_LOGO_PAD_TAMA, RG_LOGO_HEADER_TAMA, NO_GAME_DATA);
     add_emulator("Homebrew", "homebrew", "bin", RG_LOGO_EMPTY, RG_LOGO_HEADER_HOMEBREW, NO_GAME_DATA);
 
 #if 0

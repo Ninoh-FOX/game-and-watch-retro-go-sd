@@ -12,7 +12,6 @@ endif
 
 ROMS_A2600 := 
 ROMS_VIDEOPAC := 
-ROMS_TAMA := 
 
 ######################################
 # source
@@ -750,7 +749,6 @@ endif
 
 TAMA_C_SOURCES = 
 
-ifneq ($(strip $(ROMS_TAMA)),)
 CORE_TAMA = external/tamalib
 TAMA_C_SOURCES += \
 $(CORE_TAMA)/tamalib_cpu.c \
@@ -758,7 +756,6 @@ $(CORE_TAMA)/tamalib_hw.c \
 $(CORE_TAMA)/tamalib.c \
 Core/Src/porting/tama/state_tama.c \
 Core/Src/porting/tama/main_tama.c
-endif
 
 CELESTE_C_SOURCES = 
 
