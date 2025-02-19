@@ -210,7 +210,8 @@ static bool circular_flash_write(const char *file_path,
     }
 
     uint32_t old_flash_write_pointer = flash_write_pointer;
-    uint32_t address_in_flash = flash_write_pointer - flash_write_base;
+    // Translates the address to an offset into external flash.
+    uint32_t address_in_flash = flash_write_pointer - (uint32_t)&__EXTFLASH_BASE__;
     uint32_t block_size = OSPI_GetSmallestEraseSize();
 
     OSPI_DisableMemoryMappedMode();
