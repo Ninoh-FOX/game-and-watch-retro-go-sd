@@ -231,7 +231,7 @@ void readSaveStateFinalizeImpl() {
   }
 }
 
-static bool smw_system_SaveState(char *savePathName, char *sramPathName, int slot) {
+static bool smw_system_SaveState(char *savePathName) {
   printf("Saving state...\n");
   odroid_audio_mute(true);
 
@@ -239,17 +239,39 @@ static bool smw_system_SaveState(char *savePathName, char *sramPathName, int slo
   strcpy(savestate_path, savePathName);
   RtlSaveLoad(kSaveLoad_Save, 0);
 
+  // SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "wb");
+  if (file == NULL) {
+    printf("Failed to open SRAM file for writing\n");
+    return false;
+  }
+  fwrite(RtlGetSram(), 1, 2048, file);
+  fclose(file);
+  free(sram_path);
+
   odroid_audio_mute(false);
   return true;
 }
 
-static bool smw_system_LoadState(char *savePathName, char *sramPathName, int slot) {
+static bool smw_system_LoadState(char *savePathName) {
   printf("Loading state...\n");
   odroid_audio_mute(true);
 
   // Load state
   strcpy(savestate_path, savePathName);
   RtlSaveLoad(kSaveLoad_Load, 0);
+
+  // SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "rb");
+  if (file == NULL) {
+    printf("Failed to open SRAM file for reading\n");
+    return false;
+  }
+  fread(RtlGetSram(), 1, 2048, file);
+  fclose(file);
+  free(sram_path);
 
   odroid_audio_mute(false);
   return true;

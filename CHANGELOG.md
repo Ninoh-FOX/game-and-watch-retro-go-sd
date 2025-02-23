@@ -2,8 +2,8 @@
 
 ## What's New
 
-### Version 0.4.1
-- fix issue with games in /roms/gbc folder not starting
+### Version 0.4.2
+- Add support of sram savestates for Super Mario World & Zelda 3
 
 ## Prerequisites
 To install this version, make sure you have:
