@@ -478,7 +478,8 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     // Refresh watchdog here in case previous actions did not refresh it
     wdog_refresh();
 
-    if(strcmp(system_name, "Nintendo Gameboy") == 0) {
+    if((strcmp(system_name, "Nintendo Gameboy") == 0) ||
+       (strcmp(system_name, "Nintendo Gameboy Color") == 0)) {
 #if FORCE_GNUBOY == 1
         if (rg_storage_copy_file_to_ram("/cores/gb.bin", (char *)&__RAM_EMU_START__)) {
             memset(&_OVERLAY_GB_BSS_START, 0x0, (size_t)&_OVERLAY_GB_BSS_SIZE);

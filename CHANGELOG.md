@@ -2,10 +2,8 @@
 
 ## What's New
 
-### Version 0.4.0
-- Add support for dual boot mode
-- Add possibility to split GB and GBC into 2 different folders (/roms/gb and /roms/gbc). It's still possible to keep them merged in the same folder to have all gb/gbc roms together.
-- Add checks in firmware update application (battery level, written data validation, ...)
+### Version 0.4.1
+- fix issue with games in /roms/gbc folder not starting
 
 ## Prerequisites
 To install this version, make sure you have:
