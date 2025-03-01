@@ -133,6 +133,12 @@ ifeq ($(GAME_GENIE),1)
 	CHEAT_CODES = 1
 endif
 
+ifeq ($(CHEAT_CODES),1)
+	ifeq ($(SD_CARD),1)
+		MAX_CHEAT_CODES = 13
+	endif
+endif
+
 # Compress supported ROMs by default. Set to 0 to disable.
 COMPRESS ?= lzma
 ifeq ($(COMPRESS),0)
@@ -491,6 +497,10 @@ C_DEFS +=  \
 -DFCEU_NO_MALLOC \
 -DVIDEO_RGB565 \
 -DCELESTE_SLOW_CPU
+
+ifdef MAX_CHEAT_CODES
+C_DEFS += -DMAX_CHEAT_CODES=$(MAX_CHEAT_CODES)
+endif
 
 # AS includes
 AS_INCLUDES +=

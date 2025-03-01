@@ -44,14 +44,10 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 #include "rg_rtc.h"
 #include "rg_i18n.h"
 #include "gw_flash_alloc.h"
-#ifdef ENABLE_EMULATOR_MSX
-#include "main_msx.h"
-#endif
-#ifdef ENABLE_EMULATOR_GB
-#include "main_gb_tgbdual.h"
-#endif
-
 #if CHEAT_CODES == 1
+#include "main_msx.h"
+#include "main_gb_tgbdual.h"
+
 static retro_emulator_file_t *CHOSEN_FILE = NULL;
 #endif
 
@@ -1149,21 +1145,17 @@ static bool cheat_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_
         odroid_settings_ActiveGameGenieCodes_set(CHOSEN_FILE->id, option->id, is_on);
     }
     strcpy(option->value, is_on ? curr_lang->s_Cheat_Codes_ON : curr_lang->s_Cheat_Codes_OFF);
-#if defined(ENABLE_EMULATOR_MSX) || defined(ENABLE_EMULATOR_GB)
     if (event == ODROID_DIALOG_ENTER) {
-        retro_emulator_t *emu = file_to_emu(CHOSEN_FILE);
-#ifdef ENABLE_EMULATOR_MSX
-        if(strcmp(emu->system_name, "MSX") == 0) {
+        rom_system_t *system = (rom_system_t *)CHOSEN_FILE->system;
+        if(strcmp(system->system_name, "MSX") == 0) {
             update_cheats_msx();
         }
-#endif
-#ifdef ENABLE_EMULATOR_GB
-        if(strcmp(emu->system_name, "Nintendo Gameboy") == 0) {
+        if((strcmp(system->system_name, "Nintendo Gameboy") == 0) ||
+           (strcmp(system->system_name, "Nintendo Gameboy Color") == 0)) {
             update_cheats_gb();
         }
-#endif
     }
-#endif
+
     return event == ODROID_DIALOG_ENTER;
 }
 
@@ -1260,8 +1252,10 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
     odroid_dialog_choice_t choices[12];
     bool cheat_update_support = false;
     CHOSEN_FILE = ACTIVE_FILE;
-    retro_emulator_t *emu = file_to_emu(CHOSEN_FILE);
-    if((strcmp(emu->system_name, "MSX") == 0) || (strcmp(emu->system_name, "Nintendo Gameboy") == 0)) {
+    rom_system_t *system = (rom_system_t *)CHOSEN_FILE->system;
+    if((strcmp(system->system_name, "MSX") == 0) ||
+       (strcmp(system->system_name, "Nintendo Gameboy") == 0) ||
+       (strcmp(system->system_name, "Nintendo Gameboy Color") == 0)) {
         cheat_update_support = true;
     }
 

@@ -133,6 +133,36 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
             break;
         }
 
+        case ODROID_PATH_CHEAT_PCE:
+        {
+            char *shortFileName = strdup(fileName);
+            char *ext = strrchr(shortFileName, '.');
+            if (ext) *ext = '\0';
+            sprintf(buffer, "%s%s.pceplus", ODROID_BASE_PATH_CHEATS, shortFileName);
+            free(shortFileName);
+            break;
+        }
+
+        case ODROID_PATH_CHEAT_GAME_GENIE:
+        {
+            char *shortFileName = strdup(fileName);
+            char *ext = strrchr(shortFileName, '.');
+            if (ext) *ext = '\0';
+            sprintf(buffer, "%s%s.ggcodes", ODROID_BASE_PATH_CHEATS, shortFileName);
+            free(shortFileName);
+            break;
+        }
+
+        case ODROID_PATH_CHEAT_MFC:
+        {
+            char *shortFileName = strdup(fileName);
+            char *ext = strrchr(shortFileName, '.');
+            if (ext) *ext = '\0';
+            sprintf(buffer, "%s%s.mfc", ODROID_BASE_PATH_CHEATS, shortFileName);
+            free(shortFileName);
+            break;
+        }
+
         default:
             RG_PANIC("Unknown Type");
     }

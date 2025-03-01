@@ -2,6 +2,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "gw_linker.h"
 #include "gw_malloc.h"
@@ -52,7 +53,9 @@ static retro_emulator_t emulators[MAX_EMULATORS];
 static rom_system_t systems[MAX_EMULATORS];
 static int emulators_count = 0;
 
+#if CHEAT_CODES == 1
 static retro_emulator_file_t *CHOSEN_FILE = NULL;
+#endif
 
 static void event_handler(gui_event_t event, tab_t *tab)
 {
@@ -237,6 +240,11 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
     strcpy(emu->roms.files[emu->roms.count].path, entry->path);
     // Make sure ext points to a memory zone that will not be freed.
     emu->roms.files[emu->roms.count].ext = (char *)get_extension(emu->roms.files[emu->roms.count].path);
+#if CHEAT_CODES == 1
+    emu->roms.files[emu->roms.count].cheat_count = 0;
+    emu->roms.files[emu->roms.count].cheat_codes = NULL;
+    emu->roms.files[emu->roms.count].cheat_descs = NULL;
+#endif
 
     emu->roms.count++;
     
@@ -343,12 +351,173 @@ static bool show_cheat_dialog()
     odroid_settings_commit();
     return false;
 }
+
+void emulator_update_cheats_info(retro_emulator_file_t *file) {
+    if (file->cheat_codes) {
+        return;
+    }
+
+    // Check for pceplus cheat file (PC Engine)
+    char *cheat_path = odroid_system_get_path(ODROID_PATH_CHEAT_PCE, file->path);
+    if (odroid_sdcard_get_filesize(cheat_path) > 0) {
+        printf("Retro-Go: Found cheat file %s\n", cheat_path);
+        file->cheat_codes = calloc(MAX_CHEAT_CODES, sizeof(char *));
+        file->cheat_descs = calloc(MAX_CHEAT_CODES, sizeof(char *));
+        FILE *cheat_file = fopen(cheat_path, "r");
+        if (!cheat_file) {
+            printf("Retro-Go: Failed to open cheat file %s\n", cheat_path);
+            return;
+        }
+        char line[256];
+        while (fgets(line, sizeof(line), cheat_file)) {
+            char *trimmed_line = strtok(line, "\n");
+            if (!trimmed_line || trimmed_line[0] == '#' ||
+                (trimmed_line[0] == '/' && trimmed_line[1] == '/')) {
+                continue;
+            }
+
+            char *parts[10];
+            uint8_t part_count = 0;
+            char *token = strtok(trimmed_line, ",");
+            while (token && part_count < 10) {
+                parts[part_count++] = token;
+                token = strtok(NULL, ",");
+            }
+
+            if (part_count < 2) {
+                continue;
+            }
+
+            int cmd_count = 0;
+            file->cheat_codes[file->cheat_count] = malloc((size_t)(1 + 4 * (part_count-1)));
+            char *codes_ptr = (char *)file->cheat_codes[file->cheat_count];
+            *(codes_ptr++)=part_count - 1;
+            for (int i = 0; i < part_count - 1; i++) {
+                char *part = parts[i];
+                int x = (int)strtol(part, NULL, 16);
+                printf("x = %x\n", x);
+                *(codes_ptr++)=x>>24;
+                *(codes_ptr++)=(x>>16)&0xFF;
+                *(codes_ptr++)=(x>>8)&0xFF;
+                *(codes_ptr++)=x&0xFF;
+                cmd_count++;
+            }
+
+            char *desc = parts[part_count - 1];
+            if (desc) {
+                while (*desc == ' ') desc++;
+                desc = strndup(desc, 40);
+            }
+
+            if (file->cheat_count < MAX_CHEAT_CODES) {
+                file->cheat_descs[file->cheat_count] = desc;
+                file->cheat_count++;
+            } else {
+                printf("INFO: More than %d cheat codes...\n", MAX_CHEAT_CODES);
+                break;
+            }
+        }
+        fclose(cheat_file);
+    }
+    free(cheat_path);
+    if (file->cheat_count)
+        return;
+
+    // Check for ggcodes cheat file (GB/GBC/NES)
+    cheat_path = odroid_system_get_path(ODROID_PATH_CHEAT_GAME_GENIE, file->path);
+    if (odroid_sdcard_get_filesize(cheat_path) > 0) {
+        printf("Retro-Go: Found cheat file %s\n", cheat_path);
+        file->cheat_codes = calloc(MAX_CHEAT_CODES, sizeof(char *));
+        file->cheat_descs = calloc(MAX_CHEAT_CODES, sizeof(char *));
+        FILE *cheat_file = fopen(cheat_path, "r");
+        if (!cheat_file) {
+            printf("Retro-Go: Failed to open cheat file %s\n", cheat_path);
+            return;
+        }
+        char line[256];
+        while (fgets(line, sizeof(line), cheat_file)) {
+            char *trimmed_line = strtok(line, "\n");
+            if (!trimmed_line || trimmed_line[0] == '#' ||
+                (trimmed_line[0] == '/' && trimmed_line[1] == '/')) {
+                continue;
+            }
+
+            char *parts[10];
+            int part_count = 0;
+            char *token = strtok(trimmed_line, ",");
+            while (token && part_count < 10) {
+                parts[part_count++] = token;
+                token = strtok(NULL, ",");
+            }
+            printf("Retro-Go: Part count: %d\n", part_count);
+            for (int i = 0; i < part_count; i++) {
+                printf("Retro-Go: Part %d: %s\n", i, parts[i]);
+            }
+
+            file->cheat_codes[file->cheat_count] = strdup(parts[0]);
+
+            char *desc = parts[part_count - 1];
+            if (desc) {
+                while (*desc == ' ') desc++; // Remove leading spaces
+                desc = strndup(desc, 40);
+            }
+
+            if (file->cheat_count < MAX_CHEAT_CODES) {
+                file->cheat_descs[file->cheat_count] = desc;
+                file->cheat_count++;
+            } else {
+                printf("INFO: More than %d cheat codes...\n", MAX_CHEAT_CODES);
+                break;
+            }
+        }
+        fclose(cheat_file);
+    }
+    free(cheat_path);
+    if (file->cheat_count)
+        return;
+
+    // Check for mfc cheat file (MSX)
+    cheat_path = odroid_system_get_path(ODROID_PATH_CHEAT_MFC, file->path);
+    if (odroid_sdcard_get_filesize(cheat_path) > 0) {
+        printf("Retro-Go: Found cheat file %s\n", cheat_path);
+        file->cheat_codes = calloc(MAX_CHEAT_CODES, sizeof(char *));
+        file->cheat_descs = calloc(MAX_CHEAT_CODES, sizeof(char *));
+
+        FILE *cheat_file = fopen(cheat_path, "r");
+        if (!cheat_file) {
+            printf("Retro-Go: Failed to open cheat file %s\n", cheat_path);
+            return;
+        }
+
+        char line[256];
+        while (fgets(line, sizeof(line), cheat_file)) {
+            if (line[0] == '!') continue;
+            char *last_comma = strrchr(line, ',');
+            if (!last_comma) continue;
+            *last_comma = '\0';
+
+            printf("MFC: cheat: %s\n", line);
+            printf("MFC: desc: %s\n", last_comma + 1);
+            if (file->cheat_count < MAX_CHEAT_CODES) {
+                file->cheat_codes[file->cheat_count] = strdup(line);
+                file->cheat_descs[file->cheat_count] = strdup(last_comma + 1);
+                file->cheat_count++;
+            } else {
+                printf("INFO: More than %d cheat codes...\n", MAX_CHEAT_CODES);
+                break;
+            }
+        }
+    }
+    free(cheat_path);
+}
 #endif
 
 bool emulator_show_file_menu(retro_emulator_file_t *file)
 {
     int slot = -1;
+#if CHEAT_CODES == 1
     CHOSEN_FILE = file;
+#endif
     char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, file->path);
     rg_emu_states_t *savestates = odroid_system_emu_get_states(file->path, 4);
     bool has_save = savestates->used > 0;
@@ -357,6 +526,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     bool force_redraw = false;
 
 #if CHEAT_CODES == 1
+    emulator_update_cheats_info(CHOSEN_FILE);
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
     odroid_dialog_choice_t cheat_row = {4, curr_lang->s_Cheat_Codes, "", 1, NULL};
     odroid_dialog_choice_t cheat_choice = last; 
@@ -426,7 +596,9 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     free(sram_path);
     free(savestates);
 
+#if CHEAT_CODES == 1
     CHOSEN_FILE = NULL;
+#endif
 
     return force_redraw;
 }
@@ -450,6 +622,11 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
     const char *system_name = newfile->system->system_name;
 
     ACTIVE_FILE = newfile;
+#if CHEAT_CODES == 1
+    CHOSEN_FILE = newfile;
+
+    emulator_update_cheats_info(CHOSEN_FILE);
+#endif
 
     // Copy game data from SD card to flash if needed
     // dsk files are read from sd card, do not copy them in flash
@@ -621,6 +798,14 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       }
     }
 
+#if CHEAT_CODES == 1
+    for (int i = 0; i < newfile->cheat_count; i++) {
+        if (newfile->cheat_codes[i]) free(newfile->cheat_codes[i]);
+        if (newfile->cheat_descs[i]) free(newfile->cheat_descs[i]);
+    }
+    if (newfile->cheat_codes) free(newfile->cheat_codes);
+    if (newfile->cheat_descs) free(newfile->cheat_descs);
+#endif
     free(newfile);
 
     ahb_init();

@@ -46,8 +46,8 @@ typedef struct {
     rom_region_t region;
     const rom_system_t *system;
 #if CHEAT_CODES == 1
-    const char** cheat_codes; // Cheat codes to choose from
-    const char** cheat_descs; // Cheat codes descriptions
+    char** cheat_codes; // Cheat codes to choose from
+    char** cheat_descs; // Cheat codes descriptions
     int cheat_count;
 #endif
 } retro_emulator_file_t;

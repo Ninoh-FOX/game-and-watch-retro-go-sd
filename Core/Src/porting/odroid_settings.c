@@ -46,9 +46,9 @@ typedef struct app_config {
 #if (MAX_CHEAT_CODES > 32)
 #error MAX_CHEAT_CODES is assumed to be 32. Changing this value requires adjusting the type of active_cheat_codes below
 #endif
-typedef struct rom_config {
+typedef struct cheat_config {
     uint32_t active_cheat_codes; // A bit array for which cheat codes in retro_emulator_file_t.cheat_codes are active for this rom
-} rom_config_t;
+} cheat_config_t;
 #endif
 
 typedef struct persistent_config {
@@ -77,7 +77,7 @@ typedef struct persistent_config {
     app_config_t app[APPID_COUNT];
 
 #if CHEAT_CODES == 1
-    rom_config_t rom[ROM_COUNT]; // index is the same as 'id' in retro_emulator_file_t
+    cheat_config_t cheat_config;
 #endif
 
     uint32_t crc32;
@@ -144,7 +144,7 @@ static const persistent_config_t persistent_config_default = {
         {0}, // MD Genesis
     },
 #if CHEAT_CODES == 1
-    .rom = {{0}},
+    .cheat_config = {0},
 #endif
 };
 
@@ -233,10 +233,7 @@ void odroid_settings_commit()
 void odroid_settings_reset()
 {
 #if CHEAT_CODES == 1 
-    for (int i = 0; i < ROM_COUNT; i++)
-    {
-        persistent_config_ram.rom[i].active_cheat_codes = 0;
-    };
+    persistent_config_ram.cheat_config.active_cheat_codes = 0;
 #endif
     memcpy(&persistent_config_ram, &persistent_config_default, sizeof(persistent_config_t));
 
@@ -608,24 +605,24 @@ void odroid_settings_DisplayOverscan_set(int32_t value)
 #if CHEAT_CODES == 1 
 bool odroid_settings_ActiveGameGenieCodes_is_enabled(uint32_t rom_id, int code_index)
 {
-    if (rom_id < 0 || rom_id >= ROM_COUNT || code_index < 0 || code_index > MAX_CHEAT_CODES) {
+    if (code_index > MAX_CHEAT_CODES) {
         return false;
     }
 
-    uint32_t active_cheat_codes = persistent_config_ram.rom[rom_id].active_cheat_codes;
+    uint32_t active_cheat_codes = persistent_config_ram.cheat_config.active_cheat_codes;
     return ((active_cheat_codes >> code_index) & 0x1) == 1;
 }
 
 bool odroid_settings_ActiveGameGenieCodes_set(uint32_t rom_id, int code_index, bool enable)
 {
-    if (rom_id < 0 || rom_id >= ROM_COUNT || code_index < 0 || code_index > MAX_CHEAT_CODES) {
+    if (code_index > MAX_CHEAT_CODES) {
         return false;
     }
 
     if (enable) {
-        persistent_config_ram.rom[rom_id].active_cheat_codes |= (1<<code_index);
+        persistent_config_ram.cheat_config.active_cheat_codes |= (1<<code_index);
     } else  {
-        persistent_config_ram.rom[rom_id].active_cheat_codes &= ~(1<<code_index);
+        persistent_config_ram.cheat_config.active_cheat_codes &= ~(1<<code_index);
     }
 
     return true;
