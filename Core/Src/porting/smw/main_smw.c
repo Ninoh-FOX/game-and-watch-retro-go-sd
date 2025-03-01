@@ -255,12 +255,13 @@ static bool smw_system_SaveState(char *savePathName) {
 }
 
 static bool smw_system_LoadState(char *savePathName) {
-  printf("Loading state...\n");
   odroid_audio_mute(true);
 
   // Load state
-  strcpy(savestate_path, savePathName);
-  RtlSaveLoad(kSaveLoad_Load, 0);
+  if (savePathName) {
+    strcpy(savestate_path, savePathName);
+    RtlSaveLoad(kSaveLoad_Load, 0);
+  }
 
   // SRAM
   char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);

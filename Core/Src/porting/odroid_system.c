@@ -264,14 +264,20 @@ bool odroid_system_emu_load_state(int slot)
     }
 
     char *filename;
-    if (slot == -1) {
+    if (slot == -2) {
+        filename = NULL;
+    } else if (slot == -1) {
         filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE_OFF, currentApp.romPath);
     } else {
         filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath);
     }
     bool success = false;
 
-    printf("Loading state from '%s'.\n", filename);
+    if (filename) {
+        printf("Loading state from '%s'.\n", filename);
+    } else {
+        printf("Loading state from sram.\n");
+    }
 
     success = (*currentApp.handlers.loadState)(filename);
 

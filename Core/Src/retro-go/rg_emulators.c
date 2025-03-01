@@ -544,7 +544,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 #endif
 
     odroid_dialog_choice_t choices[] = {
-        {0, curr_lang->s_Resume_game, "", has_save ? 1:-1, NULL},
+        {0, curr_lang->s_Resume_game, "", (has_save || has_sram) ? 1:-1, NULL},
         {1, curr_lang->s_New_game, "", 1, NULL},
         ODROID_DIALOG_CHOICE_SEPARATOR,
 //        {3, is_fav ? "Del favorite" : "Add favorite", "", 1, NULL},
@@ -564,9 +564,14 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     int sel = odroid_overlay_dialog(file->name, choices, has_save ? 0 : 1, &gui_redraw_callback);
 
     if (sel == 0) { // Resume game
-        if ((slot = odroid_savestate_menu(curr_lang->s_Resume_game, file->path, true, &gui_redraw_callback)) != -1) {
+        if (has_save) {
+            if ((slot = odroid_savestate_menu(curr_lang->s_Resume_game, file->path, true, &gui_redraw_callback)) != -1) {
+                gui_save_current_tab();
+                emulator_start(file, true, false, slot);
+            }
+        } else if (has_sram) {
             gui_save_current_tab();
-            emulator_start(file, true, false, slot);
+            emulator_start(file, true, false, -2);
         }
     }
     if (sel == 1) { // New game
