@@ -5,6 +5,7 @@
 ### Version 0.5.0
 - Cheat codes support for GB/GBC/NES/PCE/MSX (check README.md)
 - Enable watchdog during firmware update to prevent locking in case of unexpected problem
+- Fix possible problem when reading large blocks of data using OSPI SD Card adapter (Yota9 design)
 
 ## Prerequisites
 To install this version, make sure you have:
