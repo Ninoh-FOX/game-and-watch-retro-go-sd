@@ -258,18 +258,18 @@ Screenshots can be captured by pressing `PAUSE/SET` + `GAME`.
 
 Screenshots can be downloaded by running `make dump_screenshot`, and will be saved as a 24-bit RGB PNG to `./screenshot.png`.
 
-## Cheat codes !!!! NOT YET SUPPORTED WITH SD CARD
+## Cheat codes
 
-Note: Currently cheat codes are only working with NES, PCE and MSX games.
+Note: Currently cheat codes are only working with GB, GBC, NES, PCE and MSX games.
 
 To enable, add CHEAT_CODES=1 to your make command. If you have already compiled without CHEAT_CODES=1, I recommend running make clean first.
 To enable or disable cheats, select a game then select "Cheat Codes". You will be able to select cheats you want to enable/disable. Then you can start/resume a game and selected cheats will be applied.
-On MSX system, you can enable/disable cheats during game.
+On GB, GBC and MSX systems, you can enable/disable cheats during game.
 
 ### Cheat codes on NES System
 
-To add Game Genie codes, create a file ending in .ggcodes in the same directory as your rom with the same name as your rom. For instance, for
-"roms/nes/Super Mario Bros.nes" make a file called "roms/nes/Super Mario Bros.ggcodes". In that file, each line can have up to 3 Game Genie codes and a maximum
+To add Game Genie codes, create a file ending in .ggcodes in the /cheats/nes/ directory with the same name as your rom. For instance, for
+"/roms/nes/Super Mario Bros.nes" make a file called "/cheats/nes/Super Mario Bros.ggcodes". In that file, each line can have up to 3 Game Genie codes and a maximum
 of 16 lines of active codes (for a max of 3 x 16 = 48 codes). Each line can also have a description (up to 25 characters long).
 You can comment out a line by prefixing with # or //. For example:
 ```
@@ -280,14 +280,14 @@ YSAOPE+YEAOZA+LXAPYA, Start on World -1
 GOZSXX, Invincibility
 # TVVOAE, Circus music
 ```
-When you re-flash, you can enable / disable each of your codes in the game selection screen.
+You can enable / disable each of your codes in the game selection screen.
 
 A collection of codes can be found here: [https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes](https://github.com/martaaay/game-and-watch-retro-go-game-genie-codes).
 
 ### Cheat codes on GB System
 
-To add Game Genie/Game Shark codes, create a file ending in .ggcodes in the same directory as your rom with the same name as your rom. For instance, for
-"roms/gb/Wario Land 3.gb" make a file called "roms/gb/Wario Land 3.ggcodes". In that file, each line can have several Game Genie / Game Shark codes
+To add Game Genie/Game Shark codes, create a file ending in .ggcodes in the /cheats/gb/ or /cheats/gbc/ directory with the same name as your rom. For instance, for
+"/roms/gb/Wario Land 3.gb" make a file called "/cheats/gb/Wario Land 3.ggcodes". In that file, each line can have several Game Genie / Game Shark codes
 (separate them using a +) and a maximum of 16 lines of active codes. Each line can also have a description (up to 25 characters long).
 You can comment out a line by prefixing with # or //. For example:
 ```
@@ -298,13 +298,13 @@ YSAOPE+YEAOZA+LXAPYA, Start on World -1
 GOZSXX, Invincibility
 # TVVOAE, Circus music
 ```
-When you re-flash, you can enable / disable each of your codes in the game selection screen or during game.
+You can enable / disable each of your codes in the game selection screen or during game.
 
 ### Cheat codes on PCE System
 
 Now you can define rom patch for PCE Roms. You can found patch info from [Here](https://krikzz.com/forum/index.php?topic=1004.0).
-To add PCE rom patcher, create a file ending in .pceplus in the same directory as your rom with the same name as your rom. For instance, for
-"roms/pce/1943 Kai (J).pce" make a file called "roms/pce/1943 Kai (J).pceplus".
+To add PCE rom patcher, create a file ending in .pceplus in the /cheats/pce/ directory with the same name as your rom. For instance, for
+"/roms/pce/1943 Kai (J).pce" make a file called "/cheats/pce/1943 Kai (J).pceplus".
 A collection of codes file can be found [here](https://github.com/olderzeus/game-genie-codes-nes/tree/master/pceplus).
 
 Each line of pceplus is defined as:
@@ -328,7 +328,7 @@ _
 ### Cheat codes on MSX System
 
 You can use blueMSX MCF cheat files with your Game & Watch. A nice collection of patch files is available [Here](http://bluemsx.msxblue.com/rel_download/Cheats.zip).
-Just copy the wanted MCF files in your roms/msx folder with the same name as the corresponding rom/dsk file.
+Just copy the wanted MCF files in the /cheats/msx/ folder with the same name as the corresponding rom/dsk file.
 On MSX system, you can enable/disable cheats while playing. Just press the Pause/Set button and choose "Cheat Codes" menu to choose which cheats you want to enable or disable.
 
 ## Upgrading the flash
@@ -370,7 +370,7 @@ Mappers compatibility is basically the same as fceumm version from 01/01/2023. T
 
 As Game & Watch CPU is not able to emulate YM2413 at 48kHz, mapper 85 (VRC-7) sound will play at 18kHz instead of 48kHz.
 
-FDS support requires you to put the FDS firmware in `roms/nes_bios/disksys.rom` file
+FDS support requires you to put the FDS firmware in `/bios/nes/disksys.rom` file
 
 Note that you can force nofrendo-go usage instead of fceumm by adding FORCE_NOFRENDO=1 option in your make command
 

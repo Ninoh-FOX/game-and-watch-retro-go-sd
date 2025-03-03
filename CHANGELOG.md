@@ -2,13 +2,9 @@
 
 ## What's New
 
-### Version 0.4.2
-- In dual boot configuration, retro-go will always boot until you select to boot OFW in menu
-  It requires gnwmanager v0.16.1 or above, install patched OFW using this command :
-
-  ```gnwmanager flash-patch zelda internal_flash_backup_zelda.bin flash_backup_zelda.bin --bootloader```
-- Fix small issue with caching progress bar
-- Add support for sram saves in Super Mario World and Zelda 3
+### Version 0.5.0
+- Cheat codes support for GB/GBC/NES/PCE/MSX (check README.md)
+- Enable watchdog during firmware update to prevent locking in case of unexpected problem
 
 ## Prerequisites
 To install this version, make sure you have:
