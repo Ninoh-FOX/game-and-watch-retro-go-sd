@@ -2,11 +2,8 @@
 
 ## What's New
 
-### Version 0.5.1
-- Fix cheat codes for GB/GBC (Game genie codes with '-' were ignored) and fix crash on GBC when cheats are enabled
-- Fix color palette for GB and added palette from original G&W firmware
-- Changed fonts management, it's now possible to switch between different fonts styles
-- Add support for some 3.3v flash chips (require a hardware mod to allow using 3.3v chips)
+### Version 0.5.2
+- Fix regression in GB/GBC color palette management
 
 ## Prerequisites
 To install this version, make sure you have:
