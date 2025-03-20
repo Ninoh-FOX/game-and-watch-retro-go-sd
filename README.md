@@ -69,13 +69,13 @@ If you prefer professional installation, contact:
 
 To install the hardware mod, you need:
 
-- SD Card PCB adapter (Zelda version only for now, Mario version coming soon) : [Gerber file](assets/GnW_SD_v2.zip) (credits to Tim Schuerewegen for initial version and hundshamer for updates to make it easier to install)
+- SD Card flex PCB adapter (Zelda version only for now, Mario version coming soon) : [Gerber file](https://github.com/sylverb/game-and-watch-retro-go-sd/raw/refs/heads/main/assets/GnW_SD_v2.zip) (credits to Tim Schuerewegen for initial version and hundshamer for updates to make it easier to install)
 
    ![](assets/sm_black_top.png)
 
 - 1x MX25U51245GZ4I00 (64MB SPI flash 1.8v) or bigger
-- 1x 0402 100k resistor
-- 2x 0402 1uf
+- 1x 0402 100k resistor (0805 will fit too)
+- 2x 0402 1uf (0805 will fit too)
 - 1x RT9193-28GB LDO regulator
 - 1x Micro SD card slot SMD 9Pin ([here](https://www.aliexpress.com/item/1005002829329826.html), [here](https://www.aliexpress.com/item/1005001331379046.html), [here](https://www.aliexpress.com/item/32802051702.html), ...)
 
@@ -163,9 +163,16 @@ To install the hardware mod, you need:
 | `PAUSE/SET` + `A`     | Save state                                                             |
 | `PAUSE/SET` + `POWER` | Poweroff without save-state                                            |
 
-## Troubleshooting / FAQ
+## Troubleshooting
 
-TBC
+- Bootloader as a diagnostic menu, you can show it by booting with PAUSE/SET button pressed at startup.
+- If a savestate is causing crash when power on the console, boot with TIME button pressed to force system to boot in games list menu.
+
+## FAQ
+
+- Can you add [new system name] support ?
+
+   Maybe ... Probably not ! G&W system is very limited, it has only about 1MB of RAM free for code + dynamic ressources for each emulator. Most of the time emulators have to be deeply optimized to reduce their memory use so they can fit. Each emulator port is a challenge and some have failed already (fake-08, picodrive, ) ...
 
 ## Cheat codes
 
@@ -285,7 +292,7 @@ Tape support has not been ported, if there is any interest in adding this, it co
 
 Note that the Amstrad CPC6128 support is done using caprice32 emulator, any game that is not working correctly using this emulator will not work on the Game & Watch. To fit in the G&W, a some features have been removed, so it's possible that some games running on caprice32 will not work in the G&W port. The emulator port is still in progress, consider it as a preview version.
 
-## Vectrex/Odyssey2 Emulator
+## Vectrex/Odyssey2 Emulator (not included in SD Card version yet)
 Vectrex/Odyssey2 is provided by a modified version of o2em emulator.
 Support is currently in development so it's unstable, has lots of bugs and it's not really playable.
 To play, you need a bios file, for now rename your bios file to bios.bin and put it in the roms/vectrex folder
