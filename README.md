@@ -11,6 +11,8 @@ A comprehensive emulator collection for the Nintendo® Game & Watch™ with SD C
   - [Pre-modded Options](#pre-modded-options)
   - [Hardware Requirements](#hardware-requirements)
   - [Installation Steps](#installation-steps)
+  - [Shell Replacement](#shell-replacement)
+  - [Retro-Go-SD Update Steps](#retro-go-sd-update-steps)
 - [Supported Systems](#supported-systems)
   - [Emulators](#emulators)
   - [SNES Ports](#snes-ports)
@@ -117,6 +119,18 @@ To install the hardware mod, you need:
 
       ![](assets/firmware_update.png)
    - You can start filling the created folders on your sd card with uncompressed roms (in /roms/gb, roms/gbc, roms/nes, ...)
+
+### Shell Replacement
+   For people who do not want to cut their original shell, Aradia (on Discord) has designed a replacement back shell with SD card access.
+   The 3D printable file can be downloaded [here](https://github.com/sylverb/game-and-watch-retro-go-sd/raw/refs/heads/main/assets/GnW_Zelda_back_shell.stl).
+
+### Retro-Go-SD Update Steps
+
+   When there is a new Retro-Go-SD release available on github, to install it, just proceed as described :
+   - Download latest `retro-go_update.bin` from [releases page](https://github.com/sylverb/game-and-watch-retro-go-sd/releases/latest)
+   - Place the file in the root folder of your SD card
+   - Insert SD card and start the console
+   - Once the update is done, you are ready to use new version
 
 ## Supported Systems
 
