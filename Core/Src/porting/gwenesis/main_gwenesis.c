@@ -528,7 +528,8 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     odroid_system_init(APPID_MD, GWENESIS_AUDIO_FREQ_NTSC);
     odroid_system_emu_init(&gwenesis_system_LoadState,
                            &gwenesis_system_SaveState, 
-                           &gwenesis_system_Screenshot);
+                           &gwenesis_system_Screenshot,
+                           NULL);
    // rg_app_desc_t *app = odroid_system_get_app();
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / 60.0 + 0.5f);

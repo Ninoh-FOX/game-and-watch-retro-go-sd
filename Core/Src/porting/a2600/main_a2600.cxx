@@ -396,7 +396,7 @@ void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_sl
     memset(framebuffer2, 0, sizeof(framebuffer2));
 
     odroid_system_init(APPID_A2600, AUDIO_A2600_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, NULL, NULL);
 
     // Init Sound
     memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));

@@ -1958,7 +1958,7 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     common_emu_state.frame_time_10us = (uint16_t)(100000 / msx_fps + 0.5f);
 
     odroid_system_init(APPID_MSX, AUDIO_MSX_SAMPLE_RATE);
-    odroid_system_emu_init(&msx_system_LoadState, &msx_system_SaveState, &msx_screenshot);
+    odroid_system_emu_init(&msx_system_LoadState, &msx_system_SaveState, &msx_screenshot, NULL);
 
     image_buffer_base_width    =  272;
     image_buffer_current_width =  image_buffer_base_width;

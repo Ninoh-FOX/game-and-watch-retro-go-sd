@@ -83,7 +83,7 @@ static void LoadAssetsChunk(size_t length, uint8* data) {
 
 static void LoadAssets() {
   uint32_t zelda_assets_length = 0;
-  uint8 *zelda_assets = odroid_overlay_cache_file_in_flash("/roms/homebrew/zelda3_assets.dat", &zelda_assets_length, false);;
+  uint8 *zelda_assets = odroid_overlay_cache_file_in_flash("/roms/homebrew/zelda3_assets.dat", &zelda_assets_length, false);
   static const char kAssetsSig[] = { kAssets_Sig };
 
   if (zelda_assets == NULL)
@@ -397,7 +397,7 @@ int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   PatchCodeRodataOffset(zelda_rodata, zelda_rodata_length);
 
   odroid_system_init(APPID_ZELDA3, ZELDA3_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot);
+  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot, NULL);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;

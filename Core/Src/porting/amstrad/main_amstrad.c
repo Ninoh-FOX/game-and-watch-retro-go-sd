@@ -1093,7 +1093,7 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     lcd_set_refresh_rate(AMSTRAD_FPS);
 
     odroid_system_init(APPID_AMSTRAD, AMSTRAD_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL);
 
     // Init Sound
     audio_start_playing(AUDIO_BUFFER_LENGTH_AM);

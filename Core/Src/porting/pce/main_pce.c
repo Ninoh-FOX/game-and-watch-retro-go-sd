@@ -586,7 +586,7 @@ int app_main_pce(uint8_t load_state, uint8_t start_paused, int8_t save_slot) {
     }
 
     odroid_system_init(APPID_PCE, PCE_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL);
     pce_log[0]=0;
 
     // Init Graphics

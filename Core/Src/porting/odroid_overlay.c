@@ -777,6 +777,7 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
 #else
                 odroid_system_emu_save_state(0);
 #endif
+                odroid_system_shutdown();
                 odroid_system_sleep();
                 break;
             }
@@ -1387,6 +1388,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 #else
         odroid_system_emu_save_state(0);
 #endif
+        odroid_system_shutdown();
         odroid_system_sleep();
         break;
     case 100:

@@ -307,6 +307,7 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
 #else
         odroid_system_emu_save_state(0);
 #endif
+        odroid_system_shutdown();
         odroid_system_sleep();
     }
 

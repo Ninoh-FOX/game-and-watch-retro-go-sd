@@ -480,7 +480,7 @@ app_main_smsplusgx(uint8_t load_state, uint8_t start_paused, int8_t save_slot, u
     }
 
     odroid_system_init(APPID_SMS, AUDIO_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL);
 
     system_reset_config();
     load_rom_from_flash( is_coleco );
