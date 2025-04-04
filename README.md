@@ -89,19 +89,20 @@ To install the hardware mod, you need:
    - Run `gnwmanager unlock` to backup and unlock the console. Follow instructions on computer's screen with attention.
    - If you already have a backup, use `gnwmanager unlock --no-backup` to skip the backup steps
 
-2. **Patched OFW / Bootloader Installation**
+2. **Flash Chip Installation**
+   - Install the MX25U51245GZ4I00 flash chip, follow instructions in [this video](https://www.youtube.com/watch?v=mYvK7LyHh1Y) if needed
+
+3. **Patched OFW / Bootloader Installation**
    - For dual boot (recommended):
      ```bash
      gnwmanager flash-patch zelda internal_flash_backup_zelda.bin flash_backup_zelda.bin --bootloader
      ```
-   - Without dual boot (not recommended):
+   - Without dual boot (not recommended but could help troubleshooting issues if dual boot fails to install):
      ```bash
      gnwmanager flash-bootloader bank1
      ```
 
-3. **Flash Chip Installation**
-   - Install the MX25U51245GZ4I00 flash chip, follow instructions in [this video](https://www.youtube.com/watch?v=mYvK7LyHh1Y) if needed
-   - You can use bootloader to check that your flash chip is correctly installed. Power on the console (and press GAME+Left if patched OFW is installed) to run the bootloader. You should see a screen like this:
+   - You can now use bootloader to check that your flash chip is correctly installed. Power on the console (and press GAME+Left if patched OFW is installed) to run the bootloader. You should see a screen like this:
 
       ![Bootloader screen showing flash chip information](assets/bootloader_flash_installed.png)
 
@@ -122,6 +123,7 @@ To install the hardware mod, you need:
 
 ### Shell Replacement
    For people who do not want to cut their original shell, Aradia (on Discord) has designed a replacement back shell with SD card access.
+   Note that this shell is designed for the GnW_SD_v2.zip version of the flex cable (the one provided earlier on this page)
    The 3D printable file can be downloaded [here](https://github.com/sylverb/game-and-watch-retro-go-sd/raw/refs/heads/main/assets/GnW_Zelda_back_shell.stl).
 
 ### Retro-Go-SD Update Steps
@@ -325,7 +327,7 @@ To play The Legend of Zelda: A Link to the Past, you need to generate the zelda3
 - copy zelda3.sfc (USA version, sha1 = '6d4f10a8b10e10dbe624cb23cf03b88bb8252973') rom to external/zelda3/tables/
 - run 'make -C external/zelda3 tables/zelda3_assets.dat' command
 
-The file zelda3_assets.dat will be created in external/smw. Copy the zelda3_assets.dat file in /roms/homebrew/ folder of your sd card.
+The file zelda3_assets.dat will be created in external/zelda3/tables. Copy the zelda3_assets.dat file in /roms/homebrew/ folder of your sd card.
 
 If you want to create zelda3_assets.dat file with several languages, the steps are :
 - copy all zelda3_xx.sfc files (including us zelda3.sfc) from languages you want to include (check names and sha1 below)
@@ -333,7 +335,7 @@ If you want to create zelda3_assets.dat file with several languages, the steps a
 - for each rom run this command : 'python3 restool.py --extract-dialogue -r ./zelda3_xx.sfc' (replace _xx with real rom names)
 - run the command to build assets file : 'python3 restool.py --extract-from-rom --languages=fr,fr-c,de,en,es,pl,pt,nl' (adapt the languages list to fit the languages you did provide)
 
-The file zelda3_assets.dat will be created in external/smw. Copy the zelda3_assets.dat file in /roms/homebrew/ folder of your sd card.
+The file zelda3_assets.dat will be created in external/zelda3/tables. Copy the zelda3_assets.dat file in /roms/homebrew/ folder of your sd card.
 
 When playing, you'll be able to change current language by going in the options menu.
 
