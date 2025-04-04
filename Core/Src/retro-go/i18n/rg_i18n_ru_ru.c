@@ -48,6 +48,28 @@ const lang_t lang_ru_ru LANG_DATA = {
     .s_Default = "По умолчанию",
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "Фильтр LCD",
+    .s_pkmini_LCD_Mode = "Режим LCD",
+    .s_pkmini_Piezo_Filter = "Фильтр Пьезо",
+    .s_pkmini_Low_Pass_Filter = "Фильтр Низких Частот",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "По умолчанию",
+    .s_pkmini_palette_Old = "Старый",
+    .s_pkmini_palette_BlackWhite = "Чёрно-белый",
+    .s_pkmini_palette_Green = "Зелёный",
+    .s_pkmini_palette_InvertedGreen = "Инвертированный зелёный",
+    .s_pkmini_palette_Red = "Красный",
+    .s_pkmini_palette_InvertedRed = "Инвертированный красный",
+    .s_pkmini_palette_BlueLCD = "Синий LCD",
+    .s_pkmini_palette_LEDBacklight = "LED подсветка",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "Синий",
+    .s_pkmini_palette_InvertedBlue = "Инвертированный синий",
+    .s_pkmini_palette_Sepia = "Сепия",
+    .s_pkmini_palette_InvertedBlackWhite = "Инвертированный чёрно-белый",
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     .s_md_keydefine = "keys: A-B-C",
     .s_md_Synchro = "Synchro",

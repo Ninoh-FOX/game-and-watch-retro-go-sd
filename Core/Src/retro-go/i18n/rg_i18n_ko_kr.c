@@ -48,6 +48,36 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Default = "기본",
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "LCD 필터",
+    .s_pkmini_LCD_Mode = "LCD 모드",
+    .s_pkmini_Piezo_Filter = "피에조 필터",
+    .s_pkmini_Low_Pass_Filter = "저역 통과 필터",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "기본값",
+    .s_pkmini_palette_Old = "구식",
+    .s_pkmini_palette_BlackWhite = "흑백",
+    .s_pkmini_palette_Green = "녹색",
+    .s_pkmini_palette_InvertedGreen = "반전 녹색",
+    .s_pkmini_palette_Red = "빨간색",
+    .s_pkmini_palette_InvertedRed = "반전 빨간색",
+    .s_pkmini_palette_BlueLCD = "파란색 LCD",
+    .s_pkmini_palette_LEDBacklight = "LED 백라이트",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "파란색",
+    .s_pkmini_palette_InvertedBlue = "반전 파란색",
+    .s_pkmini_palette_Sepia = "세피아",
+    .s_pkmini_palette_InvertedBlackWhite = "반전 흑백",
+    // PokeMini LCD filter names
+    .s_pkmini_lcd_filter_None = "없음",
+    .s_pkmini_lcd_filter_DotMatrix = "도트 매트릭스",
+    .s_pkmini_lcd_filter_Scanlines = "스캔라인",
+    // PokeMini LCD mode names
+    .s_pkmini_lcd_mode_Analog = "아날로그",
+    .s_pkmini_lcd_mode_3Shades = "3 단계",
+    .s_pkmini_lcd_mode_2Shades = "2 단계",
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     .s_md_keydefine = "keys: A-B-C",
     .s_md_Synchro = "Synchro",

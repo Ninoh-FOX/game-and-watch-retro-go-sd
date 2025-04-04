@@ -47,7 +47,37 @@ const lang_t lang_de_de LANG_DATA = {
     //.s_Palette = "Palette" dul
     .s_Default = "Standard",
     //=====================================================================
-    
+
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "LCD-Filter",
+    .s_pkmini_LCD_Mode = "LCD-Modus",
+    .s_pkmini_Piezo_Filter = "Piezo-Filter",
+    .s_pkmini_Low_Pass_Filter = "Tiefpass-Filter",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "Standard",
+    .s_pkmini_palette_Old = "Alt",
+    .s_pkmini_palette_BlackWhite = "Schwarz & Weiß",
+    .s_pkmini_palette_Green = "Grün",
+    .s_pkmini_palette_InvertedGreen = "Invertiertes Grün",
+    .s_pkmini_palette_Red = "Rot",
+    .s_pkmini_palette_InvertedRed = "Invertiertes Rot",
+    .s_pkmini_palette_BlueLCD = "Blau LCD",
+    .s_pkmini_palette_LEDBacklight = "LED Hintergrundbeleuchtung",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "Blau",
+    .s_pkmini_palette_InvertedBlue = "Invertiertes Blau",
+    .s_pkmini_palette_Sepia = "Sepia",
+    .s_pkmini_palette_InvertedBlackWhite = "Invertiertes Schwarz & Weiß",
+    // PokeMini LCD filter names
+    .s_pkmini_lcd_filter_None = "Keiner",
+    .s_pkmini_lcd_filter_DotMatrix = "Punktmatrix",
+    .s_pkmini_lcd_filter_Scanlines = "Scanlines",
+    // PokeMini LCD mode names
+    .s_pkmini_lcd_mode_Analog = "Analog",
+    .s_pkmini_lcd_mode_3Shades = "3 Abstufungen",
+    .s_pkmini_lcd_mode_2Shades = "2 Abstufungen",
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     .s_md_keydefine = "keys: A-B-C",
     .s_md_Synchro = "Synchro",

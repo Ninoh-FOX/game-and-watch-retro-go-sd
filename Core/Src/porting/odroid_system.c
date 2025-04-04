@@ -62,6 +62,13 @@ rg_app_desc_t *odroid_system_get_app()
     return &currentApp;
 }
 
+static char *extract_system(const char *filename) {
+    char *last_slash = strrchr(filename, '/');
+    char *directory = malloc(last_slash - filename + 2);
+    strncpy(directory, filename, last_slash - filename + 1);
+    directory[last_slash - filename + 1] = '\0';
+    return directory;
+}
 
 char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
 {
@@ -174,6 +181,14 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
             if (ext) *ext = '\0';
             sprintf(buffer, "%s%s.mfc", ODROID_BASE_PATH_CHEATS, shortFileName);
             free(shortFileName);
+            break;
+        }
+
+        case ODROID_PATH_SYSTEM_CONFIG:
+        {
+            char *systemPath = extract_system(fileName);
+            sprintf(buffer, "%s%sCONFIG", ODROID_BASE_PATH_CONFIG, systemPath);
+            free(systemPath);
             break;
         }
 

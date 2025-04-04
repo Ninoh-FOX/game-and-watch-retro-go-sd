@@ -46,6 +46,36 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Default = "標準",
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "LCD フィルター",
+    .s_pkmini_LCD_Mode = "LCD モード",
+    .s_pkmini_Piezo_Filter = "ピエゾフィルター",
+    .s_pkmini_Low_Pass_Filter = "ローパスフィルター",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "デフォルト",
+    .s_pkmini_palette_Old = "旧式",
+    .s_pkmini_palette_BlackWhite = "白黒",
+    .s_pkmini_palette_Green = "緑",
+    .s_pkmini_palette_InvertedGreen = "反転緑",
+    .s_pkmini_palette_Red = "赤",
+    .s_pkmini_palette_InvertedRed = "反転赤",
+    .s_pkmini_palette_BlueLCD = "ブルー LCD",
+    .s_pkmini_palette_LEDBacklight = "LED バックライト",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "青",
+    .s_pkmini_palette_InvertedBlue = "反転青",
+    .s_pkmini_palette_Sepia = "セピア",
+    .s_pkmini_palette_InvertedBlackWhite = "反転白黒",
+    // PokeMini LCD filter names
+    .s_pkmini_lcd_filter_None = "なし",
+    .s_pkmini_lcd_filter_DotMatrix = "ドットマトリックス",
+    .s_pkmini_lcd_filter_Scanlines = "スキャンライン",
+    // PokeMini LCD mode names
+    .s_pkmini_lcd_mode_Analog = "アナログ",
+    .s_pkmini_lcd_mode_3Shades = "3 階調",
+    .s_pkmini_lcd_mode_2Shades = "2 階調",
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     .s_md_keydefine = "keys: A-B-C",
     .s_md_Synchro = "シンクロ",

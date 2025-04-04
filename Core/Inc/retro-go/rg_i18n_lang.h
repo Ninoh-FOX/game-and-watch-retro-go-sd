@@ -27,6 +27,36 @@ typedef struct
     const char *s_Default;
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    const char *s_pkmini_LCD_Filter;
+    const char *s_pkmini_LCD_Mode;
+    const char *s_pkmini_Piezo_Filter;
+    const char *s_pkmini_Low_Pass_Filter;
+    // PokeMini palette names
+    const char *s_pkmini_palette_Default;
+    const char *s_pkmini_palette_Old;
+    const char *s_pkmini_palette_BlackWhite;
+    const char *s_pkmini_palette_Green;
+    const char *s_pkmini_palette_InvertedGreen;
+    const char *s_pkmini_palette_Red;
+    const char *s_pkmini_palette_InvertedRed;
+    const char *s_pkmini_palette_BlueLCD;
+    const char *s_pkmini_palette_LEDBacklight;
+    const char *s_pkmini_palette_GirlPower;
+    const char *s_pkmini_palette_Blue;
+    const char *s_pkmini_palette_InvertedBlue;
+    const char *s_pkmini_palette_Sepia;
+    const char *s_pkmini_palette_InvertedBlackWhite;
+    // PokeMini LCD filter names
+    const char *s_pkmini_lcd_filter_None;
+    const char *s_pkmini_lcd_filter_DotMatrix;
+    const char *s_pkmini_lcd_filter_Scanlines;
+    // PokeMini LCD mode names
+    const char *s_pkmini_lcd_mode_Analog;
+    const char *s_pkmini_lcd_mode_3Shades;
+    const char *s_pkmini_lcd_mode_2Shades;
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     const char *s_md_keydefine;
     const char *s_md_Synchro;

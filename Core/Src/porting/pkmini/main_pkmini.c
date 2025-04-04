@@ -196,6 +196,15 @@ static int load_rom()
 
 // TODO : Implement call to shutdown function when system is powered off
 static void Shutdown() {
+    // Save system config
+    char *system_config_path = odroid_system_get_path(ODROID_PATH_SYSTEM_CONFIG, ACTIVE_FILE->path);
+    FILE *file = fopen(system_config_path, "w");
+    if (file) {
+        fwrite(&CommandLine, sizeof(CommandLine), 1, file);
+        fclose(file);
+    }
+    free(system_config_path);
+    
     // Save EEPROM
     if (PokeMini_EEPROMWritten)
     {
@@ -206,8 +215,198 @@ static void Shutdown() {
 	PokeMini_Destroy();
 }
 
+static void handle_joystick_input(odroid_gamepad_state_t *joystick) {
+        if (joystick->values[ODROID_INPUT_A] == 1)
+            MinxIO_Keypad(MINX_KEY_A, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_A, 0);
+        if (joystick->values[ODROID_INPUT_B] == 1)
+            MinxIO_Keypad(MINX_KEY_B, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_B, 0);
+        if (joystick->values[ODROID_INPUT_START] == 1)
+            MinxIO_Keypad(MINX_KEY_C, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_C, 0);
+        if (joystick->values[ODROID_INPUT_X] == 1)
+            MinxIO_Keypad(MINX_KEY_C, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_C, 0);
+        if (joystick->values[ODROID_INPUT_SELECT] == 1)
+            MinxIO_Keypad(MINX_KEY_SHOCK, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_SHOCK, 0);
+        if (joystick->values[ODROID_INPUT_Y] == 1)
+            MinxIO_Keypad(MINX_KEY_SHOCK, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_SHOCK, 0);
+        if (joystick->values[ODROID_INPUT_UP] == 1)
+            MinxIO_Keypad(MINX_KEY_UP, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_UP, 0);
+        if (joystick->values[ODROID_INPUT_DOWN] == 1)
+            MinxIO_Keypad(MINX_KEY_DOWN, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_DOWN, 0);
+        if (joystick->values[ODROID_INPUT_LEFT] == 1)
+            MinxIO_Keypad(MINX_KEY_LEFT, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_LEFT, 0);
+        if (joystick->values[ODROID_INPUT_RIGHT] == 1)
+            MinxIO_Keypad(MINX_KEY_RIGHT, 1);
+        else
+            MinxIO_Keypad(MINX_KEY_RIGHT, 0);
+}
+
+static void pkmini_apply_changes() {
+    PokeMini_VideoPalette_Index(CommandLine.palette, NULL, CommandLine.lcdcontrast, CommandLine.lcdbright);
+    PokeMini_ApplyChanges();
+}
+
+#define PALETTE_COUNT 14
+
+static bool palette_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+   int pal = CommandLine.palette;
+   int max = PALETTE_COUNT - 1;
+
+   if (event == ODROID_DIALOG_PREV) pal = pal > 0 ? pal - 1 : max;
+   if (event == ODROID_DIALOG_NEXT) pal = pal < max ? pal + 1 : 0;
+
+   if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+      CommandLine.palette = pal;
+      pkmini_apply_changes();
+   }
+   
+   // Use the internationalized palette names from curr_lang
+   const char* palette_name;
+   switch(pal) {
+      case 0: palette_name = curr_lang->s_pkmini_palette_Default; break;
+      case 1: palette_name = curr_lang->s_pkmini_palette_Old; break;
+      case 2: palette_name = curr_lang->s_pkmini_palette_BlackWhite; break;
+      case 3: palette_name = curr_lang->s_pkmini_palette_Green; break;
+      case 4: palette_name = curr_lang->s_pkmini_palette_InvertedGreen; break;
+      case 5: palette_name = curr_lang->s_pkmini_palette_Red; break;
+      case 6: palette_name = curr_lang->s_pkmini_palette_InvertedRed; break;
+      case 7: palette_name = curr_lang->s_pkmini_palette_BlueLCD; break;
+      case 8: palette_name = curr_lang->s_pkmini_palette_LEDBacklight; break;
+      case 9: palette_name = curr_lang->s_pkmini_palette_GirlPower; break;
+      case 10: palette_name = curr_lang->s_pkmini_palette_Blue; break;
+      case 11: palette_name = curr_lang->s_pkmini_palette_InvertedBlue; break;
+      case 12: palette_name = curr_lang->s_pkmini_palette_Sepia; break;
+      case 13: palette_name = curr_lang->s_pkmini_palette_InvertedBlackWhite; break;
+      default: palette_name = "Unknown"; break;
+   }
+   
+   sprintf(option->value, "%10s", palette_name);
+   return event == ODROID_DIALOG_ENTER;
+}
+
+static bool lcd_filter_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+   int filter = CommandLine.lcdfilter;
+   int max = 2;
+
+   if (event == ODROID_DIALOG_PREV) filter = filter > 0 ? filter - 1 : max;
+   if (event == ODROID_DIALOG_NEXT) filter = filter < max ? filter + 1 : 0;
+
+   if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+      CommandLine.lcdfilter = filter;
+      pkmini_apply_changes();
+   }
+   
+   // Use the internationalized LCD filter names from curr_lang
+   const char* filter_name;
+   switch(filter) {
+      case 0: filter_name = curr_lang->s_pkmini_lcd_filter_None; break;
+      case 1: filter_name = curr_lang->s_pkmini_lcd_filter_DotMatrix; break;
+      case 2: filter_name = curr_lang->s_pkmini_lcd_filter_Scanlines; break;
+      default: filter_name = "Unknown"; break;
+   }
+   
+   sprintf(option->value, "%10s", filter_name);
+   return event == ODROID_DIALOG_ENTER;
+}
+
+static bool lcd_mode_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+   int mode = CommandLine.lcdmode;
+   int max = 2;
+
+   if (event == ODROID_DIALOG_PREV) mode = mode > 0 ? mode - 1 : max;
+   if (event == ODROID_DIALOG_NEXT) mode = mode < max ? mode + 1 : 0;
+
+   if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+      CommandLine.lcdmode = mode;
+      pkmini_apply_changes();
+   }
+   
+   // Use the internationalized LCD mode names from curr_lang
+   const char* mode_name;
+   switch(mode) {
+      case 0: mode_name = curr_lang->s_pkmini_lcd_mode_Analog; break;
+      case 1: mode_name = curr_lang->s_pkmini_lcd_mode_3Shades; break;
+      case 2: mode_name = curr_lang->s_pkmini_lcd_mode_2Shades; break;
+      default: mode_name = "Unknown"; break;
+   }
+   
+   sprintf(option->value, "%10s", mode_name);
+   return event == ODROID_DIALOG_ENTER;
+}
+
+static char *piezo_filter_names[2] = {
+    "\x5",
+    "\x6",
+};
+
+static bool piezo_filter_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+   int filter = CommandLine.piezofilter;
+   int max = 1;
+
+   if (event == ODROID_DIALOG_PREV) filter = filter > 0 ? filter - 1 : max;
+   if (event == ODROID_DIALOG_NEXT) filter = filter < max ? filter + 1 : 0;
+
+   if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+      CommandLine.piezofilter = filter;
+      pkmini_apply_changes();
+   }
+   sprintf(option->value, "%10s", piezo_filter_names[filter]);
+   return event == ODROID_DIALOG_ENTER;
+}
+
+char *low_pass_filter_names[2] = {
+    "\x5",
+    "\x6",
+};
+
+static bool low_pass_filter_update_cb(odroid_dialog_choice_t *option, odroid_dialog_event_t event, uint32_t repeat)
+{
+   int filter = CommandLine.lowpassfilter;
+   int max = 1;
+
+   if (event == ODROID_DIALOG_PREV) filter = filter > 0 ? filter - 1 : max;
+   if (event == ODROID_DIALOG_NEXT) filter = filter < max ? filter + 1 : 0;
+
+   if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
+      CommandLine.lowpassfilter = filter;
+   }
+   sprintf(option->value, "%10s", low_pass_filter_names[filter]);
+   return event == ODROID_DIALOG_ENTER;
+}
+
 _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t save_slot) {
+    char palette_values[23];
+    char lcd_filter_values[32];
+    char lcd_mode_values[32];
+    char piezo_filter_values[16];
+    char low_pass_filter_values[16];
     odroid_dialog_choice_t options[] = {
+        {100, curr_lang->s_Palette, (char *)palette_values, 1, &palette_update_cb},
+        {100, curr_lang->s_pkmini_LCD_Filter, (char *)lcd_filter_values, 1, &lcd_filter_update_cb},
+        {100, curr_lang->s_pkmini_LCD_Mode, (char *)lcd_mode_values, 1, &lcd_mode_update_cb},
+        {100, curr_lang->s_pkmini_Piezo_Filter, (char *)piezo_filter_values, 1, &piezo_filter_update_cb},
+        {100, curr_lang->s_pkmini_Low_Pass_Filter, (char *)low_pass_filter_values, 1, &low_pass_filter_update_cb},
         ODROID_DIALOG_CHOICE_LAST
     };
     TPokeMini_VideoSpec *video_spec = NULL;
@@ -236,10 +435,30 @@ _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t 
     char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
     strcpy(CommandLine.eeprom_file, sram_path);
     free(sram_path);
+
+    CommandLine.palette = 0;       // Default
+    CommandLine.lcdfilter = 1;     // Dot Matrix
+    CommandLine.lcdmode = 0;       // Analog
+    CommandLine.piezofilter = 1;   // ON
+    CommandLine.lowpassfilter = 1; // ON
 	CommandLine.forcefreebios = 0; // OFF
 	CommandLine.eeprom_share = 0;  // OFF (there is no practical benefit to a shared eeprom save
 	                               //      - it just gets full and becomes a nuisance...)
 	CommandLine.updatertc = 2;	   // Update RTC (0=Off, 1=State, 2=Host)
+
+    // Read system config
+    char *system_config_path = odroid_system_get_path(ODROID_PATH_SYSTEM_CONFIG, ACTIVE_FILE->path);
+    if (rg_storage_exists(system_config_path)) {
+        rg_stat_t stat = rg_storage_stat(system_config_path);
+        if (stat.size == sizeof(CommandLine)) {
+            FILE *file = fopen(system_config_path, "r");
+            if (file) {
+                fread(&CommandLine, sizeof(CommandLine), 1, file);
+                fclose(file);
+            }
+        }
+    }
+    free(system_config_path);
 
     video_spec = (TPokeMini_VideoSpec *)&PokeMini_Video3x3;
 
@@ -261,7 +480,6 @@ _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t 
 	MinxIO_FormatEEPROM();
 	if (rg_storage_exists(CommandLine.eeprom_file))
 	{
-        printf("Read EEPROM file: %s\n", CommandLine.eeprom_file);
 		PokeMini_LoadEEPROMFile(CommandLine.eeprom_file);
 	}
 
@@ -282,52 +500,15 @@ _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t 
         common_emu_input_loop(&joystick, options, &blit);
         common_emu_input_loop_handle_turbo(&joystick);
 
-        if (joystick.values[ODROID_INPUT_A] == 1)
-            MinxIO_Keypad(MINX_KEY_A, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_A, 0);
-        if (joystick.values[ODROID_INPUT_B] == 1)
-            MinxIO_Keypad(MINX_KEY_B, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_B, 0);
-        if (joystick.values[ODROID_INPUT_START] == 1)
-            MinxIO_Keypad(MINX_KEY_C, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_C, 0);
-        if (joystick.values[ODROID_INPUT_X] == 1)
-            MinxIO_Keypad(MINX_KEY_C, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_C, 0);
-        if (joystick.values[ODROID_INPUT_SELECT] == 1)
-            MinxIO_Keypad(MINX_KEY_SHOCK, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_SHOCK, 0);
-        if (joystick.values[ODROID_INPUT_Y] == 1)
-            MinxIO_Keypad(MINX_KEY_SHOCK, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_SHOCK, 0);
-        if (joystick.values[ODROID_INPUT_UP] == 1)
-            MinxIO_Keypad(MINX_KEY_UP, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_UP, 0);
-        if (joystick.values[ODROID_INPUT_DOWN] == 1)
-            MinxIO_Keypad(MINX_KEY_DOWN, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_DOWN, 0);
-        if (joystick.values[ODROID_INPUT_LEFT] == 1)
-            MinxIO_Keypad(MINX_KEY_LEFT, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_LEFT, 0);
-        if (joystick.values[ODROID_INPUT_RIGHT] == 1)
-            MinxIO_Keypad(MINX_KEY_RIGHT, 1);
-        else
-            MinxIO_Keypad(MINX_KEY_RIGHT, 0);
+        handle_joystick_input(&joystick);
 
         PokeMini_EmulateFrame();
 
         MinxAudio_GetSamplesS16Ch(pkmini_audio_samples, audio_get_buffer_length(), 1);
-        ApplyLowPassFilterUpmix(pkmini_audio_samples,
-                audio_get_buffer_length());
+        if (CommandLine.lowpassfilter) {
+            ApplyLowPassFilterUpmix(pkmini_audio_samples,
+                    audio_get_buffer_length());
+        }
         pkmini_pcm_submit();
 
         if (drawFrame) {

@@ -63,6 +63,36 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Default = "默认",
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "LCD 滤波器",
+    .s_pkmini_LCD_Mode = "LCD 模式",
+    .s_pkmini_Piezo_Filter = "压电滤波器",
+    .s_pkmini_Low_Pass_Filter = "低通滤波器",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "预设",
+    .s_pkmini_palette_Old = "旧式",
+    .s_pkmini_palette_BlackWhite = "黑白",
+    .s_pkmini_palette_Green = "绿色",
+    .s_pkmini_palette_InvertedGreen = "反转绿色",
+    .s_pkmini_palette_Red = "红色",
+    .s_pkmini_palette_InvertedRed = "反转红色",
+    .s_pkmini_palette_BlueLCD = "蓝色 LCD",
+    .s_pkmini_palette_LEDBacklight = "LED 背光",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "蓝色",
+    .s_pkmini_palette_InvertedBlue = "反转蓝色",
+    .s_pkmini_palette_Sepia = "棕褐色",
+    .s_pkmini_palette_InvertedBlackWhite = "反转黑白",
+    // PokeMini LCD filter names
+    .s_pkmini_lcd_filter_None = "无",
+    .s_pkmini_lcd_filter_DotMatrix = "点阵",
+    .s_pkmini_lcd_filter_Scanlines = "扫描线",
+    // PokeMini LCD mode names
+    .s_pkmini_lcd_mode_Analog = "模拟",
+    .s_pkmini_lcd_mode_3Shades = "3 色调",
+    .s_pkmini_lcd_mode_2Shades = "2 色调",
+    //=====================================================================
+
     // Core\Src\porting\md\main_wsv.c ================================
     .s_wsv_palette_Default = "默认",
     .s_wsv_palette_Amber = "琥珀",

@@ -41,6 +41,36 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Palette = "調色盤",
     //=====================================================================
 
+    // Core\Src\porting\pkmini\main_pkmini.c ==============================
+    .s_pkmini_LCD_Filter = "LCD 濾波器",
+    .s_pkmini_LCD_Mode = "LCD 模式",
+    .s_pkmini_Piezo_Filter = "壓電濾波器",
+    .s_pkmini_Low_Pass_Filter = "低通濾波器",
+    // PokeMini palette names
+    .s_pkmini_palette_Default = "預設",
+    .s_pkmini_palette_Old = "舊式",
+    .s_pkmini_palette_BlackWhite = "黑白",
+    .s_pkmini_palette_Green = "綠色",
+    .s_pkmini_palette_InvertedGreen = "反轉綠色",
+    .s_pkmini_palette_Red = "紅色",
+    .s_pkmini_palette_InvertedRed = "反轉紅色",
+    .s_pkmini_palette_BlueLCD = "藍色 LCD",
+    .s_pkmini_palette_LEDBacklight = "LED 背光",
+    .s_pkmini_palette_GirlPower = "Girl Power",
+    .s_pkmini_palette_Blue = "藍色",
+    .s_pkmini_palette_InvertedBlue = "反轉藍色",
+    .s_pkmini_palette_Sepia = "棕褐色",
+    .s_pkmini_palette_InvertedBlackWhite = "反轉黑白",
+    // PokeMini LCD filter names
+    .s_pkmini_lcd_filter_None = "無",
+    .s_pkmini_lcd_filter_DotMatrix = "點陣",
+    .s_pkmini_lcd_filter_Scanlines = "掃描線",
+    // PokeMini LCD mode names
+    .s_pkmini_lcd_mode_Analog = "模擬",
+    .s_pkmini_lcd_mode_3Shades = "3 色調",
+    .s_pkmini_lcd_mode_2Shades = "2 色調",
+    //=====================================================================
+
     // Core\Src\porting\md\main_gwenesis.c ================================
     .s_md_keydefine = "按鍵映射 A-B-C",
     .s_md_Synchro = "同步方式",
