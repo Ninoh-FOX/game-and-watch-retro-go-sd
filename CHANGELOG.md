@@ -2,8 +2,12 @@
 
 ## What's New
 
-### Version 0.6.0
-- Add support for Pokémon mini console (put roms in /roms/mini)
+### Version 0.6.1
+- Do not load game in flash if it can be loaded in ram
+- GB/GBC : fix bug in Shantae
+- GB/GBC : add option to reset console (useful in some games)
+- MSX/Amstrad : allow to change disk if needed
+- Improved bilinear filtering to be less blurry
 
 ## Prerequisites
 To install this version, make sure you have:
