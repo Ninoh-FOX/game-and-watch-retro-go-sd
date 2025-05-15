@@ -144,6 +144,11 @@ void *imlib_draw_row_get_row_buffer(imlib_draw_row_data_t *data)
     return result;
 }
 
+static const uint8_t lut[] = {
+    0, 0, 0, 0, 1, 1, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15,
+    17, 20, 22, 24, 26, 27, 28, 29, 30, 31, 31, 31, 32, 32, 32, 32
+};
+
 void imlib_draw_image(image_t *dst_img, image_t *src_img, int dst_x_start, int dst_y_start, int dst_stride, float x_scale, float y_scale, rectangle_t *roi,
                       int rgb_channel, int alpha, const uint16_t *color_palette, const uint8_t *alpha_palette, image_hint_t hint,
                       imlib_draw_row_callback_t callback, void *dst_row_override)
@@ -313,7 +318,7 @@ void imlib_draw_image(image_t *dst_img, image_t *src_img, int dst_x_start, int d
 
         do { // Cache the results of getting the source rows
             // used to mix pixels vertically
-            long smuad_y = (src_y_accum >> 11) & 0x1f;
+            long smuad_y = lut[(src_y_accum >> 11) & 0x1f];
             smuad_y |= (32 - smuad_y) << 16;
 
             // Must be called per loop to get the address of the temp buffer to blend with
@@ -363,7 +368,7 @@ void imlib_draw_image(image_t *dst_img, image_t *src_img, int dst_x_start, int d
 
                 do { // Cache the results of getting the source pixels
                     // used to mix pixels horizontally
-                    long smuad_x = (src_x_accum >> 11) & 0x1f;
+                    long smuad_x = lut[(src_x_accum >> 11) & 0x1f];
                     smuad_x |= (32 - smuad_x) << 16;
 
                     int rb_out = __SMLAD(smuad_x, rb, avg_rb) >> 5;
