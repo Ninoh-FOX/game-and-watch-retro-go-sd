@@ -27,6 +27,7 @@ enum {
     RG_LOGO_HEADER_MSX,
     RG_LOGO_HEADER_GEN,
     RG_LOGO_HEADER_WSV,
+    RG_LOGO_HEADER_A2600,
     RG_LOGO_HEADER_A7800,
     RG_LOGO_HEADER_AMSTRAD,
     RG_LOGO_HEADER_ZELDA3,
@@ -46,6 +47,7 @@ enum {
     RG_LOGO_PAD_MSX,
     RG_LOGO_PAD_GEN,
     RG_LOGO_PAD_WSV,
+    RG_LOGO_PAD_A2600,
     RG_LOGO_PAD_A7800,
     RG_LOGO_PAD_AMSTRAD,
     RG_LOGO_PAD_SNES,
@@ -86,6 +88,7 @@ extern const retro_logo_image header_gw;
 extern const retro_logo_image header_msx;
 extern const retro_logo_image header_wsv;
 extern const retro_logo_image header_gen;
+extern const retro_logo_image header_a2600;
 extern const retro_logo_image header_a7800;
 extern const retro_logo_image header_amstrad;
 extern const retro_logo_image header_zelda3;
@@ -104,6 +107,7 @@ extern const retro_logo_image pad_gw;
 extern const retro_logo_image pad_msx;
 extern const retro_logo_image pad_wsv;
 extern const retro_logo_image pad_gen;
+extern const retro_logo_image pad_a2600;
 extern const retro_logo_image pad_a7800;
 extern const retro_logo_image pad_amstrad;
 extern const retro_logo_image pad_snes;

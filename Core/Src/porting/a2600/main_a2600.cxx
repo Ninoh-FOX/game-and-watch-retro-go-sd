@@ -17,7 +17,7 @@ extern "C"
 #ifndef GNW_DISABLE_COMPRESSION
 #include "lzma.h"
 #endif
-#include "heap.hpp"
+#include "DefPropsBin.h"
 
 extern void __libc_init_array(void);
 }
@@ -52,6 +52,8 @@ static int paddle_digital_sensitivity = 50;
 
 #define AUDIO_A2600_SAMPLE_RATE 31400
 
+static void blend_frames_16(uInt8 *stella_fb, int width, int height);
+
 static bool LoadState(const char *savePathName)
 {
     Serializer in(savePathName, true);
@@ -70,14 +72,27 @@ static bool SaveState(const char *savePathName)
     return stateManager.saveState(out);
 }
 
-uint8_t a2600_y_offset = 0;
-uint16_t a2600_height = 0x00;
+static void *Screenshot()
+{
+    lcd_wait_for_vblank();
+
+    lcd_clear_active_buffer();
+
+    blend_frames_16(console->tia().currentFrameBuffer(), console->tia().width(), console->tia().height());
+
+    return lcd_get_active_buffer();
+}
+
+uint8_t a2600_y_offset = 0x24;
+uint16_t a2600_height = 250;
 char a2600_control[15];
 bool a2600_control_swap = false;
 bool a2600_swap_paddle = false;
 char a2600_display_mode[10];
 uint8_t a2600_difficulty;
 bool a2600_fastscbios = false;
+
+static string cartType = "AUTO";
 
 #ifndef GNW_DISABLE_COMPRESSION
 // Memory to handle compressed roms
@@ -114,105 +129,71 @@ static size_t getromdata(unsigned char **data) {
 #endif
 }
 
-void fill_stella_config()
+void fill_stella_config(string md5string)
 {
-    /* ACTIVE_FILE->extra description
-     * Byte 0 : Mapper
-     * Byte 1 : Y offset
-     * Byte 2 : Height
-     * Byte 3 : Control type
-     * Byte 4 : Control swap
-     * Byte 5 : difficulty
-     */
-    a2600_y_offset = 0;//ACTIVE_FILE->extra[1];
-    a2600_height = 213;
-    strcpy(a2600_control, ""); // Joystick
-    strcpy(a2600_display_mode, "NTSC");
-    a2600_difficulty = 0;
-/*
-    if (ACTIVE_FILE->extra[2] > 0)
-    {
-        a2600_height = ACTIVE_FILE->extra[2] + 213;
-    }
-    switch (ACTIVE_FILE->extra[3])
-    {
-    case 0:
+    rom_properties_t props;
+    char md5[33];
+
+    strncpy(md5, md5string.c_str(), sizeof(md5) - 1);
+    md5[sizeof(md5) - 1] = '\0';
+    
+    // Initialize properties database
+    if (!defprops_init("/cores/a2600_defprops.bin")) {
+        printf("Stella: Failed to load database.\n");
+        // Default values if database not found
         strcpy(a2600_control, ""); // Joystick
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 1:
-        strcpy(a2600_control, "KEYBOARD");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 2:
-        strcpy(a2600_control, "PADDLES");
-        a2600_swap_paddle = ACTIVE_FILE->extra[4];
-        break;
-    case 3:
-        strcpy(a2600_control, "GENESIS");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 4:
-        strcpy(a2600_control, "DRIVING");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 5:
-        strcpy(a2600_control, "BOOSTERGRIP");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 6:
-        strcpy(a2600_control, "AMIGAMOUSE");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 7:
-        strcpy(a2600_control, "PADDLES_IAXDR");
-        a2600_swap_paddle = ACTIVE_FILE->extra[4];
-        break;
-    case 8:
-        strcpy(a2600_control, "COMPUMATE");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 9:
-        strcpy(a2600_control, "PADDLES_IAXIS");
-        a2600_swap_paddle = ACTIVE_FILE->extra[4];
-        break;
-    case 10:
-        strcpy(a2600_control, "TRACKBALL22");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 11:
-        strcpy(a2600_control, "TRACKBALL80");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    case 12:
-        strcpy(a2600_control, "MINDLINK");
-        a2600_control_swap = ACTIVE_FILE->extra[4];
-        break;
-    }
-    switch (ACTIVE_FILE->region)
-    {
-    case REGION_NTSC:
         strcpy(a2600_display_mode, "NTSC");
-        break;
-    case REGION_PAL:
-        strcpy(a2600_display_mode, "PAL");
-        break;
-    case REGION_SECAM:
-        strcpy(a2600_display_mode, "SECAM");
-        break;
-    case REGION_NTSC50:
-        strcpy(a2600_display_mode, "NTSC50");
-        break;
-    case REGION_PAL60:
-        strcpy(a2600_display_mode, "PAL60");
-        break;
-    case REGION_AUTO:
-        strcpy(a2600_display_mode, "AUTO");
-        break;
+        a2600_difficulty = 0;
+        cartType = "AUTO";
+        return;
     }
-    a2600_difficulty = ACTIVE_FILE->extra[5];
-*/
+    
+    // Get properties for this ROM
+    if (defprops_get_properties(md5, &props)) {
+        printf("Stella: Found properties in database\n");
+        // Set properties from database
+        if (props.yoffset[0] != '\0') {
+            a2600_y_offset = atoi(props.yoffset);
+            printf("Stella: yoffset: %d\n", a2600_y_offset);
+        }
+        if (props.height[0] != '\0') {
+            a2600_height = atoi(props.height);
+            printf("Stella: height: %d\n", a2600_height);
+        }
+        if (props.control[0] != '\0') {
+            strncpy(a2600_control, props.control, sizeof(a2600_control) - 1);
+            a2600_control[sizeof(a2600_control) - 1] = '\0';
+        }
+        if (props.region[0] != '\0') {
+            strncpy(a2600_display_mode, props.region, sizeof(a2600_display_mode) - 1);
+            a2600_display_mode[sizeof(a2600_display_mode) - 1] = '\0';
+        }
+        if (props.difficulty[0] != '\0') {
+            a2600_difficulty = atoi(props.difficulty);
+        }
+        if (props.control_swap[0] != '\0') {
+            a2600_control_swap = (strcmp(props.control_swap, "YES") == 0);
+        }
+        if (props.paddle_swap[0] != '\0') {
+            a2600_swap_paddle = (strcmp(props.paddle_swap, "YES") == 0);
+        }
+        if (props.mapper[0] != '\0') {
+            cartType = props.mapper;
+        } else {
+            cartType = "AUTO";
+        }
+    } else {
+        printf("Stella: No properties found for %s\n", md5);
+        // Default values if ROM not found in database
+        strcpy(a2600_control, ""); // Joystick
+        strcpy(a2600_display_mode, "NTSC");
+        a2600_difficulty = 0;
+        cartType = "AUTO";
+    }
+    printf("Stella: cartType: %s\n", cartType.c_str());
+    defprops_cleanup();
 }
+
 void update_joystick(odroid_gamepad_state_t *joystick)
 {
     Event &ev = osystem.eventHandler().event();
@@ -248,7 +229,6 @@ static void convert_palette(const uint32_t *palette32, uint16_t *palette16)
 
 static void blend_frames_16(uInt8 *stella_fb, int width, int height)
 {
-    printf("width %d height %d\n", width, height);
     if (width > 320)
         width = 320;
     if (height > 240)
@@ -322,7 +302,6 @@ void blit()
 
 void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
-    static dma_transfer_state_t last_dma_state = DMA_TRANSFER_STATE_HF;
     size_t offset;
     odroid_gamepad_state_t joystick;
     odroid_dialog_choice_t options[] = {
@@ -339,58 +318,17 @@ void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_sl
         common_emu_state.pause_after_frames = 0;
     }
 
-    string cartMD5 = "";
-
-    fill_stella_config();
-
-    // Load the cart
-    string cartType = "";
-    cartType = "AUTO";
-/*
-    switch (ACTIVE_FILE->extra[0])
-    {
-    case 0:
-        cartType = "AUTO";
-        break;
-    case 1:
-        cartType = "2IN1";
-        break;
-    case 2:
-        cartType = "CM";
-        break;
-    case 3:
-        cartType = "4IN1";
-        break;
-    case 4:
-        cartType = "32IN1";
-        break;
-    case 5:
-        cartType = "FE";
-        break;
-    case 6:
-        cartType = "F6SC";
-        break;
-    case 7:
-        cartType = "4K";
-        break;
-    case 8:
-        cartType = "8IN1";
-        break;
-    case 9:
-        cartType = "2K";
-        break;
-    case 10:
-        cartType = "16IN1";
-        break;
-    }
-*/
     printf("cartType = %s\n", cartType.c_str());
     string cartId;
     settings = new Settings(&osystem);
     //   settings->setValue("romloadcount", false);
     rom_length = getromdata(&rom_ptr);
+    string cartMD5 = MD5((const uInt8*)rom_ptr, (uInt32)rom_length);
 
-    cartridge = Cartridge::create((const uInt8 *)rom_ptr, (uInt32)rom_length, cartMD5, cartType, cartId, osystem, *settings);
+    fill_stella_config(cartMD5);
+
+    string cartMD52 = "";
+    cartridge = Cartridge::create((const uInt8 *)rom_ptr, (uInt32)rom_length, cartMD52, cartType, cartId, osystem, *settings);
 
     if (cartridge == 0)
     {
@@ -423,14 +361,19 @@ void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_sl
     memset(framebuffer2, 0, sizeof(framebuffer2));
 
     odroid_system_init(APPID_A2600, AUDIO_A2600_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL, NULL);
-
-    // Init Sound
-    memset(audiobuffer_dma, 0, sizeof(audiobuffer_dma));
-    HAL_SAI_Transmit_DMA(&hsai_BlockA1, (uint8_t *)audiobuffer_dma, 2 * (tiaSamplesPerFrame));
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL);
 
     /* Set initial digital sensitivity */
     Paddles::setDigitalSensitivity(paddle_digital_sensitivity);
+
+    if (load_state) {
+        odroid_system_emu_load_state(save_slot);
+    } else {
+        lcd_clear_buffers();
+    }
+
+    // Init Sound
+    audio_start_playing(tiaSamplesPerFrame);
 
     while (1)
     {
@@ -461,17 +404,7 @@ void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_sl
         lcd_swap();
         sound_store(&audiobuffer_dma[offset], tiaSamplesPerFrame);
 
-        if (!common_emu_state.skip_frames)
-        {
-            for (uint8_t p = 0; p < common_emu_state.pause_frames + 1; p++)
-            {
-                while (dma_state == last_dma_state)
-                {
-                    cpumon_sleep();
-                }
-                last_dma_state = dma_state;
-            }
-        }
+        common_emu_sound_sync(false);
     }
 }
 

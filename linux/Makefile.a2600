@@ -118,10 +118,11 @@ C_DEFS =  \
 C_INCLUDES =  \
 -I. \
 -I./a2600 \
+-I../Core/Inc/porting/a2600 \
 -I../Core/Src/porting/lib \
--I../Core/Src/porting/lib/lzma \
+-I../Core/Inc/retro-go \
 -I../retro-go-stm32/components/odroid \
--I../retro-go-stm32/components/lupng \
+-I/opt/homebrew/include/ \
 -I../external/stella2014-go/stella/ \
 -I../external/stella2014-go/stella/src \
 -I../external/stella2014-go/stella/stubs \
@@ -148,7 +149,7 @@ CXX_INCLUDES =  \
 
 ASFLAGS = $(AS_DEFS) $(AS_INCLUDES) $(OPT) -fdata-sections -ffunction-sections
 CFLAGS  = $(C_DEFS) $(C_INCLUDES) `sdl2-config --cflags` $(OPT) -fdata-sections -ffunction-sections
-CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)" -Ofast \
+CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)" \
 	-fno-stack-protector -fno-ident -fomit-frame-pointer \
 	-fmerge-all-constants -ffast-math
 

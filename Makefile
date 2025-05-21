@@ -625,6 +625,9 @@ A2600_CXX_SOURCES =
 
 ifneq ($(strip $(ROMS_A2600)),)
 CORE_A2600 = external/stella2014-go
+A2600_C_SOURCES += \
+$(CORE_A2600)/stella/src/emucore/DefPropsBin.c
+
 A2600_CXX_SOURCES += \
 Core/Src/porting/a2600/main_a2600.cxx \
 $(CORE_A2600)/stella/src/common/StellaSound.cxx \
@@ -674,6 +677,7 @@ $(CORE_A2600)/stella/src/emucore/NullDev.cxx \
 $(CORE_A2600)/stella/src/emucore/Random.cxx \
 $(CORE_A2600)/stella/src/emucore/Serializer.cxx \
 $(CORE_A2600)/stella/src/emucore/StateManager.cxx \
+$(CORE_A2600)/stella/src/emucore/StellaMD5.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaSettings.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaSwitches.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaSystem.cxx \

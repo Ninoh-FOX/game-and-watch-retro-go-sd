@@ -721,9 +721,9 @@ $(BUILD_DIR)/%.o: %.s Makefile.common Makefile | $(BUILD_DIR)
 	$(V)$(ECHO) [ AS ] $(notdir $<)
 	$(V)$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(FATFS_OBJECTS) $(A2600_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) $(PKMINI_OBJECTS) Makefile.common Makefile PrepareFceummMappers $(LDSCRIPT)
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(FATFS_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) $(PKMINI_OBJECTS) Makefile.common Makefile PrepareFceummMappers $(LDSCRIPT)
 	$(V)$(ECHO) [ LD ] $(notdir $@)
-	$(V)$(CC) $(OBJECTS) $(FATFS_OBJECTS) $(A2600_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) $(PKMINI_OBJECTS) $(LDFLAGS) -o $@
+	$(V)$(CC) $(OBJECTS) $(FATFS_OBJECTS) $(A7800_OBJECTS) $(NES_OBJECTS) $(NES_FCEU_OBJECTS) $(TGBDUAL_OBJECTS) $(SMSPLUSGX_OBJECTS) $(PCE_OBJECTS) $(MSX_OBJECTS) $(GW_OBJECTS) $(WSV_OBJECTS) $(MD_OBJECTS) $(AMSTRAD_OBJECTS) $(VIDEOPAC_OBJECTS) $(CELESTE_OBJECTS) $(CXX_OBJECTS) $(TGBDUAL_CXX_OBJECTS) $(A2600_OBJECTS) $(A2600_CXX_OBJECTS) $(ZELDA3_OBJECTS) $(SMW_OBJECTS) $(TAMA_OBJECTS) $(PKMINI_OBJECTS) $(LDFLAGS) -o $@
 ifeq ($(SD_CARD), 0)
 	$(V)./scripts/extflash_size.sh $@
 endif
@@ -1076,6 +1076,7 @@ create_sd_data: create_sd_folders $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash
 	@$(PYTHON3) external/fceumm-go/gen_mappers_table.py $(MAPPERS_DIR)/mappers_table.bin
 	@$(PYTHON3) external/fceumm-go/gen_ines_database.py $(MAPPERS_DIR)/ines_correct.bin
 	@$(PYTHON3) tools/gen_fceu_palettes_table.py $(SD_FOLDER)/bios/nes/palettes.bin
+#	@$(PYTHON3) external/stella2014-go/convert_defprops.py external/stella2014-go/stella/src/emucore/DefProps.hxx $(CORES_DIR)/a2600_defprops.bin
 	@$(CP) -O binary --only-section=.overlay_nes $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes.bin
 	@$(CP) -O binary --only-section=.overlay_nes_fceu $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes_fceu.bin
 	@$(CP) -O binary --only-section=.overlay_tgb $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/tgb.bin
@@ -1148,6 +1149,7 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		$(MAPPERS_SDPUSH) \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)
+#		-- sdpush --file $(CORES_DIR)/a2600_defprops.bin --dest-path "/cores/" \
 
 firmware_update: create_sd_folders
 	@$(MAKE) -j$(nproc) -C external/firmware_update

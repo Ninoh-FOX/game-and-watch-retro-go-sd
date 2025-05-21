@@ -219,14 +219,22 @@ int init_window(int width, int height)
     return 0;
 }
 
-static bool SaveState(char *savePathName, char *sramPathName, int slot)
+static bool SaveState(const char *savePathName)
 {
-    return 0;
+    Serializer out(savePathName, false);
+    if(!out.isValid()) {
+        return false;  // Failed to open file for writing
+    }
+    return stateManager.saveState(out);
 }
 
-static bool LoadState(char *savePathName, char *sramPathName, int slot)
+static bool LoadState(const char *savePathName)
 {
-    return true;
+    Serializer in(savePathName, true);
+    if(!in.isValid()) {
+        return false;  // Failed to open file for reading
+    }
+    return stateManager.loadState(in);
 }
 
 static uint32_t joystick_state = 0; /* player input data, 1 byte per player (1-4) */
@@ -272,10 +280,10 @@ int input_read_gamepad()
                 run_loop = false;
                 break;
             case SDLK_F3:
-                SaveState(NULL, NULL, 0);
+                SaveState("./save.bin");
                 break;
             case SDLK_F4:
-                LoadState(NULL, NULL, 0);
+                LoadState("./save.bin");
                 break;
             case SDLK_p:
                 index_palette++;
