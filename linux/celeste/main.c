@@ -52,7 +52,7 @@ struct track_info current_track = {-1, 0, 0};
 
 /*-------------------------------*/
 
-static bool SaveState(char *savePathName, char *sramPathName)
+static bool SaveState(const char *savePathName)
 {
     printf("Celeste_P8_get_state_size()= %ld\n",Celeste_P8_get_state_size());
     uint8_t *buffer = malloc(Celeste_P8_get_state_size());
@@ -69,7 +69,7 @@ static bool SaveState(char *savePathName, char *sramPathName)
     return true;
 }
 
-static bool LoadState(char *savePathName, char *sramPathName)
+static bool LoadState(const char *savePathName)
 {
     uint8_t *buffer = malloc(Celeste_P8_get_state_size());
 
@@ -118,13 +118,13 @@ void input_read_gamepad()
                 run_loop = false;
                 break;
             case SDLK_F3:
-                SaveState("./celeste.sav", "");
+                SaveState("./celeste.sav");
                 break;
             case SDLK_F4:
-                LoadState("./celeste.sav", "");
+                LoadState("./celeste.sav");
                 break;
             case SDLK_v:
-                LoadState("./celeste.sav", "");
+                LoadState("./celeste.sav");
                 break;
             default:
                 break;

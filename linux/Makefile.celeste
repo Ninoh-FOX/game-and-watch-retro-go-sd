@@ -37,7 +37,10 @@ C_DEFS =  \
 C_INCLUDES =  \
 -I. \
 -I../Core/Inc/porting/celeste \
+-I../Core/Src/porting/lib \
+-I../Core/Inc/retro-go \
 -I../retro-go-stm32/components/odroid \
+-I/opt/homebrew/include/ \
 -I../external/ccleste-go/
 
 
