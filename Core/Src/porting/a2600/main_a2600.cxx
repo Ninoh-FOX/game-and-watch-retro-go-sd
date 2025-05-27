@@ -354,8 +354,7 @@ static void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t 
 
     fill_stella_config(cartMD5);
 
-    string cartMD52 = "";
-    cartridge = Cartridge::create((const uInt8 *)rom_ptr, (uInt32)rom_length, cartMD52, cartType, cartId, osystem, *settings);
+    cartridge = Cartridge::create((const uInt8 *)rom_ptr, (uInt32)rom_length, cartMD5, cartType, cartId, osystem, *settings);
 
     if (cartridge == 0)
     {
