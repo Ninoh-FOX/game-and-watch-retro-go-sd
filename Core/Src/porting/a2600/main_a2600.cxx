@@ -257,7 +257,8 @@ static void blend_frames_16(uInt8 *stella_fb, int width, int height)
     uInt8 *in = stella_fb;
     uint16_t *out = (uint16_t *)lcd_get_active_buffer();
     int x, y;
-//    int yoffset = (240 - height) / 2;
+    int xoffset = (320 - width) / 2;
+    int yoffset = (240 - height) / 2;
 
     /* If palette has changed, re-cache converted
      * RGB565 values */
@@ -273,7 +274,7 @@ static void blend_frames_16(uInt8 *stella_fb, int width, int height)
         }
        }*/
 
-    for (y = 0; y < height; y++)
+    for (y = yoffset; y < height + yoffset; y++)
     {
         for (x = 0; x < width; x++)
         {
@@ -289,27 +290,26 @@ static void blend_frames_16(uInt8 *stella_fb, int width, int height)
        }*/
 }
 
-static void sound_store(int16_t *audio_out_buf, uint16_t length)
+static void sound_store()
 {
-    // MUST shift with at least 1 place, or it will brownout.
-    uint8_t volume = odroid_audio_volume_get();
-    int32_t factor = volume_tbl[volume];
-    int16_t *audio_in_buf = sampleBuffer;
-
-    if (audio_mute || (volume == ODROID_AUDIO_VOLUME_MIN))
-    {
-        // mute
-        for (int i = 0; i < length; i++)
-        {
-            audio_out_buf[i] = 0;
-        }
+    if (common_emu_sound_loop_is_muted()) {
         return;
     }
 
+    uint32_t tiaSamplesPerFrame = (uint32_t)(AUDIO_A2600_SAMPLE_RATE / console->getFramerate());
+    osystem.sound().processFragment(sampleBuffer, tiaSamplesPerFrame);
+
+    int32_t factor = common_emu_sound_get_volume() / 2; // Divide by 2 to prevent overflow in stereo mixing
+    int16_t *audio_in_buf = sampleBuffer;
+    int16_t *audio_out_buf = audio_get_active_buffer();
+    uint16_t sound_buffer_length = audio_get_buffer_length();
+
     // Write to DMA buffer and lower the volume accordingly
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < sound_buffer_length; i++)
     {
-        int32_t sample = *audio_in_buf++;
+        /* mix left & right */
+        int32_t sample = *audio_in_buf + *(audio_in_buf+1);
+        audio_in_buf += 2;
         audio_out_buf[i] = (sample * factor) >> 8;
     }
 }
@@ -321,7 +321,6 @@ static void blit()
 
 static void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
-    size_t offset;
     odroid_gamepad_state_t joystick;
     odroid_dialog_choice_t options[] = {
         ODROID_DIALOG_CHOICE_LAST};
@@ -375,7 +374,7 @@ static void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t 
 
     videoWidth = tia.width();
     videoHeight = tia.height();
-    static uint32_t tiaSamplesPerFrame = (uint32_t)(AUDIO_A2600_SAMPLE_RATE / console->getFramerate());
+    uint32_t tiaSamplesPerFrame = (uint32_t)(AUDIO_A2600_SAMPLE_RATE / console->getFramerate());
 
     printf("videoWidth %d videoHeight %d\n", videoWidth, videoHeight);
 
@@ -419,12 +418,8 @@ static void app_main_a2600_cpp(uint8_t load_state, uint8_t start_paused, int8_t 
 
         blit();
         common_ingame_overlay();
-        osystem.sound().processFragment(sampleBuffer, tiaSamplesPerFrame);
-
-        offset = (dma_state == DMA_TRANSFER_STATE_HF) ? 0 : tiaSamplesPerFrame;
-
         lcd_swap();
-        sound_store(&audiobuffer_dma[offset], tiaSamplesPerFrame);
+        sound_store();
 
         common_emu_sound_sync(false);
     }

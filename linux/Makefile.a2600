@@ -70,6 +70,7 @@ $(CORE_A2600)/stella/src/emucore/StellaControl.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaJoystick.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaM6502.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaM6532.cxx \
+$(CORE_A2600)/stella/src/emucore/StellaMD5.cxx \
 $(CORE_A2600)/stella/src/emucore/NullDev.cxx \
 $(CORE_A2600)/stella/src/emucore/Random.cxx \
 $(CORE_A2600)/stella/src/emucore/Serializer.cxx \
@@ -87,8 +88,7 @@ $(CORE_A2600)/stella/src/emucore/TrackBall.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaGenesis.cxx \
 $(CORE_A2600)/stella/src/emucore/StellaKeyboard.cxx
 
-#	../external/stella2014-go/stella/src/emucore/StellaMD5.cxx \
-	../external/stella2014-go/stella/src/emucore/Driving.cxx \
+#	../external/stella2014-go/stella/src/emucore/Driving.cxx \
 	../external/stella2014-go/stella/src/emucore/Booster.cxx \
 	../external/stella2014-go/stella/src/emucore/Genesis.cxx \
 	../external/stella2014-go/stella/src/emucore/Keyboard.cxx \
