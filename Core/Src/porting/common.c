@@ -155,6 +155,61 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
                 odroid_system_sleep();
             }
             else if(joystick->values[ODROID_INPUT_START]){ // GAME button
+#if SD_CARD == 1
+                // Create BMP header for 320x240 RGB888
+                uint8_t bmp_header[54] = {
+                    0x42, 0x4D,             // BM signature
+                    0x36, 0x84, 0x03, 0x00, // File size (320*240*3 + 54 = 230454 = 0x38436)
+                    0x00, 0x00,             // Reserved
+                    0x00, 0x00,             // Reserved
+                    0x36, 0x00, 0x00, 0x00, // Data offset (54 bytes)
+                    0x28, 0x00, 0x00, 0x00, // DIB header size (40 bytes)
+                    0x40, 0x01, 0x00, 0x00, // Width (320 = 0x140)
+                    0xF0, 0x00, 0x00, 0x00, // Height (240 = 0xF0)
+                    0x01, 0x00,             // Planes (1)
+                    0x18, 0x00,             // Bits per pixel (24)
+                    0x00, 0x00, 0x00, 0x00, // Compression (none)
+                    0x00, 0x84, 0x03, 0x00, // Image size (320*240*3 = 230400 = 0x38400)
+                    0x00, 0x00, 0x00, 0x00, // X pixels per meter
+                    0x00, 0x00, 0x00, 0x00, // Y pixels per meter
+                    0x00, 0x00, 0x00, 0x00, // Colors in color table
+                    0x00, 0x00, 0x00, 0x00  // Important color count
+                };
+                rg_storage_mkdir(ODROID_BASE_PATH_SCREENSHOTS);
+
+                char *file_path = odroid_system_get_path(ODROID_PATH_USER_SCREENSHOT, odroid_system_get_app()->romPath);
+                printf("file_path: %s\n", file_path);
+                FILE *file = fopen(file_path, "wb");
+                if (file == NULL) {
+                    return;
+                }
+                
+                // Write BMP header
+                fwrite(bmp_header, 1, 54, file);
+                
+                // Convert RGB565 to RGB888 and write pixel data (bottom-up for BMP)
+                odroid_audio_mute(true);
+                lcd_sleep_while_swap_pending();
+                uint8_t *data = (uint8_t*)lcd_get_inactive_buffer();
+                uint8_t rgb888[3];
+                
+                for (int y = 239; y >= 0; y--) {  // BMP is bottom-up
+                    for (int x = 0; x < 320; x++) {
+                        uint16_t pixel = ((uint16_t*)data)[y * 320 + x];
+                        
+                        // Convert RGB565 to RGB888
+                        rgb888[2] = ((pixel >> 11) & 0x1F) << 3;  // Red
+                        rgb888[1] = ((pixel >> 5) & 0x3F) << 2;   // Green
+                        rgb888[0] = (pixel & 0x1F) << 3;          // Blue
+                        
+                        fwrite(rgb888, 1, 3, file);
+                    }
+                }
+                
+                fclose(file);
+                set_ingame_overlay(INGAME_OVERLAY_SC);
+                odroid_audio_mute(false);
+#else
 #if ENABLE_SCREENSHOT
 /*
                 printf("Capturing screenshot...\n");
@@ -169,6 +224,7 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
                 printf("Screenshot captured\n");*/
 #else
                 printf("Screenshot support is disabled\n");
+#endif
 #endif
                 last_key = ODROID_INPUT_START;
             }

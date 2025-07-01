@@ -3,6 +3,7 @@
 #include "odroid_system.h"
 #include "rom_manager.h"
 #include "gw_linker.h"
+#include "rg_rtc.h"
 #include "gui.h"
 #include "main.h"
 #include "gw_lcd.h"
@@ -103,6 +104,31 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
         case ODROID_PATH_SCREENSHOT_3:
             sprintf(buffer, "%s%s-%d.raw", ODROID_BASE_PATH_SAVES, fileName, type-ODROID_PATH_SCREENSHOT);
             break;
+
+        case ODROID_PATH_USER_SCREENSHOT:
+        {
+            // Get current date and time using standard C functions
+            time_t now = time(NULL);
+            struct tm *tm_info = localtime(&now);
+            
+            // Extract just the filename without path and extension
+            char tempFileName[200];
+            const char *baseName = strrchr(fileName, '/');
+            if (baseName) {
+                baseName++; // Skip the '/'
+            } else {
+                baseName = fileName;
+            }
+            strncpy(tempFileName, baseName, sizeof(tempFileName) - 1);
+            char *dot = strrchr(tempFileName, '.');
+            if (dot) *dot = '\0';
+            
+            sprintf(buffer, "%s/%04d-%02d-%02d-%02d-%02d-%02d-%s.bmp", 
+                    ODROID_BASE_PATH_SCREENSHOTS, 
+                    1900 + tm_info->tm_year, tm_info->tm_mon + 1, tm_info->tm_mday,
+                    tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec, tempFileName);
+            break;
+        }
 
         case ODROID_PATH_SAVE_BACK:
             strcpy(buffer, ODROID_BASE_PATH_SAVES);
