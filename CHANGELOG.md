@@ -2,10 +2,9 @@
 
 ## What's New
 
-### Version 0.7.0
-- Add Atari 2600 support
-- Fix issue when flash caching is full with dual boot
-- Fix savestate crash with SMS/GG
+### Version 0.7.1
+- Add Screenshot by pressing GAME+PAUSE buttons
+screenshots are saved in /screenshots folder as BMP files
 
 ## Prerequisites
 To install this version, make sure you have:
