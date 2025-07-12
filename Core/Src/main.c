@@ -240,15 +240,6 @@ void GW_EnterDeepSleep(void)
   // Leave a trace in RAM that we entered standby mode
   boot_magic = BOOT_MAGIC_STANDBY;
 
-  // Delay 500ms to give us a chance to attach a debugger in case
-  // we end up in a suspend-loop.
-  for (int i = 0; i < 10; i++) {
-      wdog_refresh();
-      HAL_Delay(50);
-  }
-  // Deinit the LCD, save power.
-  lcd_deinit(&hspi2);
-
   // Unmount Fs and Deinit SD Card if needed
 #if SD_CARD == 1
   if (fs_mounted) {
@@ -265,6 +256,15 @@ void GW_EnterDeepSleep(void)
       break;
   }
 #endif
+
+  // Delay 500ms to give us a chance to attach a debugger in case
+  // we end up in a suspend-loop.
+  for (int i = 0; i < 10; i++) {
+      wdog_refresh();
+      HAL_Delay(50);
+  }
+  // Deinit the LCD, save power.
+  lcd_deinit(&hspi2);
 
   HAL_PWR_EnterSTANDBYMode();
 

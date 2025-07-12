@@ -7,6 +7,10 @@
 #include "gui.h"
 #include "main.h"
 #include "gw_lcd.h"
+#if SD_CARD == 1
+#include "gw_sdcard.h"
+#include "ff.h"
+#endif
 
 static rg_app_desc_t currentApp;
 static runtime_stats_t statistics;
@@ -433,6 +437,24 @@ void odroid_system_switch_app(int app)
          * For stuff not running a bootloader like this, these commands are
          * harmless.
          */
+
+        // Unmount Fs and Deinit SD Card if needed
+#if SD_CARD == 1
+        if (fs_mounted) {
+            f_unmount("");
+        }
+        switch (sdcard_hw_type) {
+            case SDCARD_HW_SPI1:
+                sdcard_deinit_spi1();
+                break;
+            case SDCARD_HW_OSPI1:
+                sdcard_deinit_ospi1();
+                break;
+            default:
+                break;
+        }
+#endif
+
         *((uint32_t *)0x2001FFF8) = 0x544F4F42;              // "BOOT"
         *((uint32_t *)0x2001FFFC) = (uint32_t)&__INTFLASH__; // vector table
 
