@@ -466,8 +466,6 @@ C_DEFS +=  \
 -DUSE_HAL_DRIVER \
 -DSTM32H7B0xx \
 -DIS_LITTLE_ENDIAN \
--DMINIZ_NO_MALLOC \
--DMINIZ_NO_ZLIB_APIS \
 -DDEBUG_RG_ALLOC \
 -DLFS_NO_MALLOC \
 -DENABLE_SCREENSHOT=$(ENABLE_SCREENSHOT) \
@@ -1072,11 +1070,31 @@ create_sd_folders:
 	$(V)mkdir -p $(HOMEBREWS_FOLDER)
 	$(V)mkdir -p $(RELEASE_FOLDER)
 
-create_sd_data: create_sd_folders $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash.bin
+prepare_msx_bios_files:
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2EXT.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2P.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2PEXT.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2PMUS.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSXDOS23.ROM" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSXKANJI.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/PANASONICDISK.rom" $(SD_FOLDER)/bios/msx/
+	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/SUNRISEIDE.rom" $(SD_FOLDER)/bios/msx/
+    # PANASONICDISK_.rom is a patched version of PANASONICDISK.rom to disable the 2nd FDD
+    # this is allowing to free some ram, which is needed for some games. It could be done by pressing
+    # ctrl key at boot using original bios, but using this patched version, the user will have nothing
+    # to do. Unfortunately this version can't be used in all cases because some games (from Micro Cabin)
+    # like Fray, XAK III, ... are expecting the 2nd FDD to be present.
+	@cp $(SD_FOLDER)/bios/msx/PANASONICDISK.rom $(SD_FOLDER)/bios/msx/PANASONICDISK_.rom
+	@printf '\x00' | dd of=$(SD_FOLDER)/bios/msx/PANASONICDISK_.rom bs=1 seek=6124 count=1 conv=notrunc status=none
+
+create_sd_data: create_sd_folders prepare_msx_bios_files $(MAPPER_BINS) $(BUILD_DIR)/$(TARGET)_intflash.bin
 	@$(PYTHON3) external/fceumm-go/gen_mappers_table.py $(MAPPERS_DIR)/mappers_table.bin
 	@$(PYTHON3) external/fceumm-go/gen_ines_database.py $(MAPPERS_DIR)/ines_correct.bin
 	@$(PYTHON3) tools/gen_fceu_palettes_table.py $(SD_FOLDER)/bios/nes/palettes.bin
 	@$(PYTHON3) external/stella2014-go/convert_defprops.py external/stella2014-go/stella/src/emucore/DefProps.hxx $(CORES_DIR)/a2600_defprops.bin
+	@$(PYTHON3) external/blueMSX-go/create_compact_database_file.py external/blueMSX-go/system/bluemsx/Databases/msxromdb.xml $(SD_FOLDER)/bios/msx/msxromdb.bin
 	@$(CP) -O binary --only-section=.overlay_nes $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes.bin
 	@$(CP) -O binary --only-section=.overlay_nes_fceu $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/nes_fceu.bin
 	@$(CP) -O binary --only-section=.overlay_tgb $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/tgb.bin
@@ -1147,6 +1165,7 @@ flash_sd: CheckTools CheckDirtySubmodules $(BUILD_DIR)/$(TARGET)_intflash.bin cr
 		-- sdpush --file $(MAPPERS_DIR)/ines_correct.bin --dest-path "/cores/mappers/" \
 		-- sdpush --file $(SD_FOLDER)/bios/nes/palettes.bin --dest-path "/bios/nes/" \
 		-- sdpush --file $(SD_FOLDER)/bios/coleco/coleco.bin --dest-path "/bios/coleco" \
+		-- sdpush --file $(SD_FOLDER)/bios/msx/msxromdb.bin --dest-path "/bios/msx/" \
 		$(MAPPERS_SDPUSH) \
 		-- start $(INTFLASH_ADDRESS) \
 		$(RESET_DBGMCU_CMD)

@@ -1704,9 +1704,23 @@ static void insertGame() {
                 case ROM_SNATCHER:
                 case ROM_SDSNATCHER:
                     insertCartridge(properties, 0, CARTNAME_SNATCHER, NULL, ROM_SNATCHER, -1);
+                    msx_button_a_key = EC_SPACE;
+                    msx_button_b_key = EC_N;
+                    msx_button_game_key = EC_F4;
+                    msx_button_time_key = EC_F3;
+                    msx_button_start_key = EC_F1;
+                    msx_button_select_key = EC_F2;
+                    controls_found = true;
                 break;
                 case ROM_SCC:
                     insertCartridge(properties, 0, CARTNAME_SCC, NULL, ROM_SCC, -1);
+                    msx_button_a_key = EC_SPACE;
+                    msx_button_b_key = EC_N;
+                    msx_button_game_key = EC_F4;
+                    msx_button_time_key = EC_F3;
+                    msx_button_start_key = EC_F1;
+                    msx_button_select_key = EC_F2;
+                    controls_found = true;
                 break;
             }
             if (!controls_found) {
