@@ -1070,7 +1070,7 @@ create_sd_folders:
 	$(V)mkdir -p $(HOMEBREWS_FOLDER)
 	$(V)mkdir -p $(RELEASE_FOLDER)
 
-prepare_msx_bios_files:
+prepare_msx_bios_files: create_sd_folders
 	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX.rom" $(SD_FOLDER)/bios/msx/
 	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2.rom" $(SD_FOLDER)/bios/msx/
 	@cp "external/blueMSX-go/system/bluemsx/Machines/Shared Roms/MSX2EXT.rom" $(SD_FOLDER)/bios/msx/
