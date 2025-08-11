@@ -107,9 +107,9 @@ To install the hardware mod, you need:
 
       > Note: If you installed the recommended 64MB chip, you should see "MX25U51245G (64MB)" on the screen.
 
-4. **SD Card Mod Installation**
-   
-   TBC
+4. **SD Card Mod Installation**   
+   Check this great install video by NaGa :
+   [![Install](https://img.youtube.com/vi/dlssD4C8pJk/0.jpg)](https://www.youtube.com/watch?v=dlssD4C8pJk)
 
 5. **Retro-Go-SD Installation**
    - Format micro SD card as exFAT (recommended) or FAT32
