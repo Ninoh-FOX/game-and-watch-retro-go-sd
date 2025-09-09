@@ -109,6 +109,7 @@ To install the hardware mod, you need:
 
 4. **SD Card Mod Installation**   
    Check this great install video by NaGa :
+   
    [![Install](https://img.youtube.com/vi/dlssD4C8pJk/0.jpg)](https://www.youtube.com/watch?v=dlssD4C8pJk)
 
 5. **Retro-Go-SD Installation**
@@ -133,10 +134,52 @@ To install the hardware mod, you need:
    - Insert SD card and start the console
    - Once the update is done, you are ready to use new version
 
+## Tools
+
+### Cover Art Generator (gencovers.py)
+
+Due to memory and power constrains of the Game & Watch hardware, it's not possible to use full size png/jpg/bmp images for cover art.
+
+The `tools/gencovers.py` script helps you generate cover art thumbnails for your games. It can process individual images or batch process all images in a directory.
+
+Note that you will have to run `python3 -m pip install -r requirements.txt` once to install dependencies required by the script.
+
+#### Usage
+
+**Process a single image:**
+```bash
+python tools/gencovers.py --image /path/to/image.png
+# Creates image.img in the same directory
+
+python tools/gencovers.py --image /path/to/image.png --output /path/to/output.img
+# Creates the .img file at the specified location
+```
+
+**Batch process all images in a directory:**
+```bash
+python tools/gencovers.py --src roms --dst covers
+# Processes all images in the 'roms' directory and creates thumbnails in 'covers'
+```
+
+#### Options
+
+- `--image`: Path to a single image file to process (PNG, JPG, JPEG, BMP)
+- `--output`: Output path for the single image (only used with --image)
+- `--src`: Source directory for batch processing (default: "roms")
+- `--dst`: Destination directory for batch processing (default: "covers")
+- `--width`: Thumbnail width (default: 128)
+- `--height`: Thumbnail height (default: None, uses width-based scaling)
+- `--jpg_quality`: JPEG quality 0-100 (default: 85)
+
+The script automatically resizes images to fit within 186x100 pixels while maintaining aspect ratio, and saves them as optimized JPEG files with the `.img` extension.
+
+The `.img` files have to be stored in the /covers folder of your sd card : for the game `/roms/msx/Aleste.rom`, the cover file should be `/covers/msx/Aleste.img`.
+
 ## Supported Systems
 
 ### Emulators
 - Amstrad CPC6128 (beta)
+- Atari 2600
 - Atari 7800
 - ColecoVision
 - Gameboy / Gameboy Color
