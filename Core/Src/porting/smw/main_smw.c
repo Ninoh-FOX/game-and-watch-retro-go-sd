@@ -349,7 +349,18 @@ int app_main_smw(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   // Order of assignments (SNES buttons) from most-significant to least-significant nibble: Select,Start,A,B,X,Y,L,R
   // Values for physical buttons mapping: GAME modifier (MSB) + 3-bits physical button index (0=A, 1=B, 2=Select, 3=Start, 4=Time)
   // A value of 0xf means no assignment
-  uint32_t profile = CONTROLLER_BINDINGS;
+#define SMW_BINDINGS_ZELDA_A 0x4c012398
+#define SMW_BINDINGS_ZELDA_B 0x43201198
+#define SMW_BINDINGS_MARIO_A 0x8c0144ff
+#define SMW_BINDINGS_MARIO_B 0x4c8011ff
+
+  uint32_t profile;
+
+  if (!get_ofw_is_mario()) {
+    profile = SMW_BINDINGS_ZELDA_A;
+  } else {
+    profile = SMW_BINDINGS_MARIO_B;
+  }
 
   bool button_pressed(uint8_t button_index) {
     switch (button_index) {

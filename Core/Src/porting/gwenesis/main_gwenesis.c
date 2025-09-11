@@ -27,6 +27,7 @@ __license__ = "GPLv3"
 #include "gw_linker.h"
 #include "gw_buttons.h"
 #include "gw_flash.h"
+#include "gw_ofw.h"
 
 /* TO move elsewhere */
 #include "stm32h7xx_hal.h"
@@ -54,6 +55,7 @@ static char *headerString = "Gene0000";
 
 static unsigned int gwenesis_show_debug_bar = 0;
 
+static bool isZelda;
 
 unsigned int gwenesis_audio_freq;
 unsigned int gwenesis_audio_buffer_lenght;
@@ -93,27 +95,13 @@ extern unsigned short button_state[3];
 
 #define NB_OF_COMBO 6
 
-#if GNW_TARGET_ZELDA != 0
-
-const char ODROID_INPUT_DEF_C = ODROID_INPUT_X;
+static char ODROID_INPUT_DEF_C;
 static int ABCkeys_value = 5;
 static int PAD_A_def = ODROID_INPUT_A;
 static int PAD_B_def = ODROID_INPUT_B;
-static int PAD_C_def = ODROID_INPUT_DEF_C;
-static const char ABCkeys_combo_str[NB_OF_COMBO][10] = {"B-A-START", "A-B-START","B-START-A","A-START-B","START-A-B","START-B-A"};
-static char ABCkeys_str[10]="START-B-A";
-
-#else
-
-const char ODROID_INPUT_DEF_C = ODROID_INPUT_VOLUME;
-static int ABCkeys_value = 5;
-static int PAD_A_def = ODROID_INPUT_A;
-static int PAD_B_def = ODROID_INPUT_B;
-static int PAD_C_def = ODROID_INPUT_DEF_C;
-static const char ABCkeys_combo_str[NB_OF_COMBO][10] = { "B-A-PAUSE", "A-B-PAUSE","B-PAUSE-A","A-PAUSE-B","PAUSE-A-B","PAUSE-B-A"};
-static char ABCkeys_str[10]="PAUSE-B-A";
-
-#endif
+static int PAD_C_def;
+static const char ABCkeys_combo_str[NB_OF_COMBO][10];
+static char ABCkeys_str[10];
 
 /* callback used by the meluator to capture keys */
 void gwenesis_io_get_buttons()
@@ -130,11 +118,11 @@ void gwenesis_io_get_buttons()
   odroid_input_read_gamepad(&host_joystick);
 
   /* shortcut is active ignore keys for the emulator */
-  #if GNW_TARGET_ZELDA != 0
+  if (isZelda) {
     if ( host_joystick.values[ODROID_INPUT_VOLUME] ) return;
-  #else
+  } else {
     if ( host_joystick.values[ODROID_INPUT_SELECT] ) return;
-  #endif
+  }
 
   button_state[0] = host_joystick.values[ODROID_INPUT_UP] << PAD_UP |
                     host_joystick.values[ODROID_INPUT_DOWN] << PAD_DOWN |
@@ -541,6 +529,22 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
        common_emu_state.pause_after_frames = 0;
     }
 
+    isZelda = !get_ofw_is_mario();
+  
+    // Set keys mapping
+    if (isZelda) {
+      ODROID_INPUT_DEF_C = ODROID_INPUT_X;
+      static const char zelda_combos[NB_OF_COMBO][10] = {"B-A-START", "A-B-START","B-START-A","A-START-B","START-A-B","START-B-A"};
+      memcpy(ABCkeys_combo_str, zelda_combos, sizeof(ABCkeys_combo_str));
+      strcpy(ABCkeys_str, "START-B-A");
+    } else {
+      ODROID_INPUT_DEF_C = ODROID_INPUT_VOLUME;
+      static const char mario_combos[NB_OF_COMBO][10] = {"B-A-PAUSE", "A-B-PAUSE","B-PAUSE-A","A-PAUSE-B","PAUSE-A-B","PAUSE-B-A"};
+      memcpy(ABCkeys_combo_str, mario_combos, sizeof(ABCkeys_combo_str));
+      strcpy(ABCkeys_str, "PAUSE-B-A");
+    }
+    PAD_C_def = ODROID_INPUT_DEF_C;
+
     /*** load ROM  */
     load_cartridge();
 
@@ -588,11 +592,11 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
       odroid_input_read_gamepad(&joystick);
 
       /* SWAP TIME & PAUSE/SET for MARIO G&W device */
-      #if GNW_TARGET_MARIO != 0
-      unsigned int key_state = joystick.values[ODROID_INPUT_VOLUME];
-      joystick.values[ODROID_INPUT_VOLUME] = joystick.values[ODROID_INPUT_SELECT];
-      joystick.values[ODROID_INPUT_SELECT] = key_state;
-      #endif
+      if (!isZelda) {
+        unsigned int key_state = joystick.values[ODROID_INPUT_VOLUME];
+        joystick.values[ODROID_INPUT_VOLUME] = joystick.values[ODROID_INPUT_SELECT];
+        joystick.values[ODROID_INPUT_SELECT] = key_state;
+      }
 
     odroid_dialog_choice_t options[] = {
         {301, curr_lang->s_md_keydefine, ABCkeys_str, 1, &gwenesis_submenu_setABC},

@@ -1339,25 +1339,25 @@ static void insertGame() {
             msx_button_left_key = EC_ESC;
         break;
         case 29: // Robo Rumble
-#if GNW_TARGET_MARIO != 0
-            msx_button_a_key = EC_P; // Right Magnet UP
-            msx_button_b_key = EC_L; // Right Magnet Down
-            msx_button_game_key = EC_SPACE; // Start game
-            msx_button_time_key = EC_SPACE; // Start game
-            msx_button_up_key = EC_Q; // Left Magnet UP
-            msx_button_down_key = EC_A; // Left Magnet Down
-            msx_button_right_key = EC_Q; // Left Magnet UP
-            msx_button_left_key = EC_A; // Left Magnet Down
-#else
-            msx_button_a_key = EC_L; // Right Magnet Down
-            msx_button_b_key = EC_L; // Right Magnet Down
-            msx_button_game_key = EC_SPACE; // Start game
-            msx_button_time_key = EC_SPACE; // Start game
-            msx_button_start_key = EC_P; // Right Magnet UP
-            msx_button_select_key = EC_P; // Right Magnet UP
-            msx_button_up_key = EC_Q; // Left Magnet UP
-            msx_button_down_key = EC_A; // Left Magnet Down
-#endif
+            if (get_ofw_is_mario()) {
+                msx_button_a_key = EC_P; // Right Magnet UP
+                msx_button_b_key = EC_L; // Right Magnet Down
+                msx_button_game_key = EC_SPACE; // Start game
+                msx_button_time_key = EC_SPACE; // Start game
+                msx_button_up_key = EC_Q; // Left Magnet UP
+                msx_button_down_key = EC_A; // Left Magnet Down
+                msx_button_right_key = EC_Q; // Left Magnet UP
+                msx_button_left_key = EC_A; // Left Magnet Down
+            } else {
+                msx_button_a_key = EC_L; // Right Magnet Down
+                msx_button_b_key = EC_L; // Right Magnet Down
+                msx_button_game_key = EC_SPACE; // Start game
+                msx_button_time_key = EC_SPACE; // Start game
+                msx_button_start_key = EC_P; // Right Magnet UP
+                msx_button_select_key = EC_P; // Right Magnet UP
+                msx_button_up_key = EC_Q; // Left Magnet UP
+                msx_button_down_key = EC_A; // Left Magnet Down
+            }
         break;
         case 30: // Brunilda
             msx_button_a_key = EC_SPACE;
@@ -1472,32 +1472,32 @@ static void insertGame() {
             msx_button_select_key = EC_F5;
         break;
         case 44: // Super Mario World
-#if GNW_TARGET_MARIO != 0
-            msx_button_a_key = EC_X; // Jump
-            msx_button_b_key = EC_C; // Run/Grab/Fire
-            msx_button_game_key = EC_SPACE; // Start
-            msx_button_time_key = EC_Z; // Spin Jump
-#else
-            msx_button_a_key = EC_X; // Jump
-            msx_button_b_key = EC_C; // Run/Grab/Fire
-            msx_button_game_key = EC_ESC; // Menu
-            msx_button_time_key = EC_SPACE; // Pause
-            msx_button_start_key = EC_Z; // Spin Jump
-            msx_button_select_key = EC_V; // Drop power reserve
-#endif
+            if (get_ofw_is_mario()) {
+                msx_button_a_key = EC_X; // Jump
+                msx_button_b_key = EC_C; // Run/Grab/Fire
+                msx_button_game_key = EC_SPACE; // Start
+                msx_button_time_key = EC_Z; // Spin Jump
+            } else {
+                msx_button_a_key = EC_X; // Jump
+                msx_button_b_key = EC_C; // Run/Grab/Fire
+                msx_button_game_key = EC_ESC; // Menu
+                msx_button_time_key = EC_SPACE; // Pause
+                msx_button_start_key = EC_Z; // Spin Jump
+                msx_button_select_key = EC_V; // Drop power reserve
+                }
         break;
         case 45: // Tiny Magic
             msx_button_a_key = EC_SPACE;
             msx_button_b_key = EC_N;
-#if GNW_TARGET_MARIO != 0
-            msx_button_game_key = EC_BKSPACE; // Show Map
-            msx_button_time_key =  EC_F5; // Restart
-#else
-            msx_button_game_key = EC_F2; // Show Password
-            msx_button_time_key = EC_F5; // Restart
-            msx_button_start_key = EC_F3; // Show Map
-            msx_button_select_key = EC_BKSPACE; // Cancel move
-#endif
+            if (get_ofw_is_mario()) {
+                msx_button_game_key = EC_BKSPACE; // Show Map
+                msx_button_time_key =  EC_F5; // Restart
+            } else {
+                msx_button_game_key = EC_F2; // Show Password
+                msx_button_time_key = EC_F5; // Restart
+                msx_button_start_key = EC_F3; // Show Map
+                msx_button_select_key = EC_BKSPACE; // Cancel move
+            }
         break;
         case 46: // Final Fantasy
             msx_button_a_key = EC_SPACE;

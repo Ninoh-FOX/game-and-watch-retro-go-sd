@@ -840,6 +840,9 @@ void GLOBAL_DATA app_main(uint8_t boot_mode)
     uint8_t oc = odroid_settings_cpu_oc_level_get();
     SystemClock_Config(oc);
 
+    // Initialize GUI colors based on OFW type
+    gui_init_colors();
+
     emulators_init();
 
     app_logo();

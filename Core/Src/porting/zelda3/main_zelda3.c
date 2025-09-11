@@ -509,19 +509,19 @@ int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     HandleCommand(8, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_B]); // B == B (Sword)
     HandleCommand(5, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_SELECT]); // GAME + TIME == Select (Save Screen)
 
-    #if GNW_TARGET_ZELDA != 0
-        HandleCommand(9, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_SELECT]);  // TIME == X (Show Map)
-        HandleCommand(10, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_Y]);  // SELECT == Y (Use Item)
-        HandleCommand(6, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_X]); // START == Start (Item Selection Screen)
-        // L & R aren't used in Zelda3, but we could enable item quick-swapping.
-        HandleCommand(11, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_B]); // GAME + B == L
-        HandleCommand(12, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_A]); // GAME + A == R
-    #else
-        HandleCommand(9, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_B]);  // GAME + B == X (Show Map)
-        HandleCommand(10, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_SELECT]); // TIME == Y (Use Item)
-        HandleCommand(6, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_A]); // GAME + A == Start (Item Selection Screen)
-        // No button combinations available for L/R on Mario units...
-    #endif /* GNW_TARGET_ZELDA */
+    if (!get_ofw_is_mario()) {
+      HandleCommand(9, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_SELECT]);  // TIME == X (Show Map)
+      HandleCommand(10, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_Y]);  // SELECT == Y (Use Item)
+      HandleCommand(6, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_X]); // START == Start (Item Selection Screen)
+      // L & R aren't used in Zelda3, but we could enable item quick-swapping.
+      HandleCommand(11, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_B]); // GAME + B == L
+      HandleCommand(12, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_A]); // GAME + A == R
+    } else {
+      HandleCommand(9, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_B]);  // GAME + B == X (Show Map)
+      HandleCommand(10, !isPauseModifierPressed && !isGameModifierPressed && joystick.values[ODROID_INPUT_SELECT]); // TIME == Y (Use Item)
+      HandleCommand(6, !isPauseModifierPressed && isGameModifierPressed && joystick.values[ODROID_INPUT_A]); // GAME + A == Start (Item Selection Screen)
+      // No button combinations available for L/R on Mario units...
+    }
 
 
     // Clear gamepad inputs when joypad directional inputs to avoid wonkiness

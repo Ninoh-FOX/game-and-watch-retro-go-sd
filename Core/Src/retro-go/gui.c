@@ -9,6 +9,7 @@
 #include "lupng.h"
 #include "gui.h"
 #include "gw_lcd.h"
+#include "gw_ofw.h"
 #include "bitmaps.h"
 #include "gw_linker.h"
 #include "main.h"
@@ -18,11 +19,6 @@
 #if !defined(COVERFLOW)
 #define COVERFLOW 0
 #endif /* COVERFLOW */
-
-
-#if !defined(GNW_TARGET_ZELDA)
-#define GNW_TARGET_ZELDA 0
-#endif /* GNW_TARGET_ZELDA */
 
 #define IMAGE_LOGO_WIDTH (47)
 #define IMAGE_LOGO_HEIGHT (51)
@@ -72,31 +68,26 @@ static uint32_t current_cover_width = NOCOVER_WIDTH;
 static uint32_t current_cover_height = NOCOVER_HEIGHT;
 #endif
 
-#if GNW_TARGET_ZELDA != 0
-//zelda version change mario red to zelda green
-#define _2CC(C) (((C >> 0) & 0xF800) | ((C >> 13) & 0x7E0) | ((C >> 3) & 0x1F))
-#else
-#define _2CC(C) (((C >> 8) & 0xF800) | ((C >> 5) & 0x7E0) | ((C >> 3) & 0x1F))
-#endif
-
 #define _2C_(C) (((C >> 8) & 0xF800) | ((C >> 5) & 0x7E0) | ((C >> 3) & 0x1F))
+#define _2CC(C) (((C >> 0) & 0xF800) | ((C >> 13) & 0x7E0) | ((C >> 3) & 0x1F))
 
-const colors_t gui_colors[] = {
+// Mario version colors (default)
+colors_t gui_colors[] = {
     //Main Theme color
-    {_2C_(0x000000), _2CC(0x600000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2C_(0x000000), _2CC(0x900000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2C_(0x000000), _2CC(0x300000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2C_(0x000000), _2CC(0x600000), _2C_(0xFFD700), _2C_(0x604008)},
-    {_2C_(0x000000), _2CC(0x900000), _2C_(0xFFD700), _2C_(0x604008)},
-    {_2C_(0x000000), _2CC(0x300000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x000000), _2C_(0x600000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x000000), _2C_(0x900000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x000000), _2C_(0x300000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x000000), _2C_(0x600000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x000000), _2C_(0x900000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x000000), _2C_(0x300000), _2C_(0xFFD700), _2C_(0x604008)},
 
-    {_2CC(0x100000), _2CC(0x600000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2CC(0x100000), _2CC(0x900000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2CC(0x100000), _2CC(0x600000), _2C_(0xFFD700), _2C_(0x604008)},
-    {_2CC(0x100000), _2CC(0x900000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x100000), _2C_(0x600000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x100000), _2C_(0x900000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x100000), _2C_(0x600000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x100000), _2C_(0x900000), _2C_(0xFFD700), _2C_(0x604008)},
     //give mario green or give zelda red theme
-    {_2C_(0x000000), _2CC(0x006000), _2C_(0xD08828), _2C_(0x584010)},
-    {_2C_(0x000000), _2CC(0x006000), _2C_(0xFFD700), _2C_(0x604008)},
+    {_2C_(0x000000), _2C_(0x600000), _2C_(0xD08828), _2C_(0x584010)},
+    {_2C_(0x000000), _2C_(0x600000), _2C_(0xFFD700), _2C_(0x604008)},
     //othere themes
     {_2C_(0x32435F), _2C_(0x865F48), _2C_(0xE1DCD9), _2C_(0x8F8681)},
     {_2C_(0x2F1812), _2C_(0x40686A), _2C_(0xB78338), _2C_(0x915C4C)},
@@ -109,11 +100,43 @@ const colors_t gui_colors[] = {
     {_2C_(0x252839), _2C_(0x9AB878), _2C_(0xF2DE99), _2C_(0xE98D24)},
     {_2C_(0x702020), _2C_(0x867182), _2C_(0xF2D3C1), _2C_(0xD36D3D)},
     {_2C_(0x32435F), _2C_(0x80341F), _2C_(0xE8C7B6), _2C_(0xEB9772)},
-    {_2C_(0x704020), _2CC(0x801008), _2C_(0xACB320), _2C_(0x786C10)},
+    {_2C_(0x704020), _2C_(0x801008), _2C_(0xACB320), _2C_(0x786C10)},
     {_2C_(0x525E76), _2C_(0x85683D), _2C_(0xDFE4DE), _2C_(0x126F80)},
     {_2C_(0x603010), _2C_(0x6D8DB6), _2C_(0xFFCC71), _2C_(0x9EA2AB)},
 
 };
+
+// Function to initialize colors based on OFW type
+void gui_init_colors()
+{
+    // If Zelda version, replace colors that should be different
+    if (!get_ofw_is_mario()) {
+        // Zelda version: change mario red to zelda green
+        
+        // Update colors that use _2CC (positions that had red colors)
+        gui_colors[0].main_c = _2CC(0x600000);
+        gui_colors[1].main_c = _2CC(0x900000);
+        gui_colors[2].main_c = _2CC(0x300000);
+        gui_colors[3].main_c = _2CC(0x600000);
+        gui_colors[4].main_c = _2CC(0x900000);
+        gui_colors[5].main_c = _2CC(0x300000);
+        
+        gui_colors[6].bg_c = _2CC(0x100000);
+        gui_colors[6].main_c = _2CC(0x600000);
+        gui_colors[7].bg_c = _2CC(0x100000);
+        gui_colors[7].main_c = _2CC(0x900000);
+        gui_colors[8].bg_c = _2CC(0x100000);
+        gui_colors[8].main_c = _2CC(0x600000);
+        gui_colors[9].bg_c = _2CC(0x100000);
+        gui_colors[9].main_c = _2CC(0x900000);
+        
+        // Mario/Zelda specific themes (positions 10-11)
+        gui_colors[10].main_c = _2CC(0x006000);  // Zelda green
+        gui_colors[11].main_c = _2CC(0x006000);  // Zelda green
+        
+        gui_colors[23].main_c = _2CC(0x801008);  // Other theme that had _2CC
+    }
+}
 
 colors_t *curr_colors = (colors_t *)(&gui_colors[0]);
 

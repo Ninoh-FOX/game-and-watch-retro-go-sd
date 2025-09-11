@@ -40,7 +40,7 @@ jobs:
       # 5. Generate the update archive
       - name: Generate gw_update.tar
         run: |
-          make -j$(nproc) GNW_TARGET=zelda COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release
+          make -j$(nproc) COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release
 
   release-package:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -74,7 +74,7 @@ jobs:
       # 5. Generate the update files
       - name: Generate firmware_update.bin and gw_update.tar
         run: |
-          make -j$(nproc) GNW_TARGET=zelda COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release
+          make -j$(nproc) COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release
 
       # 6. Create a release and upload files
       - name: Create Release
