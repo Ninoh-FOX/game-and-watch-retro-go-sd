@@ -2,9 +2,8 @@
 
 ## What's New
 
-### Version 0.7.2
-- NES : Fix savestate issue with mappers 19, 210 and 539
-- MSX : Fix SCC issue with some disk games
+### Version 0.8.0
+- Retro-Go SD is now also compatible with Mario hardware
 
 ## Prerequisites
 To install this version, make sure you have:
