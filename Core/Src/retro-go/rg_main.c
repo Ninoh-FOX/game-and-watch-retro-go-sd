@@ -830,6 +830,9 @@ void GLOBAL_DATA app_main(uint8_t boot_mode)
     itc_init();
     ram_start = (uint32_t)&__RAM_EMU_START__;
 
+    // Initialize GUI colors based on OFW type
+    gui_init_colors();
+
     if (fs_mounted == false) {
         sdcard_error_screen();
     }
@@ -839,9 +842,6 @@ void GLOBAL_DATA app_main(uint8_t boot_mode)
     odroid_system_init(ODROID_APPID_LAUNCHER, 32000);
     uint8_t oc = odroid_settings_cpu_oc_level_get();
     SystemClock_Config(oc);
-
-    // Initialize GUI colors based on OFW type
-    gui_init_colors();
 
     emulators_init();
 
