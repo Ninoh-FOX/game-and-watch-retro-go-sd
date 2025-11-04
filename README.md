@@ -35,6 +35,8 @@ A comprehensive emulator collection for the Nintendo® Game & Watch™ with SD C
     - [Alternate languages](#alternate-languages)
   - [Super Mario World](#super-mario-world)
   - [Celeste Classic](#celeste-classic)
+- [Developer info](#developer-info)
+  - [Build and flash using Docker](#build-and-flash-using-docker)
 - [Discord, support and discussion](#discord-support-and-discussion)
 - [License](#license)
 
@@ -472,6 +474,41 @@ Some features can be configured with flags:
 ### Celeste Classic
 
 This is a port of the Pico-8 version of Celeste Classic. Not a Pico-8 emulator.
+
+## Developer info
+
+### Build and flash using Docker
+
+<details>
+  <summary>
+    If you are familiar with Docker and prefer a solution where you don't have to manually install toolchains and so on, expand this section and read on.
+  </summary>
+
+  To reduce the number of potential pitfalls in installation of various software, a Dockerfile is provided containing everything needed to compile and flash retro-go to your Nintendo® Game & Watch™ (Mario/Zelda) system. This Dockerfile is written tageting an x86-64 and arm64 machine running Linux or macOS.
+
+  Steps to build and flash from a docker container (running on Linux/macOS, e.g. Archlinux, Ubuntu or macOS):
+
+  ```bash
+  # Clone this repo
+  git clone --recursive https://github.com/sylverb/game-and-watch-retro-go-sd
+
+  # cd into it
+  cd game-and-watch-retro-go-sd
+
+  # Optional : Build the docker image (takes a while)
+  # You can generate the docker image locally but it's
+  # not needed as generated image is available on
+  # https://hub.docker.com/repository/docker/sylverb/retro-go-sd-builder
+  # for x86-64 and arm64 architectures.
+  make docker_build
+
+  # Run the container.
+  # The current directory will be mounted into the container and the current user/group will be used.
+  make docker
+  ```
+  The install/update file will be available in release/retro-go_update.bin
+
+</details>
 
 ## Discord, support and discussion 
 

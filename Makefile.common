@@ -1190,15 +1190,16 @@ dump_screenshot:
 .PHONY: dump_screenshot
 
 docker_build:
-	$(V)docker build -f Dockerfile --platform linux/amd64 --tag kbeckmann/retro-go-builder .
+	$(V)docker build -f Dockerfile --tag sylverb/retro-go-sd-builder .
 .PHONY: docker_build
 
 docker:
-	$(V)docker run --rm -it --privileged --user $(shell id -u):$(shell id -g) --platform linux/amd64 -v $(PWD):/opt/workdir -v /dev/bus/usb:/dev/bus/usb kbeckmann/retro-go-builder
+	$(V)docker run --rm -it --privileged --user $(shell id -u):$(shell id -g) -v $(PWD):/opt/workdir -v /dev/bus/usb:/dev/bus/usb sylverb/retro-go-sd-builder \
+	bash -l -c "make -j\$$(nproc) COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release"
 .PHONY: docker
 
 help:
-	@echo "Game and Watch Retro Go"
+	@echo "Game and Watch Retro Go SD"
 	@echo ""
 	@echo "Configuration variables:"
 	@echo "  EXTFLASH_FORCE_SPI  - Forces the use of legacy SPI mode for the external flash driver"
