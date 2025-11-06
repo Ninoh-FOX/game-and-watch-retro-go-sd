@@ -204,12 +204,12 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
             break;
         }
 
-        case ODROID_PATH_CHEAT_MFC:
+        case ODROID_PATH_CHEAT_MCF:
         {
             char *shortFileName = strdup(fileName);
             char *ext = strrchr(shortFileName, '.');
             if (ext) *ext = '\0';
-            sprintf(buffer, "%s%s.mfc", ODROID_BASE_PATH_CHEATS, shortFileName);
+            sprintf(buffer, "%s%s.mcf", ODROID_BASE_PATH_CHEATS, shortFileName);
             free(shortFileName);
             break;
         }

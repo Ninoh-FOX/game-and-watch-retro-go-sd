@@ -1164,7 +1164,6 @@ static bool show_cheat_dialog()
 {
     static odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
 
-    printf("count = %d\n",CHOSEN_FILE->cheat_count);
     // +1 for the terminator sentinel
     odroid_dialog_choice_t *choices = rg_alloc((CHOSEN_FILE->cheat_count + 1) * sizeof(odroid_dialog_choice_t), MEM_ANY);
     char svalues[MAX_CHEAT_CODES][10];

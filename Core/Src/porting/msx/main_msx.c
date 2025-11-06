@@ -2006,6 +2006,9 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
         lcd_clear_buffers();
     }
 
+#if CHEAT_CODES == 1
+    update_cheats_msx();
+#endif
     while (1) {
         // Frequency change check if in automatic mode
         if ((selected_frequency_index == FREQUENCY_VDP_AUTO) && (msx_fps != boardInfo.getRefreshRate())) {
@@ -2083,6 +2086,24 @@ void archSoundDestroy(void) {}
 
 #if CHEAT_CODES == 1
 void update_cheats_msx() {
-    msxUpdateCheatInfo();
+    unsigned int temp, addr,data, size;
+
+    slotManagerResetCheat();
+
+    for(int i=0; i<MAX_CHEAT_CODES && i<ACTIVE_FILE->cheat_count; i++) {
+        if (odroid_settings_ActiveGameGenieCodes_is_enabled(ACTIVE_FILE->path, i)) {
+            // MFC format description is available @ https://www.msxblue.com/manual/trainermcf_c.htm
+            // Old MFC format : a,b,c,d,e (memtype,addr,value,enabled,description)
+            // enabled and description are optional
+            if(sscanf(ACTIVE_FILE->cheat_codes[i], "%u,%u,%u",&temp,&addr,&data)==3) {
+                slotManagerAddCheat(addr, data, 1);
+            }
+            // New MFC format : A:B:C:D:E (addr_hex,value_hex,size,displaytype,description)
+            // displaytype and description are optional
+            else if(sscanf(ACTIVE_FILE->cheat_codes[i], "%x:%x:%d", &addr, &data, &size) == 3) {
+                slotManagerAddCheat(addr, data, size == 0 ? 1 : 2); // 0=8bit, 1=16bit
+            }
+        }
+    }
 }
 #endif

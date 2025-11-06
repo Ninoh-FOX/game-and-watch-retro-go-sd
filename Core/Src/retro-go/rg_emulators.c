@@ -477,7 +477,7 @@ void emulator_update_cheats_info(retro_emulator_file_t *file) {
         return;
 
     // Check for mfc cheat file (MSX)
-    cheat_path = odroid_system_get_path(ODROID_PATH_CHEAT_MFC, file->path);
+    cheat_path = odroid_system_get_path(ODROID_PATH_CHEAT_MCF, file->path);
     if (odroid_sdcard_get_filesize(cheat_path) > 0) {
         printf("Retro-Go: Found cheat file %s\n", cheat_path);
         file->cheat_codes = calloc(MAX_CHEAT_CODES, sizeof(char *));
