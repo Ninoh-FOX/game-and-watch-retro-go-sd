@@ -13,6 +13,7 @@ RUN apt-get update -y && \
         xz-utils \
         wget \
         make \
+        patch \
         python3 \
         sudo \
         xxd && \

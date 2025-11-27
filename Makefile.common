@@ -1195,7 +1195,7 @@ docker_build:
 
 docker:
 	$(V)docker run --rm -it --privileged --user $(shell id -u):$(shell id -g) -v $(PWD):/opt/workdir -v /dev/bus/usb:/dev/bus/usb sylverb/retro-go-sd-builder \
-	bash -l -c "make -j\$$(nproc) COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release"
+	bash -l -c "make -j\$$(nproc) CHECK_DIRTY_SUBMODULE=0 COVERFLOW=1 SHARED_HIBERNATE_SAVESTATE=1 DISABLE_SPLASH_SCREEN=1 INTFLASH_BANK=2 CHEAT_CODES=1 release"
 .PHONY: docker
 
 help:
