@@ -21,9 +21,17 @@ RUN apt-get update -y && \
         rm -rf /var/lib/apt/lists/*
 
 RUN ARCH=$(uname -m) && \
-    wget -O toolchain.tar.xz "https://developer.arm.com/-/media/Files/downloads/gnu/${ARM_COMPILER_VERSION}/binrel/arm-gnu-toolchain-${ARM_COMPILER_VERSION}-${ARCH}-arm-none-eabi.tar.xz" && \
+    TOOLCHAIN_FILE="arm-gnu-toolchain-${ARM_COMPILER_VERSION}-${ARCH}-arm-none-eabi.tar.xz" && \
+    wget -O toolchain.md5.asc "https://developer.arm.com/-/media/Files/downloads/gnu/${ARM_COMPILER_VERSION}/binrel/${TOOLCHAIN_FILE}.asc" && \
+    EXPECTED_MD5=$(awk '{print $1}' toolchain.md5.asc) && \
+    wget -O toolchain.tar.xz "https://developer.arm.com/-/media/Files/downloads/gnu/${ARM_COMPILER_VERSION}/binrel/${TOOLCHAIN_FILE}" && \
+    ACTUAL_MD5=$(md5sum toolchain.tar.xz | awk '{print $1}') && \
+    if [ "$EXPECTED_MD5" != "$ACTUAL_MD5" ]; then \
+        echo "MD5 checksum mismatch! Expected: $EXPECTED_MD5, Got: $ACTUAL_MD5" && \
+        exit 1; \
+    fi && \
     tar xf toolchain.tar.xz && \
-    rm -f toolchain.tar.xz
+    rm -f toolchain.tar.xz toolchain.md5.asc
 
 RUN useradd -m docker && echo "docker:docker" | chpasswd && \
     chown docker:docker /opt && \
