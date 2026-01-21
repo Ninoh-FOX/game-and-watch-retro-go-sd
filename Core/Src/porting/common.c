@@ -155,7 +155,7 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
     static int8_t last_key = -1;
     static bool pause_pressed = false;
     static bool macro_activated = false;
-    static uint8_t clear_frames = 0;
+    static uint8_t clear_frames = 2;
 
     void _repaint() {
         repaint_overlay(repaint);
