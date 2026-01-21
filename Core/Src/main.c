@@ -332,11 +332,14 @@ int main(void)
 #pragma GCC diagnostic pop
 #endif
 
+  // Reset the log write pointer
   // Don't reset the logbuf when rebooting from a watchdog reset
   if (boot_magic != BOOT_MAGIC_WATCHDOG) {
     log_idx = 0;
     logbuf[0] = '\0';
   }
+
+  printf("Log started.\n");
 
   switch (boot_magic) {
   case BOOT_MAGIC_STANDBY:
@@ -363,9 +366,6 @@ int main(void)
 
   // Leave a trace that indicates a warm reset
   boot_magic = BOOT_MAGIC_RESET;
-
-  // Reset the log write pointer
-  log_idx = 0;
 
   /* USER CODE END 1 */
 
