@@ -54,5 +54,6 @@ uint32_t lcd_get_frame_counter(void);
 uint32_t lcd_get_pixel_position();
 void lcd_set_dithering(uint32_t enable);
 void lcd_set_refresh_rate(uint32_t frequency);
+uint32_t lcd_get_last_refresh_rate(void);
 
 #endif

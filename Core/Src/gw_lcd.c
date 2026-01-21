@@ -22,6 +22,8 @@ extern DAC_HandleTypeDef hdac2;
 
 uint32_t active_framebuffer;
 uint32_t frame_counter;
+uint32_t last_frequency = 60;
+
 #define HAL_DAC_ENABLED(__HANDLE__, __DAC_Channel__) \
   (((__HANDLE__)->Instance->CR & (DAC_CR_EN1 << ((__DAC_Channel__) & 0x10UL))))
 
@@ -286,6 +288,8 @@ void lcd_set_refresh_rate(uint32_t frequency) {
     return;
   }
 
+  last_frequency = frequency;
+
   /** reconfig PLL3 */
 
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -304,4 +308,8 @@ void lcd_set_refresh_rate(uint32_t frequency) {
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
+}
+
+uint32_t lcd_get_last_refresh_rate() {
+  return last_frequency;
 }
