@@ -22,6 +22,22 @@ extern DAC_HandleTypeDef hdac2;
 
 uint32_t active_framebuffer;
 uint32_t frame_counter;
+#define HAL_DAC_ENABLED(__HANDLE__, __DAC_Channel__) \
+  (((__HANDLE__)->Instance->CR & (DAC_CR_EN1 << ((__DAC_Channel__) & 0x10UL))))
+
+uint8_t lcd_backlight_get()
+{
+#ifdef HAL_DAC_MODULE_ENABLED
+  if (!HAL_DAC_ENABLED(&hdac1, DAC_CHANNEL_1)) {
+    return 0;
+  }
+
+  // Convert 12-bit to 8-bit
+  return HAL_DAC_GetValue(&hdac1, DAC_CHANNEL_1) >> 4;
+#else
+  return HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET ? 255 : 0;
+#endif
+}
 
 void lcd_backlight_off()
 {

@@ -28,6 +28,7 @@ void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc);
 void *lcd_clear_active_buffer();
 void *lcd_clear_inactive_buffer();
 void lcd_clear_buffers();
+uint8_t lcd_backlight_get();
 void lcd_backlight_set(uint8_t brightness);
 void lcd_backlight_on();
 void lcd_backlight_off();
