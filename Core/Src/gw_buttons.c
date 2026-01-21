@@ -5,7 +5,24 @@
 
 #include <stdbool.h>
 
+const uint32_t power_debounce_duration_ms = 1000;
+uint32_t power_debounce_start_time = 0;
+
+void buttons_debounce_power() {
+    power_debounce_start_time = HAL_GetTick();
+}
+
 uint32_t buttons_get() {
+    bool ignore_power = false;
+    if (power_debounce_start_time != 0) {
+        uint32_t power_debouce_delta = HAL_GetTick() - power_debounce_start_time;
+        if (power_debouce_delta >= power_debounce_duration_ms) {
+            power_debounce_start_time = 0;
+        } else {
+            ignore_power = true;
+        }
+    }
+
     bool left = HAL_GPIO_ReadPin(BTN_Left_GPIO_Port, BTN_Left_Pin) == GPIO_PIN_RESET;
     bool right = HAL_GPIO_ReadPin(BTN_Right_GPIO_Port, BTN_Right_Pin) == GPIO_PIN_RESET;
     bool up = HAL_GPIO_ReadPin(BTN_Up_GPIO_Port, BTN_Up_Pin) == GPIO_PIN_RESET ;
@@ -15,7 +32,7 @@ uint32_t buttons_get() {
     bool time = HAL_GPIO_ReadPin(BTN_TIME_GPIO_Port, BTN_TIME_Pin) == GPIO_PIN_RESET;
     bool game = HAL_GPIO_ReadPin(BTN_GAME_GPIO_Port, BTN_GAME_Pin) == GPIO_PIN_RESET;
     bool pause = HAL_GPIO_ReadPin(BTN_PAUSE_GPIO_Port, BTN_PAUSE_Pin) == GPIO_PIN_RESET;
-    bool power = HAL_GPIO_ReadPin(BTN_PWR_GPIO_Port, BTN_PWR_Pin) == GPIO_PIN_RESET;
+    bool power = ignore_power ? false : HAL_GPIO_ReadPin(BTN_PWR_GPIO_Port, BTN_PWR_Pin) == GPIO_PIN_RESET;
 
     bool start = HAL_GPIO_ReadPin(BTN_START_GPIO_Port, BTN_START_Pin) == GPIO_PIN_RESET;
     bool select = HAL_GPIO_ReadPin(BTN_SELECT_GPIO_Port, BTN_SELECT_Pin) == GPIO_PIN_RESET;

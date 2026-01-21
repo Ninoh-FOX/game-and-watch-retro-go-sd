@@ -16,6 +16,7 @@
 #define B_START (1 << 10)
 #define B_SELECT (1 << 11)
 
+void buttons_debounce_power();
 uint32_t buttons_get();
 
 
