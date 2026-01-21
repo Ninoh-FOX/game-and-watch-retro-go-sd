@@ -385,7 +385,11 @@ int main(void)
   /* USER CODE END Init */
 
   /* Configure the system clock */
+#if ENABLE_BOOT_OC == 1
+  SystemClock_Config(2);
+#else
   SystemClock_Config(0);
+#endif
 
   /* USER CODE BEGIN SysInit */
 

@@ -39,6 +39,9 @@ endif
 # Disable system logos splash screen at startup
 DISABLE_SPLASH_SCREEN ?= 0
 
+# Force max CPU overclock during boot (will reset to configured value after boot)
+ENABLE_BOOT_OC ?= 0
+
 # Default NES emulator is fceumm
 FORCE_NOFRENDO ?= 0 
 NOFRENDO_PARAM := --nofrendo=$(FORCE_NOFRENDO)
@@ -461,6 +464,7 @@ C_DEFS +=  \
 -DCHEAT_CODES=$(CHEAT_CODES) \
 -DFORCE_NOFRENDO=$(FORCE_NOFRENDO) \
 -DDISABLE_SPLASH_SCREEN=$(DISABLE_SPLASH_SCREEN) \
+-DENABLE_BOOT_OC=$(ENABLE_BOOT_OC) \
 -DTARGET_GNW \
 -DNO_EMBEDDED_SAMPLES \
 -D__LIBRETRO__ \
