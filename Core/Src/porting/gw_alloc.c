@@ -66,7 +66,7 @@ void rg_free(void *ptr)
     alloc_data.total_alloc_bytes_actual -= p[0] + sizeof(uint32_t);
 
 #ifdef DEBUG_RG_ALLOC_PRINT
-    printf("F %d %d %d %p\n",
+    printf("F %lu %d %d %p\n",
             p[0],
             alloc_data.total_alloc_bytes,
             alloc_data.total_alloc_bytes_actual,
@@ -91,8 +91,7 @@ void *rg_realloc(void *ptr, size_t size)
     alloc_data.total_alloc_bytes_actual += size + sizeof(uint32_t);
 
 #ifdef DEBUG_RG_ALLOC_PRINT
-    printf("R %d=>%d %d %d %p\n",
-            old_size,
+    printf("R %u %d %d %p\n",
             size,
             alloc_data.total_alloc_bytes,
             alloc_data.total_alloc_bytes_actual,
