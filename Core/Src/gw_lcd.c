@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 
 #include "gw_lcd.h"
@@ -114,25 +115,18 @@ void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc, lcd_init_flags_t
   // Disable LCD Chip select
   gw_lcd_set_chipselect(0);
 
-  // LCD reset
-  gw_lcd_set_reset(0);
-
   // Wake up !
   // Enable 1.8V &3V3 power supply
+  gw_lcd_set_reset(0);
   gw_set_power_3V3(1);
-  HAL_Delay(2);
   gw_set_power_1V8(1);
-  HAL_Delay(50);
-  wdog_refresh();
 
   // Lets go, bootup sequence.
   /* reset sequence */
-  gw_lcd_set_reset(0);
-  HAL_Delay(1);
   gw_lcd_set_reset(1);
-  HAL_Delay(20);
+  HAL_Delay(5);
   gw_lcd_set_reset(0);
-  HAL_Delay(50);
+  HAL_Delay(20);
   wdog_refresh();
 
   gw_lcd_spi_tx(spi, (uint8_t *)"\x08\x80");
@@ -149,14 +143,19 @@ void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc, lcd_init_flags_t
   gw_lcd_spi_tx(spi, (uint8_t *)"\x14\x80");
   wdog_refresh();
 
-  HAL_LTDC_SetAddress(ltdc,(uint32_t) &fb1, 0);
+  // Wait for screen to finish initializing
+  HAL_Delay(50);
+  wdog_refresh();
 
-  if (flags & LCD_CLEAR_BUFFERS) {
+  if (flags & LCD_INIT_CLEAR_BUFFERS) {
     lcd_clear_buffers();
   }
 
+  HAL_LTDC_SetAddress(ltdc,(uint32_t) &fb1, 0);
   HAL_LTDC_ProgramLineEvent(&hltdc, 239);
   __HAL_LTDC_ENABLE_IT(&hltdc, LTDC_IT_LI | LTDC_IT_RR);
+
+  printf("LCD: Finished init\n");
 }
 
 void HAL_LTDC_ReloadEventCallback (LTDC_HandleTypeDef *hltdc) {

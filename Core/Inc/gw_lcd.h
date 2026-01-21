@@ -20,7 +20,7 @@ typedef uint16_t pixel_t;
 
 typedef enum
 {
-   LCD_CLEAR_BUFFERS = 1 << 0
+   LCD_INIT_CLEAR_BUFFERS = 1 << 0
 } lcd_init_flags_t;
 
 // 0 => framebuffer1
