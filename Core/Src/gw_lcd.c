@@ -89,6 +89,8 @@ static void gw_lcd_spi_tx(SPI_HandleTypeDef *spi, uint8_t *pData) {
 }
 
 void lcd_deinit(SPI_HandleTypeDef *spi) {
+  __HAL_LTDC_DISABLE_IT(&hltdc, LTDC_IT_LI | LTDC_IT_RR);
+
   // Power off
   gw_set_power_1V8(0);
   gw_set_power_3V3(0);
