@@ -294,21 +294,6 @@ bool GLOBAL_DATA date_display_cb(odroid_dialog_choice_t *option, odroid_dialog_e
     return event == ODROID_DIALOG_ENTER;
 }
 
-static inline bool GLOBAL_DATA tab_enabled(tab_t *tab)
-{
-    int disabled_tabs = 0;
-
-    if (gui.show_empty)
-        return true;
-
-    // If all tabs are disabled then we always return true, otherwise it's an endless loop
-    for (int i = 0; i < gui.tabcount; ++i)
-        if (gui.tabs[i]->initialized && gui.tabs[i]->is_empty)
-            disabled_tabs++;
-
-    return (disabled_tabs == gui.tabcount) || (tab->initialized && !tab->is_empty);
-}
-
 #if INTFLASH_BANK == 2
 void GLOBAL_DATA soft_reset_do(void)
 {
@@ -547,12 +532,74 @@ static void GLOBAL_DATA handle_time_menu()
     }
 }
 
+tab_t* gui_get_prepared_tab(int tab_index) {
+    tab_t* tab = gui_get_tab(tab_index);
+    if (!tab->initialized) {
+        gui_init_tab(tab);
+    } else {
+        gui_refresh_tab(tab);
+    }
+
+    return tab;
+}
+
+
+bool gui_is_tab_valid(tab_t* tab) {
+    return gui.show_empty || !tab->is_empty;
+}
+
+bool gui_change_tab(int direction) {
+    int old_selected_tab = gui.selected;
+    int new_selected_tab;
+
+    int traversed_tabs_count = 0;
+    int current_tab = gui.selected;
+
+    // Find first valid tab in given direction
+    while(1) {
+        if (direction > 0) {
+            current_tab++;
+            if (current_tab >= gui.tabcount) {
+                current_tab = 0;
+            }
+        } else if (direction < 0) {
+            current_tab--;
+            if (current_tab < 0) {
+                current_tab = gui.tabcount - 1;
+            }
+        }
+
+        tab_t* tab = gui_get_prepared_tab(current_tab);
+        bool is_tab_valid = gui_is_tab_valid(tab);
+        //printf("Current tab: %d - %s, initialized: %d, valid: %d\n", current_tab, tab->name, tab->initialized, is_tab_valid);
+
+        if (is_tab_valid) {
+            new_selected_tab = current_tab;
+            break;
+        }
+
+        traversed_tabs_count++;
+
+        // If none of the tabs were valid, default to the first one
+        if (traversed_tabs_count == gui.tabcount) {
+            new_selected_tab = 0;
+            break;
+        }
+    }
+
+    bool changed = old_selected_tab != new_selected_tab;
+    if (changed) {
+        gui_set_current_tab(new_selected_tab);
+    }
+
+    return changed;
+}
+
 void retro_loop()
 {
-    tab_t *tab = gui_get_current_tab();
+    tab_t *tab;
     int last_key = -1;
     int repeat = 0;
-    int selected_tab_last = -1;
     uint32_t idle_s;
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
@@ -567,6 +614,12 @@ void retro_loop()
 
     gui.selected = odroid_settings_MainMenuSelectedTab_get();
 
+    tab = gui_get_prepared_tab(gui.selected);
+    if (!gui_is_tab_valid(tab)) {
+        // Find first valid tab
+        gui_change_tab(1);
+    }
+
     // This will upon power down disable the debug clock to save battery power
     odroid_system_set_sleep_hook(&sleep_hook_callback);
 
@@ -575,33 +628,14 @@ void retro_loop()
 
     while (true)
     {
+        tab = gui_get_tab(gui.selected);
+
         wdog_refresh();
 
         if (gui.idle_start == 0)
             gui.idle_start = uptime_get();
 
         idle_s = uptime_get() - gui.idle_start;
-
-        if (gui.selected != selected_tab_last)
-        {
-            int direction = (gui.selected - selected_tab_last) < 0 ? -1 : 1;
-
-            tab = gui_set_current_tab(gui.selected);
-            if (!tab->initialized)
-            {
-                gui_init_tab(tab);
-            } else {
-                gui_refresh_tab(tab);
-            }
-
-            if (!tab_enabled(tab))
-            {
-                gui.selected += direction;
-                continue;
-            }
-
-            selected_tab_last = gui.selected;
-        }
 
         odroid_input_read_gamepad(&gui.joystick);
 
@@ -655,20 +689,12 @@ void retro_loop()
             }
             else if (last_key == key_left)
             {
-                gui.selected--;
-                if (gui.selected < 0)
-                {
-                    gui.selected = gui.tabcount - 1;
-                }
+                gui_change_tab(-1);
                 repeat++;
             }
             else if (last_key == key_right)
             {
-                gui.selected++;
-                if (gui.selected >= gui.tabcount)
-                {
-                    gui.selected = 0;
-                }
+                gui_change_tab(+1);
                 repeat++;
             }
             else if (last_key == ODROID_INPUT_A)
@@ -711,12 +737,7 @@ void retro_loop()
             odroid_system_sleep();
         }
 
-        // Only redraw if we haven't changed the tab as it has to be initialized first.
-        // This will remove an empty frame when changing to a new and uninitialized tab.
-        if (gui.selected == selected_tab_last)
-        {
-            gui_redraw();
-        }
+        gui_redraw();
     }
 }
 
