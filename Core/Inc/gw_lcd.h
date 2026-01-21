@@ -18,13 +18,18 @@ extern uint16_t framebuffer2[GW_LCD_WIDTH * GW_LCD_HEIGHT]  __attribute__((secti
 typedef uint16_t pixel_t;
 #endif // GW_LCD_MODE_LUT8
 
+typedef enum
+{
+   LCD_CLEAR_BUFFERS = 1 << 0
+} lcd_init_flags_t;
+
 // 0 => framebuffer1
 // 1 => framebuffer2
 extern uint32_t active_framebuffer;
 extern uint32_t frame_counter;
 
 void lcd_deinit(SPI_HandleTypeDef *spi);
-void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc);
+void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc, lcd_init_flags_t flags);
 void *lcd_clear_active_buffer();
 void *lcd_clear_inactive_buffer();
 void lcd_clear_buffers();

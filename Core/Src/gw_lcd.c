@@ -108,7 +108,7 @@ void lcd_clear_buffers() {
   memset(fb2, 0, sizeof(framebuffer2));
 }
 
-void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc) {
+void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc, lcd_init_flags_t flags) {
   // Disable LCD Chip select
   gw_lcd_set_chipselect(0);
 
@@ -149,7 +149,9 @@ void lcd_init(SPI_HandleTypeDef *spi, LTDC_HandleTypeDef *ltdc) {
 
   HAL_LTDC_SetAddress(ltdc,(uint32_t) &fb1, 0);
 
-  lcd_clear_buffers();
+  if (flags & LCD_CLEAR_BUFFERS) {
+    lcd_clear_buffers();
+  }
 
   HAL_LTDC_ProgramLineEvent(&hltdc, 239);
   __HAL_LTDC_ENABLE_IT(&hltdc, LTDC_IT_LI | LTDC_IT_RR);
