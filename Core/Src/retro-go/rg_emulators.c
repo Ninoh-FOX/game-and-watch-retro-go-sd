@@ -565,7 +565,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 
     if (sel == 0) { // Resume game
         if (has_save) {
-            if ((slot = odroid_savestate_menu(curr_lang->s_Resume_game, file->path, true, &gui_redraw_callback)) != -1) {
+            if ((slot = odroid_savestate_menu(curr_lang->s_Resume_game, file->path, true, true, &gui_redraw_callback)) != -1) {
                 gui_save_current_tab();
                 emulator_start(file, true, false, slot);
             }
@@ -580,7 +580,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
     }
     else if (sel == 2) {
         while ((savestates->used > 0) &&
-               ((slot = odroid_savestate_menu(curr_lang->s_Confirm_del_save, file->path, true, &gui_redraw_callback)) != -1))
+               ((slot = odroid_savestate_menu(curr_lang->s_Confirm_del_save, file->path, true, false, &gui_redraw_callback)) != -1))
         {
             odroid_sdcard_unlink(savestates->slots[slot].preview);
             odroid_sdcard_unlink(savestates->slots[slot].file);

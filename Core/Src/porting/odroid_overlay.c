@@ -1207,10 +1207,15 @@ static bool show_preview_cb(odroid_dialog_choice_t *option, odroid_dialog_event_
     return event == ODROID_DIALOG_ENTER;
 }
 
-int odroid_savestate_menu(const char *title, const char *rom_path, bool show_preview, void_callback_t repaint)
+int odroid_savestate_menu(const char *title, const char *rom_path, bool show_preview, bool skip_on_single_used_slot, void_callback_t repaint)
 {
     rg_app_desc_t *app = odroid_system_get_app();
     rg_emu_states_t *savestates = odroid_system_emu_get_states(rom_path ?: app->romPath, 4);
+    
+    if (skip_on_single_used_slot && savestates->used <= 1) {
+        return savestates->used == 1 ? 0 : -1;
+    }
+
     odroid_dialog_choice_t choices[] = {
         {(intptr_t)&savestates->slots[0], "Slot 0", NULL, show_preview? (savestates->slots[0].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
         {(intptr_t)&savestates->slots[1], "Slot 1", NULL, show_preview? (savestates->slots[1].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
@@ -1355,17 +1360,17 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
     switch (r)
     {
     case 10:
-        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Cont, NULL, false, repaint)) >= 0)
+        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Cont, NULL, false, false, repaint)) >= 0)
             odroid_system_emu_save_state(slot);
         break;
     case 20:
-        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Quit, NULL, false, repaint)) >= 0) {
+        if ((slot = odroid_savestate_menu(curr_lang->s_Save_Quit, NULL, false, false, repaint)) >= 0) {
             odroid_system_emu_save_state(slot);
             odroid_system_switch_app(0);
         }
         break;
     case 30:
-        if ((slot = odroid_savestate_menu(curr_lang->s_Reload, NULL, true, NULL)) >= 0) {
+        if ((slot = odroid_savestate_menu(curr_lang->s_Reload, NULL, true, true, NULL)) >= 0) {
             odroid_system_emu_load_state(slot);
         }
         break;
