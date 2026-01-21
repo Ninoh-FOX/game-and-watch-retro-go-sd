@@ -93,6 +93,23 @@ void sdcard_init(void) {
     sdcard_hw_type = SDCARD_HW_NO_SD_FOUND;
 }
 
+void sdcard_deinit(void) {
+    if (fs_mounted) {
+      f_unmount("");
+      fs_mounted = false;
+    }
+    switch (sdcard_hw_type) {
+      case SDCARD_HW_SPI1:
+        sdcard_deinit_spi1();
+        break;
+      case SDCARD_HW_OSPI1:
+        sdcard_deinit_ospi1();
+        break;
+      default:
+        break;
+    }
+}
+
 void sdcard_init_spi1() {
     // PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SPI1 should be set
     // but as it's common with SPI2, it's already selected
