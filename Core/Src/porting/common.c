@@ -47,6 +47,7 @@ void odroid_audio_mute(bool mute)
 
 common_emu_state_t common_emu_state = {
     .frame_time_10us = (uint16_t)(100000 / 60 + 0.5f),  // Reasonable default of 60FPS if not explicitly configured.
+    .clear_frames = 2, // Clear when starting emulator
 };
 
 static int32_t frame_integrator = 0;
