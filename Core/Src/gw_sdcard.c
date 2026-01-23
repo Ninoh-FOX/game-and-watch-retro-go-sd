@@ -56,7 +56,7 @@ void sdcard_error_screen(void) {
         }
     }
 
-    GW_EnterDeepSleep(true, NULL);
+    GW_EnterDeepSleep(true, NULL, NULL);
 }
 
 /*************************

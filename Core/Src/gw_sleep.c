@@ -41,7 +41,6 @@ static void SleepModeEnterAndResume(sleep_pre_wakeup_callback_t pre_wakeup_callb
 
   if (pre_wakeup_callback != NULL) {
     pre_wakeup_callback();
-    pre_wakeup_callback = NULL;
   }
 
   lcd_swap();
@@ -79,7 +78,6 @@ static void SleepModeEnterAndResume(sleep_pre_wakeup_callback_t pre_wakeup_callb
 
   if (post_wakeup_callback != NULL) {
     post_wakeup_callback();
-    post_wakeup_callback = NULL;
   }
 
   printf("[Sleep] Finish waking up\n");
