@@ -317,6 +317,91 @@ void odroid_overlay_draw_battery(odroid_battery_state_t battery, int x_pos, int 
     }
 }
 
+static const uint8_t ROUND[] = {  // This is the top/left of a 8-pixel radius circle
+    0b00000011,
+    0b00001111,
+    0b00011111,
+    0b00111111,
+    0b01111111,
+    0b01111111,
+    0b11111111,
+    0b11111111,
+};
+
+static void draw_shine_circle(pixel_t *fb, uint16_t center_x, uint16_t center_y, uint16_t shine)
+{
+    inline void _shine_pixel(pixel_t *p, uint16_t shine)
+    {
+        *p = get_shined_pixel(*p, shine);
+    }
+
+    const uint16_t h = 16;
+    const uint16_t w = 16;
+
+    uint16_t x1 = center_x - w / 2;
+    uint16_t y1 = center_y - h / 2;
+    uint16_t x2 = x1 + w;
+    uint16_t y2 = y1 + h;
+
+    // Draw upper left round
+    for(uint8_t i=0; i < 8; i++) for(uint8_t j=0; j < 8; j++)
+        if(ROUND[i] & (1 << (7 - j))) _shine_pixel(&fb[x1 + j + GW_LCD_WIDTH * (y1 + i)], shine);
+
+    // Draw upper right round
+    for(uint8_t i=0; i < 8; i++) for(uint8_t j=0; j < 8; j++)
+        if(ROUND[i] & (1 << (7 - j))) _shine_pixel(&fb[x2 - j - 1 + GW_LCD_WIDTH * (y1 + i)], shine);
+
+    // Draw lower left round
+    for(uint8_t i=0; i < 8; i++) for(uint8_t j=0; j < 8; j++)
+        if(ROUND[i] & (1 << (7 - j))) _shine_pixel(&fb[x1 + j + GW_LCD_WIDTH * (y2 - i - 1)], shine);
+
+    // Draw lower right round
+    for(uint8_t i=0; i < 8; i++) for(uint8_t j=0; j < 8; j++)
+        if(ROUND[i] & (1 <<  (7 - j))) _shine_pixel(&fb[x2 - j - 1 + GW_LCD_WIDTH * (y2 - i - 1)], shine);
+}
+
+void odroid_overlay_draw_spinner(int center_x, int center_y, float radius, float angle, bool draw_background_box)
+{
+    void _draw_box(int x, int y, int width, int height, int border_thickness)
+    {
+        // Colors
+        int box_color = curr_colors->bg_c;
+        int border_color = curr_colors->dis_c;
+
+        odroid_overlay_draw_fill_rect(x, y, width, height, box_color);
+        odroid_overlay_draw_rect(x - border_thickness, y - border_thickness,
+                                 width + 2 * border_thickness, height + 2 * border_thickness,
+                                 border_thickness, border_color);
+    }
+
+    if (draw_background_box)
+    {
+        const int box_padding = 20;
+        const int box_border_thickness = 2;
+        int box_width = radius * 2 + box_padding * 2;
+        int box_height = box_width;
+        int box_x = center_x - box_width / 2;
+        int box_y = center_y - box_height / 2;
+
+        _draw_box(box_x, box_y, box_width, box_height, box_border_thickness);
+    }
+
+    const float pi = 3.14159265358979323846f;
+    const int circles_count = 8;
+    const uint16_t min_shine = 10;
+    const uint16_t max_shine = 90;
+
+    for (int i = 0; i < circles_count; i++)
+    {
+        float lerp = (float) i / (float) circles_count;
+        float circle_angle = angle + 2.0f * pi * lerp;
+        int circle_x = center_x + cosf(circle_angle) * radius;
+        int circle_y = center_y + sinf(circle_angle) * radius;
+        int shine = min_shine + lerp * (float) (max_shine - min_shine);
+        draw_shine_circle(lcd_get_active_buffer(), circle_x, circle_y, shine);
+    }
+}
+
 static int get_dialog_items_count(odroid_dialog_choice_t *options)
 {
     odroid_dialog_choice_t last = ODROID_DIALOG_CHOICE_LAST;
@@ -783,7 +868,6 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
             }
             else if (joystick.values[ODROID_INPUT_POWER] && !power_key_pressed) // G&W POWER button
             {
-                printf("[Sleep] Reason 2\n");
                 odroid_system_sleep_ex(SLEEP_SHOW_ANIMATION, NULL);
 #if OFF_SAVESTATE == 1 || SD_CARD == 1
                 odroid_system_emu_save_state(-1);
@@ -1515,24 +1599,35 @@ uint8_t *odroid_overlay_cache_file_in_flash(const char *file_path, uint32_t *fil
         lcd_swap();
     }
 
-    return store_file_in_flash(file_path, file_size_p,
-                               byte_swap,
-                               progress_cb);
+    return store_file_in_flash(file_path, file_size_p, byte_swap, progress_cb);
 }
 
 size_t odroid_overlay_cache_file_in_ram(const char *file_path, uint8_t *dest_address)
 {
     void progress_cb(uint32_t total_size, uint32_t total_processed, uint8_t progress)
     {
-        // Don't show for progress for small files to reduce jank
-        if (total_size < 320 * 1024) {
+        if (progress != 100 && lcd_is_swap_pending())
             return;
+
+#ifndef SPINNER_TYPE
+#define SPINNER_TYPE 1
+#endif
+#if SPINNER_TYPE == 1
+        static float start_angle = 0;
+        odroid_overlay_draw_spinner(ODROID_SCREEN_WIDTH / 2, ODROID_SCREEN_HEIGHT / 2, 35.0f, start_angle, true);
+        start_angle += 0.3f;
+
+        if (progress == 100) {
+            lcd_sync();
         }
-
-        if (lcd_is_swap_pending())
+#elif SPINNER_TYPE == 2
+        // Only draw once
+        if (total_processed != 0)
             return;
 
-        odroid_overlay_draw_progress_bar(curr_lang->s_Loading_Ram, progress);
+        odroid_overlay_draw_spinner(ODROID_SCREEN_WIDTH / 2, ODROID_SCREEN_HEIGHT / 2, 35.0f, 0, false);
+        lcd_sync();
+#endif
 
         // Show
         lcd_swap();

@@ -494,13 +494,13 @@ void cpumon_reset(void){
 #define OVERLAY_COLOR_565 0xFFFF
 
 static const uint8_t ROUND[] = {  // This is the top/left of a 8-pixel radius circle
-    0b00000001,
-    0b00000111,
+    0b00000011,
     0b00001111,
     0b00011111,
     0b00111111,
     0b01111111,
     0b01111111,
+    0b11111111,
     0b11111111,
 };
 
