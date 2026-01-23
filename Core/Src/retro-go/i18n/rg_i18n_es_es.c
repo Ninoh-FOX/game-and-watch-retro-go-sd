@@ -188,6 +188,7 @@ const lang_t lang_es_es LANG_DATA = {
     .s_Theme_CoverLightH = "Imagen simple H",
     .s_Caching_Game = "Almacenando en caché el juego",
     .s_Loading_Ram = "Cargando en RAM",
+    .s_Pause_Banner = "PAUSE",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

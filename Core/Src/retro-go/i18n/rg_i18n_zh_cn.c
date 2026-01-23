@@ -193,6 +193,7 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_Theme_CoverLightH = "水平欢滚",
     .s_Caching_Game = "正在缓存游戏",
     .s_Loading_Ram = "正在加载到RAM",
+    .s_Pause_Banner = "PAUSE",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

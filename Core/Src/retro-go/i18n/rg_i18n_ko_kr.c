@@ -191,6 +191,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Theme_CoverLightH = "커버플로우",
     .s_Caching_Game = "게임 캐싱 중",
     .s_Loading_Ram = "RAM에 로드 중",
+    .s_Pause_Banner = "PAUSE",
 
     //=====================================================================
 

@@ -188,6 +188,7 @@ const lang_t lang_it_it LANG_DATA = {
     .s_Theme_CoverLightH = "Mini Oriz",
     .s_Caching_Game = "Caching del gioco",
     .s_Loading_Ram = "Caricamento in RAM",
+    .s_Pause_Banner = "PAUSE",
     //=====================================================================
 
     // Core\Src\retro-go\rg_emulators.c ====================================

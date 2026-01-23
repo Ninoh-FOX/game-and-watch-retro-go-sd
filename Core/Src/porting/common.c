@@ -129,12 +129,17 @@ static void repaint_overlay(void_callback_t repaint) {
     repaint();
 }
 
-static void open_pause_menu(odroid_dialog_choice_t *game_options, void_callback_t repaint, odroid_menu_flags_t flags) {
+static void open_pause_menu(odroid_dialog_choice_t *game_options, void_callback_t repaint, bool pause_banner, odroid_menu_flags_t flags) {
     void _repaint() {
         repaint_overlay(repaint);
     }
 
-    odroid_overlay_game_menu(game_options, _repaint, flags);
+    if (pause_banner) {
+        odroid_overlay_sleep_pause_banner(_repaint, flags);
+    } else {
+        odroid_overlay_game_menu(game_options, _repaint, flags);
+    }
+
     if ((flags & ODROID_MENU_FLAG_DRAW_ONLY) == 0) {
         common_emu_state.pause_after_frames = 0;
         common_emu_state.startup_frames = 0;
@@ -386,7 +391,6 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
     }
 
     if (common_emu_state.pause_after_frames > 0) {
-        open_pause_menu(game_options, _repaint, ODROID_MENU_FLAG_DRAW_ONLY);
         (common_emu_state.pause_after_frames)--;
         if (common_emu_state.pause_after_frames == 0) {
             pause_pressed = true;
@@ -549,7 +553,7 @@ static void draw_darken_rectangle(pixel_t *fb, uint16_t x1, uint16_t y1, uint16_
 }
 
 __attribute__((optimize("unroll-loops")))
-static void draw_darken_rounded_rectangle(pixel_t *fb, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2){
+void draw_darken_rounded_rectangle(pixel_t *fb, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2){
     // *1 is inclusive, *2 is exclusive
     uint16_t h = y2 - y1;
     uint16_t w = x2 - x1;
