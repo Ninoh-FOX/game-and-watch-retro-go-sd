@@ -14,12 +14,10 @@
 #include "ff.h"
 #endif
 
-sleep_wake_hook_t sleep_wakeup_callback;
-
 extern LTDC_HandleTypeDef hltdc;
 extern SPI_HandleTypeDef hspi2;
 
-static void SleepModeEnterAndResume() {
+static void SleepModeEnterAndResume(sleep_pre_wakeup_callback_t pre_wakeup_callback, sleep_post_wakeup_callback_t post_wakeup_callback) {
   printf("[Sleep] Entering STOP2 mode\n");
 
   HAL_PWREx_ClearWakeupFlag(PWR_FLAG_WKUP1);
@@ -41,9 +39,9 @@ static void SleepModeEnterAndResume() {
   }
   lcd_init(&hspi2, &hltdc, 0);
 
-  if (sleep_wakeup_callback != NULL) {
-    sleep_wakeup_callback();
-    sleep_wakeup_callback = NULL;
+  if (pre_wakeup_callback != NULL) {
+    pre_wakeup_callback();
+    pre_wakeup_callback = NULL;
   }
 
   lcd_swap();
@@ -79,12 +77,15 @@ static void SleepModeEnterAndResume() {
   audio_start_playing_full_length(audio_get_buffer_full_length());
   HAL_GPIO_WritePin(GPIO_Speaker_enable_GPIO_Port, GPIO_Speaker_enable_Pin, GPIO_PIN_SET);
 
+  if (post_wakeup_callback != NULL) {
+    post_wakeup_callback();
+    post_wakeup_callback = NULL;
+  }
+
   printf("[Sleep] Finish waking up\n");
 }
 
-void GW_EnterDeepSleep(bool standby, sleep_wake_hook_t wakeup_callback) {
-  sleep_wakeup_callback = wakeup_callback;
-
+void GW_EnterDeepSleep(bool standby, sleep_pre_wakeup_callback_t pre_wakeup_callback, sleep_post_wakeup_callback_t post_wakeup_callback) {
   // Turn off speaker
   HAL_GPIO_WritePin(GPIO_Speaker_enable_GPIO_Port, GPIO_Speaker_enable_Pin, GPIO_PIN_RESET);
 
@@ -124,6 +125,6 @@ void GW_EnterDeepSleep(bool standby, sleep_wake_hook_t wakeup_callback) {
     }
   }
   else {
-    SleepModeEnterAndResume();
+    SleepModeEnterAndResume(pre_wakeup_callback, post_wakeup_callback);
   }
 }

@@ -398,7 +398,7 @@ int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   PatchCodeRodataOffset(zelda_rodata, zelda_rodata_length);
 
   odroid_system_init(APPID_ZELDA3, ZELDA3_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot, NULL);
+  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot, NULL, NULL);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;

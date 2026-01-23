@@ -517,6 +517,7 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     odroid_system_emu_init(&gwenesis_system_LoadState,
                            &gwenesis_system_SaveState, 
                            &gwenesis_system_Screenshot,
+                           NULL,
                            NULL);
    // rg_app_desc_t *app = odroid_system_get_app();
 

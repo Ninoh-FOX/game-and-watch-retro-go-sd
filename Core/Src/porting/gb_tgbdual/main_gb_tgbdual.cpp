@@ -519,7 +519,7 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
     common_emu_state.frame_time_10us = (uint16_t)(100000 / VIDEO_REFRESH_RATE + 0.5f);
 
     odroid_system_init(APPID_GB, GB_AUDIO_FREQUENCY);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL);
 
 #if SD_CARD == 0
     // To optimize free memory for bank caching, we make sure that maximum

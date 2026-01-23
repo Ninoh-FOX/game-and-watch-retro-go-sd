@@ -499,7 +499,7 @@ int main()
 
     // sets framebuffer1 as active buffer
     odroid_system_init(APP_ID, AUDIO_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, NULL, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, NULL, NULL, NULL);
 
     init_window(WIDTH, HEIGHT);
 

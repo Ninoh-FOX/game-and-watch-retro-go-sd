@@ -627,7 +627,7 @@ void retro_loop()
     }
 
     // This will upon power down disable the debug clock to save battery power
-    odroid_system_set_sleep_hook(&sleep_hook_callback);
+    odroid_system_set_pre_sleep_hook(&sleep_hook_callback);
 
     // This will ensure that we can still catch the CPU during WFI
     update_debug_clock();

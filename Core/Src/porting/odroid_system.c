@@ -18,7 +18,7 @@ static runtime_stats_t statistics;
 static runtime_counters_t counters;
 static uint skip;
 
-static sleep_hook_t sleep_hook = NULL;
+static sleep_pre_sleep_hook_t pre_sleep_hook = NULL;
 
 #define TURBOS_SPEED 10
 
@@ -51,7 +51,8 @@ void odroid_system_init(int appId, int sampleRate)
 void odroid_system_emu_init(state_handler_t load_cb,
                             state_handler_t save_cb,
                             screenshot_handler_t screenshot_cb,
-                            shutdown_handler_t shutdown_cb)
+                            shutdown_handler_t shutdown_cb,
+                            sleep_post_wakeup_handler_t sleep_post_wakeup_cb)
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
@@ -59,6 +60,7 @@ void odroid_system_emu_init(state_handler_t load_cb,
     currentApp.handlers.saveState = save_cb;
     currentApp.handlers.screenshot = screenshot_cb;
     currentApp.handlers.shutdown = shutdown_cb;
+    currentApp.handlers.sleep_post_wakeup = sleep_post_wakeup_cb;
 
     printf("%s: Init done. GameId=%08lX\n", __func__, currentApp.gameId);
 }
@@ -515,16 +517,22 @@ runtime_stats_t odroid_system_get_stats(bool reset_stats)
     return statistics;
 }
 
-void odroid_system_set_sleep_hook(sleep_hook_t callback)
+void odroid_system_set_pre_sleep_hook(sleep_pre_sleep_hook_t callback)
 {
-    sleep_hook = callback;
+    pre_sleep_hook = callback;
 }
 
-static void odroid_system_sleep_internal(system_sleep_flags_t flags, sleep_wake_hook_t wakeup_callback)
+static void odroid_system_sleep_post_wakeup_handler() {
+    if (currentApp.handlers.sleep_post_wakeup) {
+        (*currentApp.handlers.sleep_post_wakeup)();
+    }
+}
+
+static void odroid_system_sleep_internal(system_sleep_flags_t flags, sleep_pre_wakeup_callback_t pre_wakeup_callback)
 {
-    if (sleep_hook != NULL)
+    if (pre_sleep_hook != NULL)
     {
-        sleep_hook();
+        pre_sleep_hook();
     }
     odroid_settings_StartupFile_set(ACTIVE_FILE);
     odroid_settings_commit();
@@ -536,15 +544,15 @@ static void odroid_system_sleep_internal(system_sleep_flags_t flags, sleep_wake_
     gui_save_current_tab();
 
     if (flags & SLEEP_ENTER_SLEEP) {
-        GW_EnterDeepSleep(false, wakeup_callback);
+        GW_EnterDeepSleep(false, pre_wakeup_callback, &odroid_system_sleep_post_wakeup_handler);
     } else if (flags & SLEEP_ENTER_STANDBY) {
-        GW_EnterDeepSleep(true, NULL);
+        GW_EnterDeepSleep(true, NULL, NULL);
     }
 }
 
-void odroid_system_sleep_ex(system_sleep_flags_t flags, sleep_wake_hook_t wakeup_callback)
+void odroid_system_sleep_ex(system_sleep_flags_t flags, sleep_pre_wakeup_callback_t pre_wakeup_callback)
 {
-    odroid_system_sleep_internal(flags, wakeup_callback);
+    odroid_system_sleep_internal(flags, pre_wakeup_callback);
 }
 
 void odroid_system_sleep(void)

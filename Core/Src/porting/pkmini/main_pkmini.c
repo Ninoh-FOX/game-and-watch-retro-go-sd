@@ -421,7 +421,7 @@ _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t 
     lcd_set_refresh_rate(PKMINI_FPS);
 
     odroid_system_init(APPID_PKMINI, PKMINI_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, &Shutdown);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, &Shutdown, NULL);
 
     // Init Sound
     audio_start_playing_full_length(PKMINI_BUFFER_LENGTH_MAX+PKMINI_BUFFER_LENGTH_MIN);
