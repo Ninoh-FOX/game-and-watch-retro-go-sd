@@ -228,6 +228,9 @@ size_t rg_storage_copy_file_to_ram(char *file_path, uint8_t *ram_dest, file_prog
     fseek(file, 0, SEEK_SET);
 
     total_written = 0;
+    if (file_progress_cb) {
+        file_progress_cb(total_size, 0, 0);
+    }
 
     while ((bytes_read = fread(ram_dest+total_written, 1, 32*1024, file))) {
         wdog_refresh();

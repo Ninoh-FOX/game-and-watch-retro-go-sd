@@ -171,6 +171,11 @@ static bool circular_flash_write(const char *file_path,
         *data_size = ftell(file);
         fseek(file, 0, SEEK_SET);
     }
+
+    if (progress_cb) {
+        progress_cb(*data_size, 0, 0);
+    }
+
     uint32_t flash_write_base = get_extflash_base();
 
     // If there is not enough space available, write the file at the beginning of the flash
