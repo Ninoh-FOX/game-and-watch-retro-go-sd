@@ -607,6 +607,7 @@ void retro_loop()
     int last_key = -1;
     int repeat = 0;
     uint32_t idle_s;
+    bool power_key_pressed = false;
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
@@ -653,8 +654,17 @@ void retro_loop()
         if ((last_key < 0) || ((repeat >= 30) && (repeat % 5 == 0)))
         {
             for (int i = 0; i < ODROID_INPUT_MAX; i++)
-                if (gui.joystick.values[i])
+            {
+                uint8_t key_state = gui.joystick.values[i];
+                if (key_state)
+                {
                     last_key = i;
+                }
+                else if (i == ODROID_INPUT_POWER && power_key_pressed)
+                {
+                    power_key_pressed = false;
+                }
+            }
 
             int key_up = ODROID_INPUT_UP;
             int key_down = ODROID_INPUT_DOWN;
@@ -711,7 +721,7 @@ void retro_loop()
             {
                 gui_event(KEY_PRESS_B, tab);
             }
-            else if (last_key == ODROID_INPUT_POWER)
+            else if (last_key == ODROID_INPUT_POWER && !power_key_pressed)
             {
                 if ((gui.joystick.values[ODROID_INPUT_UP]) || (gui.joystick.values[ODROID_INPUT_DOWN]) ||
                     (gui.joystick.values[ODROID_INPUT_LEFT]) || (gui.joystick.values[ODROID_INPUT_RIGHT]))
@@ -722,6 +732,7 @@ void retro_loop()
                 else {
                     odroid_system_sleep_ex(SLEEP_ENTER_SLEEP_WITH_ANIMATION, NULL);
                     gui_refresh_tab(tab);
+                    power_key_pressed = true;
                 }
             }
         }

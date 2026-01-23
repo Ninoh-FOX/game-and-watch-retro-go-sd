@@ -29,9 +29,6 @@ static void SleepModeEnterAndResume(sleep_pre_wakeup_callback_t pre_wakeup_callb
   SystemClock_Config(odroid_settings_cpu_oc_level_get());
   HAL_ResumeTick();
 
-  // Ignore Power button for a short while after waking up
-  buttons_debounce_power();
-
   // Restore LCD
   lcd_backlight_off();
   if (lcd_get_last_refresh_rate() != 60) {

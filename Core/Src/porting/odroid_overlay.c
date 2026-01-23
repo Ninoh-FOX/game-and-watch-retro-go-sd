@@ -680,6 +680,7 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
     int repeat = 0;
     bool select = false;
     bool debounce = true;
+    bool power_key_pressed = false;
     odroid_gamepad_state_t joystick;
 
     void _repaint()
@@ -711,6 +712,10 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
         }
 
         odroid_input_read_gamepad(&joystick);
+
+        if (!joystick.values[ODROID_INPUT_POWER] && power_key_pressed) {
+            power_key_pressed = false;
+        }
 
         // Ignore all buttons until all buttons are released once (only on entry)
         if (debounce && !odroid_input_key_is_pressed(ODROID_INPUT_ANY)) {
@@ -776,8 +781,9 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
                 sel = -1;
                 break;
             }
-            else if (joystick.values[ODROID_INPUT_POWER]) // G&W POWER button
+            else if (joystick.values[ODROID_INPUT_POWER] && !power_key_pressed) // G&W POWER button
             {
+                printf("[Sleep] Reason 2\n");
                 odroid_system_sleep_ex(SLEEP_SHOW_ANIMATION, NULL);
 #if OFF_SAVESTATE == 1 || SD_CARD == 1
                 odroid_system_emu_save_state(-1);
@@ -785,6 +791,7 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
                 odroid_system_emu_save_state(0);
 #endif
                 odroid_system_sleep_ex(SLEEP_ENTER_SLEEP, NULL);
+                power_key_pressed = true;
                 continue;
             }
 
