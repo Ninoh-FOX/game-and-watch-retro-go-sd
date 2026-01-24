@@ -187,7 +187,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_Theme_CoverLightV = "Encadeado V",
     .s_Theme_CoverLightH = "Encadeado H",
     .s_Caching_Game = "Armazenando em cache o jogo",
-    .s_Loading_Ram = "Carregando em RAM",
+    .s_Loading_Banner = "Loading",
     .s_Pause_Banner = "PAUSE",
     //=====================================================================
 

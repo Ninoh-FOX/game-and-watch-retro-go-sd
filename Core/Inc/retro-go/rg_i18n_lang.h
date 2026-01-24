@@ -165,7 +165,7 @@ typedef struct
     const char *s_Theme_CoverLightV;
     const char *s_Theme_CoverLightH;
     const char *s_Caching_Game;
-    const char *s_Loading_Ram;
+    const char *s_Loading_Banner;
     const char *s_Pause_Banner;
     //=====================================================================
     // Core\Src\retro-go\rg_emulators.c ====================================

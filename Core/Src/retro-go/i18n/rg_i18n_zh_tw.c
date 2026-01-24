@@ -188,7 +188,7 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Theme_CoverLightV = "垂直滾動",
     .s_Theme_CoverLightH = "水平滾動",
     .s_Caching_Game = "正在快取遊戲",
-    .s_Loading_Ram = "正在加載到RAM",
+    .s_Loading_Banner = "Loading",
     .s_Pause_Banner = "PAUSE",
     //=====================================================================
     // Core\Src\retro-go\rg_emulators.c ====================================

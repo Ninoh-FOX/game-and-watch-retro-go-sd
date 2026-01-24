@@ -183,7 +183,7 @@ const lang_t lang_en_us LANG_DATA = {
     .s_Theme_CoverLightV = "CoverLight V",
     .s_Theme_CoverLightH = "CoverLight H",
     .s_Caching_Game = "Caching game file",
-    .s_Loading_Ram = "Loading in RAM",
+    .s_Loading_Banner = "Loading",
     .s_Pause_Banner = "PAUSE",
     //=====================================================================
 
