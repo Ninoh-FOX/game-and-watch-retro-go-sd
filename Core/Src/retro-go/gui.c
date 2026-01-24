@@ -427,7 +427,9 @@ void gui_draw_status(tab_t *tab)
     if ((battery_state.percentage > 20) || ((get_elapsed_time() % 1000) < 800))
         odroid_overlay_draw_battery(battery_state, ODROID_SCREEN_WIDTH - 28, 17);
 
-    bool show_battery_percentage = battery_state.state == ODROID_BATTERY_CHARGE_STATE_DISCHARGING;
+    bool show_battery_percentage =
+        battery_state.state == ODROID_BATTERY_CHARGE_STATE_DISCHARGING ||
+        battery_state.state == ODROID_BATTERY_CHARGE_STATE_FULL;
     int battery_percentage_width = 0;
     if (show_battery_percentage) {
         char header[10];
