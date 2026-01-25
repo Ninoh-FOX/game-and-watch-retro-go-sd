@@ -152,10 +152,15 @@ void sdcard_init_spi1() {
 }
 
 void sdcard_deinit_spi1() {
-    HAL_GPIO_WritePin(SD_VCC_GPIO_Port, SD_VCC_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);
+    /* PB9 = 0v : SD Card disable CS  */
+    HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
 
+    // Deinit SPI1
+    HAL_SPI_DeInit(&hspi1);
     HAL_SPI_MspDeInit(&hspi1);
+
+    // Disable SD Card VCC
+    HAL_GPIO_WritePin(SD_VCC_GPIO_Port, SD_VCC_Pin, GPIO_PIN_RESET);
 }
 
 void sdcard_init_ospi1() {
