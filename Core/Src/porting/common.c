@@ -136,7 +136,27 @@ static void open_pause_menu(odroid_dialog_choice_t *game_options, void_callback_
     }
 
     if (pause_banner) {
-        odroid_overlay_sleep_pause_banner(_repaint, flags);
+        // Show the Pause screen, listen to button presses,
+        // if PAUSE/SET is pressed, dismiss the Pause screen
+        // and open the game settings menu
+        bool is_pause_key_pressed = false;
+
+        int _pause_input_handler(odroid_gamepad_state_t* joystick) {
+            // PAUSE/SET button
+            if(joystick->values[ODROID_INPUT_VOLUME]) {
+                is_pause_key_pressed = true;
+                return 1;
+            }
+
+            return 0;
+        }
+
+        odroid_overlay_sleep_pause_banner(_repaint, flags, &_pause_input_handler);
+
+        if (is_pause_key_pressed) {
+            lcd_sync();
+            odroid_overlay_game_menu(game_options, _repaint, flags);
+        }
     } else {
         odroid_overlay_game_menu(game_options, _repaint, flags);
     }

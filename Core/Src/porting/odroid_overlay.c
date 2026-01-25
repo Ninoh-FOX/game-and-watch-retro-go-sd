@@ -368,7 +368,7 @@ void odroid_overlay_draw_banner_text(int center_x, int center_y, const char *tex
     );
 }
 
-void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flags_t flags)
+void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flags_t flags, pause_input_callback_t input_cb)
 {
     void odroid_overlay_darken_all();
     void draw_game_status_bar(runtime_stats_t* stats);
@@ -408,8 +408,11 @@ void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flag
         {
             lcd_clear_active_buffer();
             repaint();
+
             // Darken background (if needed)
-            odroid_overlay_darken_all();
+            if ((flags & ODROID_MENU_FLAG_NO_BG_DARKEN) == 0) {
+                odroid_overlay_darken_all();
+            }
         }
 
         _draw_banner(draw_only);
@@ -456,6 +459,12 @@ void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flag
             if (!joystick.values[ODROID_INPUT_POWER]) {
                 power_key_debounce = false;
             }
+        }
+
+        if (input_cb != NULL) {
+            int input_cb_result = input_cb(&joystick);
+            if (input_cb_result != 0)
+                break;
         }
 
         if (joystick.values[ODROID_INPUT_POWER]) // G&W POWER button
@@ -864,8 +873,11 @@ int odroid_overlay_dialog(const char *header, odroid_dialog_choice_t *options, i
         {
             lcd_clear_active_buffer();
             repaint();
+
             // Darken background (if needed)
-            odroid_overlay_darken_all();
+            if ((flags & ODROID_MENU_FLAG_NO_BG_DARKEN) == 0) {
+                odroid_overlay_darken_all();
+            }
         }
         // Draw dialog on top of darken background
         odroid_overlay_draw_dialog(header, options, sel);
@@ -1448,6 +1460,8 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
         {
             repaint();
         }
+
+        odroid_overlay_darken_all();
         draw_game_status_bar(&stats);
     }
 
@@ -1550,7 +1564,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
     odroid_audio_mute(true);
 
     int slot;
-    int r = odroid_overlay_dialog(curr_lang->s_Retro_Go_options, choices, 0, &_repaint, flags);
+    int r = odroid_overlay_dialog(curr_lang->s_Retro_Go_options, choices, 0, &_repaint, flags | ODROID_MENU_FLAG_NO_BG_DARKEN);
     if (draw_only) {
         return r;
     }
