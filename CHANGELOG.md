@@ -2,20 +2,9 @@
 
 ## What's New
 
-### Version 1.1.0
-This update is mostly the result of ZimM-LostPolygon's work.
-He improved experience by implementing a sleep/wake up mechanism instead of a full power off.
-It is now working the same way as original firmware on this point.
-It is also including few other improvements.
-- Power button is putting console in sleep mode (as in original firmware) instead of a deep sleep. This is allowing to have very
-quick wake up.
-- Fix issue with sd card detection on power on/wake up
-- NES mapper 85 VRC7 (Lagrange Point) play audio @ 48KHz when CPU is overclocked
-- It is now possible to delete a game from file properties
-- Now showing battery level in %
-- Improved "game resume" logic after a sleep/wake up : just press any key to resume playing
-- Improved messages shown during loading of cores/games
-- Fixed various UI bugs
+### Version 1.1.1
+- Fix compatibility with some microSD cards models (and probably fixes some rare issues with some allready supported cards).
+  This is also requiring an update of the bootloader (v1.0.7). Update details to add when firmware_update code updated
 
 ## Prerequisites
 To install this version, make sure you have:
