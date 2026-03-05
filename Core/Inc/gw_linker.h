@@ -124,6 +124,12 @@ extern uint8_t _OVERLAY_A2600_SIZE;
 extern void * _OVERLAY_A2600_BSS_START[];
 extern void * _OVERLAY_A2600_BSS_END[];
 extern uint8_t _OVERLAY_A2600_BSS_SIZE;
+extern void * __itcram_emu_wswan_start__[];
+extern void * __itcram_emu_wswan_end__[];
+extern uint8_t _ITCM_WSWAN_SIZE;
+extern void * _OVERLAY_WSWAN_BSS_START[];
+extern void * _OVERLAY_WSWAN_BSS_END[];
+extern uint8_t _OVERLAY_WSWAN_BSS_SIZE;
 
 extern uint8_t *_NES_ROM_UNPACK_BUFFER;
 extern uint8_t _NES_ROM_UNPACK_BUFFER_SIZE;
