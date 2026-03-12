@@ -471,7 +471,7 @@ void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flag
         {
             if (!power_key_debounce && !any_key_debounce)
             {
-                _save_state_and_sleep(NULL);
+                _save_state_and_sleep();
                 continue;
             }
         }
@@ -490,7 +490,7 @@ void odroid_overlay_sleep_pause_banner(void_callback_t repaint, odroid_menu_flag
         if (odroid_settings_MainMenuTimeoutS_get() != 0 &&
             (idle_s > odroid_settings_MainMenuTimeoutS_get()))
         {
-            _save_state_and_sleep(NULL);
+            _save_state_and_sleep();
         }
     }
 
