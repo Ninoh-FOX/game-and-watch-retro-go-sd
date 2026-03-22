@@ -615,6 +615,7 @@ $(CORE_GWENESIS)/src/sound/z80inst.c \
 $(CORE_GWENESIS)/src/sound/ym2612.c \
 $(CORE_GWENESIS)/src/sound/gwenesis_sn76489.c \
 $(CORE_GWENESIS)/src/bus/gwenesis_bus.c \
+$(CORE_GWENESIS)/src/bus/gwenesis_sram.c \
 $(CORE_GWENESIS)/src/io/gwenesis_io.c \
 $(CORE_GWENESIS)/src/vdp/gwenesis_vdp_mem.c \
 $(CORE_GWENESIS)/src/vdp/gwenesis_vdp_gfx.c \

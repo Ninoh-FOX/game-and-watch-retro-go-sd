@@ -46,6 +46,7 @@ __license__ = "GPLv3"
 #include "gwenesis_io.h"
 #include "gwenesis_vdp.h"
 #include "gwenesis_savestate.h"
+#include "gwenesis_sram.h"
 
 #pragma GCC optimize("Ofast")
 
@@ -554,6 +555,14 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     power_on();
     reset_emulation();
 
+    /* Load battery-backed SRAM: one raw file per game (path basename, not slot) */
+    if (gwenesis_sram_enabled) {
+      char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+      gwenesis_set_sram_path(sram_path);
+      free(sram_path);
+      gwenesis_sram_load();
+    }
+
     unsigned short *screen = 0;
 
     screen = lcd_get_active_buffer();
@@ -635,6 +644,9 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     common_emu_input_loop(&joystick, options, &_repaint);
     common_emu_input_loop_handle_turbo(&joystick);
 
+    /* Persist battery-backed SRAM to flash if it was written since last save */
+    gwenesis_sram_save();
+
     // bool drawFrame =
     common_emu_frame_loop();
 
@@ -676,19 +688,36 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
         if (drawFrame)
           gwenesis_vdp_render_line(scan_line); /* render scan_line */
 
-        // On these lines, the line counter interrupt is reloaded
-        if ((scan_line == 0) || (scan_line > screen_height)) {
-          //  if (REG0_LINE_INTERRUPT != 0)
-          //    printf("HINTERRUPT counter reloaded: (scan_line: %d, new
-          //    counter: %d)\n", scan_line, REG10_LINE_COUNTER);
-          hint_counter = REG10_LINE_COUNTER;
-        }
+        // H-interrupt line counter.
+        //
+        // Real hardware behaviour (verified against clownmdemu and Nemesis docs):
+        //   * The counter decrements every scanline, active display AND VBlank.
+        //   * It reloads to REG10 whenever it underflows.
+        //   * An actual IRQ4 is only raised during active display (scan_line < screen_height).
+        //   * The counter is reloaded on the very last VBlank line (lines_per_frame-1),
+        //     equivalent to clownmdemu's "scanline -1", so active display always starts
+        //     with a deterministic counter value independent of VBlank length.
+        //     This makes H-int fire at lines 0, REG10+1, 2*(REG10+1), ... every frame,
+        //     which is what raster-effect games (like Ayrton Senna's Super Monaco GP II)
+        //     depend on for palette zones and sky gradients.
 
-        // interrupt line counter
+        // Reload on the last VBlank line, just before active display.
+        if (scan_line == (lines_per_frame - 1))
+          hint_counter = REG10_LINE_COUNTER;
+
+        // Decrement every line; fire IRQ4 during active display (0..screen_height-1)
+        // AND on the last VBlank line (lines_per_frame-1 = clownmdemu's "scanline -1").
+        // Firing on that last VBlank line lets the handler run during scan_line 0's
+        // CPU time, before render_line(0) is called.  This matches clownmdemu, which
+        // fires H-int on scanlines -1..223.  Without it, the very first scan line of
+        // each frame is rendered with the previous frame's reg7 value, causing a
+        // visible wrong background colour on line 0 (e.g. the rear-view mirror zone
+        // in Ayrton Senna's Super Monaco GP II).
         if (--hint_counter < 0) {
-          if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
+          if ((REG0_LINE_INTERRUPT != 0) &&
+              (scan_line < screen_height || scan_line == lines_per_frame - 1)) {
             hint_pending = 1;
-            // printf("Line int pending %d\n",scan_line);
+            // printf("Line int pending %d\n", scan_line);
             if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
               m68k_update_irq(4);
           }
@@ -699,6 +728,16 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
 
         // vblank begin at the end of last rendered line
         if (scan_line == screen_height) {
+
+          // Toggle the ODD-FRAME bit in the VDP status register.
+          // On real hardware this bit flips every frame (bit 4 of the status word).
+          // Games read it to detect frame parity and use it for:
+          //   - Palette cycling animations (sky gradients, day/night cycles)
+          //   - Sprite flickering / interlace tricks
+          // Without this toggle the bit is always 0, causing games like Ayrton
+          // Senna's Super Monaco GP II to permanently take the "even frame" branch
+          // of their animation code, making palette zones flicker every other frame.
+          gwenesis_vdp_status ^= STATUS_ODDFRAME;
 
           if (REG1_VBLANK_INTERRUPT != 0) {
             // printf("IRQ VBLANK\n");
