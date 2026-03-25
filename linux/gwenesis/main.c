@@ -1,0 +1,423 @@
+/*
+ * Linux desktop harness for Gwenesis / Mega Drive core (SDL2 + gdb).
+ * Usage:
+ *   ./retro-go-gwenesis.elf <rom.bin>              (ROM depuis fichier)
+ *   ./retro-go-gwenesis.elf                        (si compilé avec loaded_gwenesis_rom.c)
+ */
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <SDL.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "common_linux.h"
+#include "gw_audio.h"
+#include "odroid_audio.h"
+#include "odroid_input.h"
+
+#include "gwenesis_linux.h"
+#include "gwenesis_sdl.h"
+
+#include "gw_lcd.h"
+#include "rom_manager.h"
+#include "rg_i18n.h"
+
+#include "gwenesis_bus.h"
+#include "gwenesis_io.h"
+#include "gwenesis_sram.h"
+#include "gwenesis_sn76489.h"
+#include "gwenesis_vdp.h"
+#include "m68k.h"
+#include "ym2612.h"
+#include "z80inst.h"
+
+unsigned char *gwenesis_linux_rom;
+size_t gwenesis_linux_rom_size;
+char gwenesis_linux_rom_path[512];
+
+/* Gwenesis core expects these symbols when built with TARGET_GNW. */
+#ifdef TARGET_GNW
+const unsigned char *ROM_DATA = NULL;
+unsigned int ROM_DATA_LENGTH = 0;
+#endif
+
+void rg_i18n_linux_set_lang(void);
+
+#define SCALE 2
+
+#ifdef GWENESIS_EMBEDDED_ROM
+extern const unsigned char gwenesis_embedded_rom[];
+extern const uint32_t gwenesis_embedded_rom_size;
+extern const char gwenesis_embedded_rom_source[];
+#endif
+
+static odroid_gamepad_state_t joystick;
+extern unsigned char button_state[3];
+
+int16_t gwenesis_ym2612_buffer[GWENESIS_AUDIO_BUFFER_LENGTH_PAL];
+int ym2612_index;
+int ym2612_clock;
+
+int16_t gwenesis_sn76489_buffer[GWENESIS_AUDIO_BUFFER_LENGTH_PAL];
+int sn76489_index;
+int sn76489_clock;
+
+int system_clock;
+unsigned int lines_per_frame = LINES_PER_FRAME_NTSC;
+unsigned int scan_line;
+unsigned int drawFrame = 1;
+static int hori_screen_offset, vert_screen_offset;
+
+static unsigned int gwenesis_audio_freq;
+static unsigned int gwenesis_audio_buffer_lenght;
+static unsigned int gwenesis_refresh_rate;
+
+static int gwenesis_lpfilter = 0;
+
+extern unsigned char gwenesis_vdp_regs[0x20];
+extern unsigned int gwenesis_vdp_status;
+extern int hint_pending;
+extern unsigned int screen_width, screen_height;
+
+static void gwenesis_system_init(void);
+static void gwenesis_sound_start(void);
+static void gwenesis_sound_submit(void);
+static void run_gwenesis_emulation(void);
+
+void gwenesis_io_get_buttons(void);
+
+static int gwenesis_rom_heap_allocated;
+
+#ifdef TARGET_GNW
+/* Desktop (linux) memory allocators for the Gwenesis "GNW" target. */
+void ahb_init(void) {}
+void itc_init(void) {}
+
+void *ahb_malloc(size_t size) { return malloc(size); }
+void *ahb_calloc(size_t count, size_t size) { return calloc(count, size); }
+void *itc_malloc(size_t size) { return malloc(size); }
+void *itc_calloc(size_t count, size_t size) { return calloc(count, size); }
+void *ram_malloc(size_t size) { return malloc(size); }
+void *ram_calloc(size_t count, size_t size) { return calloc(count, size); }
+#endif
+
+static int load_rom_file(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "Cannot open ROM: %s (%s)\n", path, strerror(errno));
+        return -1;
+    }
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    if (sz <= 0 || sz > (long)0x800000) {
+        fprintf(stderr, "Invalid ROM size %ld\n", sz);
+        fclose(f);
+        return -1;
+    }
+    rewind(f);
+    gwenesis_linux_rom = malloc((size_t)sz);
+    if (!gwenesis_linux_rom) {
+        fclose(f);
+        return -1;
+    }
+    if (fread(gwenesis_linux_rom, 1, (size_t)sz, f) != (size_t)sz) {
+        fprintf(stderr, "Read error\n");
+        free(gwenesis_linux_rom);
+        gwenesis_linux_rom = NULL;
+        fclose(f);
+        return -1;
+    }
+    fclose(f);
+    gwenesis_linux_rom_size = (size_t)sz;
+    ROM_DATA = (const unsigned char *)gwenesis_linux_rom;
+    ROM_DATA_LENGTH = (unsigned int)gwenesis_linux_rom_size;
+    strncpy(gwenesis_linux_rom_path, path, sizeof(gwenesis_linux_rom_path) - 1);
+    gwenesis_linux_rom_path[sizeof(gwenesis_linux_rom_path) - 1] = '\0';
+
+    memset(&linux_active_file, 0, sizeof(linux_active_file));
+    strncpy(linux_active_file.path, gwenesis_linux_rom_path, sizeof(linux_active_file.path) - 1);
+    linux_active_file.size = (uint32_t)gwenesis_linux_rom_size;
+    ACTIVE_FILE = &linux_active_file;
+
+    gwenesis_rom_heap_allocated = 1;
+    return 0;
+}
+
+#ifdef GWENESIS_EMBEDDED_ROM
+static int load_embedded_rom(void)
+{
+    gwenesis_linux_rom = (unsigned char *)gwenesis_embedded_rom;
+    gwenesis_linux_rom_size = (size_t)gwenesis_embedded_rom_size;
+    ROM_DATA = (const unsigned char *)gwenesis_embedded_rom;
+    ROM_DATA_LENGTH = (unsigned int)gwenesis_embedded_rom_size;
+    snprintf(gwenesis_linux_rom_path, sizeof(gwenesis_linux_rom_path), "/embedded/%s",
+             gwenesis_embedded_rom_source);
+
+    memset(&linux_active_file, 0, sizeof(linux_active_file));
+    strncpy(linux_active_file.path, gwenesis_linux_rom_path, sizeof(linux_active_file.path) - 1);
+    linux_active_file.size = (uint32_t)gwenesis_linux_rom_size;
+    ACTIVE_FILE = &linux_active_file;
+
+    gwenesis_rom_heap_allocated = 0;
+    return 0;
+}
+#endif
+
+static void print_usage(const char *argv0)
+{
+    fprintf(stderr, "Usage: %s", argv0);
+#ifdef GWENESIS_EMBEDDED_ROM
+    fprintf(stderr, " [rom.bin|gen|md]\n");
+    fprintf(stderr, "  (sans argument: ROM embarquée depuis loaded_gwenesis_rom.c)\n");
+#else
+    fprintf(stderr, " <rom.bin|gen|md>\n");
+#endif
+}
+
+void gwenesis_io_get_buttons(void)
+{
+    /* Map desktop keys to the emulated Gwenesis pad bits.
+     * Porting version has some board/game-specific shortcut logic; for
+     * Linux we keep a straightforward mapping. */
+    button_state[0] =
+        (joystick.values[ODROID_INPUT_UP] << PAD_UP) |
+        (joystick.values[ODROID_INPUT_DOWN] << PAD_DOWN) |
+        (joystick.values[ODROID_INPUT_LEFT] << PAD_LEFT) |
+        (joystick.values[ODROID_INPUT_RIGHT] << PAD_RIGHT) |
+        (joystick.values[ODROID_INPUT_B] << PAD_B) |
+        (joystick.values[ODROID_INPUT_X] << PAD_C) |
+        (joystick.values[ODROID_INPUT_A] << PAD_A) |
+        (joystick.values[ODROID_INPUT_START] << PAD_S);
+
+    /* Core expects inverted (active-low) button_state bits. */
+    button_state[0] = (unsigned char)~button_state[0];
+}
+
+static void gwenesis_system_init(void)
+{
+    /* Simple NTSC defaults for the desktop harness. */
+    gwenesis_audio_freq = GWENESIS_AUDIO_FREQ_NTSC;
+    gwenesis_audio_buffer_lenght = GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
+    gwenesis_refresh_rate = GWENESIS_REFRESH_RATE_NTSC;
+
+    memset(gwenesis_sn76489_buffer, 0, sizeof(gwenesis_sn76489_buffer));
+    memset(gwenesis_ym2612_buffer, 0, sizeof(gwenesis_ym2612_buffer));
+
+    odroid_audio_init((int)gwenesis_audio_freq);
+    lcd_set_refresh_rate(gwenesis_refresh_rate);
+}
+
+static void gwenesis_sound_start(void)
+{
+    audio_start_playing((uint16_t)gwenesis_audio_buffer_lenght);
+}
+
+static void gwenesis_sound_submit(void)
+{
+    if (common_emu_sound_loop_is_muted())
+        return;
+
+    int16_t factor = (int16_t)common_emu_sound_get_volume();
+    int16_t *sound_buffer = audio_get_active_buffer();
+    uint16_t sound_buffer_length = audio_get_buffer_length();
+
+    /* Optional low-pass filter (disabled by default). */
+    const uint32_t factora = 0x1000;
+    const uint32_t factorb = 0x10000 - factora;
+    static int16_t gwenesis_audio_out = 0;
+
+    if (gwenesis_lpfilter) {
+        for (uint16_t i = 0; i < sound_buffer_length; i++) {
+            int32_t tmp = (int32_t)gwenesis_audio_out * (int32_t)factorb +
+                           (int32_t)(gwenesis_ym2612_buffer[i] +
+                                    gwenesis_sn76489_buffer[i]) *
+                               (int32_t)factora;
+            gwenesis_audio_out = (int16_t)(tmp >> 16);
+            sound_buffer[i] = (int16_t)((int32_t)gwenesis_audio_out * (int32_t)factor / 128);
+        }
+    } else {
+        for (uint16_t i = 0; i < sound_buffer_length; i++) {
+            int32_t mixed = (int32_t)gwenesis_ym2612_buffer[i] +
+                             (int32_t)gwenesis_sn76489_buffer[i];
+            sound_buffer[i] = (int16_t)(mixed * factor / 512);
+        }
+    }
+}
+
+static void run_gwenesis_emulation(void)
+{
+    printf("Genesis start\n");
+
+#ifdef TARGET_GNW
+    load_cartridge();
+#else
+    load_cartridge(gwenesis_linux_rom, gwenesis_linux_rom_size);
+#endif
+    gwenesis_system_init();
+
+    power_on();
+    reset_emulation();
+
+    if (gwenesis_sram_enabled) {
+        char sram_path[1024];
+        snprintf(sram_path, sizeof(sram_path), "%s.sram", gwenesis_linux_rom_path);
+        gwenesis_set_sram_path(sram_path);
+        gwenesis_sram_load();
+    }
+
+    unsigned short *screen = (unsigned short *)lcd_get_active_buffer();
+    gwenesis_vdp_set_buffer(&screen[0]);
+
+    lcd_wait_for_vblank();
+    gwenesis_sound_start();
+
+    for (;;) {
+        odroid_input_read_gamepad(&joystick);
+
+        common_emu_clear_dwt_cycles();
+        (void)common_emu_frame_loop();
+
+        hint_pending = 0;
+
+        screen_height = REG1_PAL ? 240 : 224;
+        screen_width = REG12_MODE_H40 ? 320 : 256;
+        lines_per_frame = REG1_PAL ? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC;
+        vert_screen_offset = REG1_PAL ? 0 : 320 * (240 - 224) / 2;
+        hori_screen_offset = 0;
+
+        screen = (unsigned short *)lcd_get_active_buffer();
+        gwenesis_vdp_set_buffer(&screen[vert_screen_offset + hori_screen_offset]);
+
+        gwenesis_vdp_render_config();
+
+        system_clock = 0;
+        zclk = 0;
+        ym2612_clock = 0;
+        ym2612_index = 0;
+        sn76489_clock = 0;
+        sn76489_index = 0;
+        scan_line = 0;
+
+        int hint_counter = gwenesis_vdp_regs[10];
+
+        while (scan_line < lines_per_frame) {
+            m68k_run(system_clock + VDP_CYCLES_PER_LINE);
+            z80_run(system_clock + VDP_CYCLES_PER_LINE);
+
+            if (GWENESIS_AUDIO_ACCURATE == 0) {
+                gwenesis_SN76489_run(system_clock + VDP_CYCLES_PER_LINE);
+                ym2612_run(system_clock + VDP_CYCLES_PER_LINE);
+            }
+
+            if (drawFrame)
+                gwenesis_vdp_render_line((int)scan_line);
+
+            if (scan_line == (lines_per_frame - 1))
+                hint_counter = REG10_LINE_COUNTER;
+
+            if (--hint_counter < 0) {
+                if ((REG0_LINE_INTERRUPT != 0) &&
+                    (scan_line < screen_height || scan_line == lines_per_frame - 1)) {
+                    hint_pending = 1;
+                    if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+                        m68k_update_irq(4);
+                }
+                hint_counter = REG10_LINE_COUNTER;
+            }
+
+            scan_line++;
+
+            if (scan_line == screen_height) {
+                gwenesis_vdp_status ^= STATUS_ODDFRAME;
+                if (REG1_VBLANK_INTERRUPT != 0) {
+                    gwenesis_vdp_status |= STATUS_VIRQPENDING;
+                    m68k_set_irq(6);
+                }
+                z80_irq_line(1);
+            }
+
+            if (scan_line == (screen_height + 1))
+                z80_irq_line(0);
+
+            system_clock += VDP_CYCLES_PER_LINE;
+        }
+
+        if (GWENESIS_AUDIO_ACCURATE == 1) {
+            gwenesis_SN76489_run(system_clock);
+            ym2612_run(system_clock);
+        }
+
+        m68k.cycles -= system_clock;
+
+        gwenesis_sound_submit();
+        common_ingame_overlay();
+
+        lcd_swap();
+        common_emu_sound_sync(false);
+
+        if (gwenesis_sram_enabled)
+            gwenesis_sram_save();
+    }
+}
+
+int main(int argc, char **argv)
+{
+#ifdef GWENESIS_EMBEDDED_ROM
+    if (argc >= 2) {
+        if (load_rom_file(argv[1]) != 0)
+            return 1;
+    } else {
+        if (load_embedded_rom() != 0)
+            return 1;
+    }
+#else
+    if (argc < 2) {
+        print_usage(argv[0]);
+        return 1;
+    }
+    if (load_rom_file(argv[1]) != 0)
+        return 1;
+#endif
+
+    rg_i18n_linux_set_lang();
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0) {
+        fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window *window = SDL_CreateWindow(
+        "retro-go gwenesis (linux debug)",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        GW_LCD_WIDTH * SCALE, GW_LCD_HEIGHT * SCALE, 0);
+    if (!window) {
+        fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    gwenesis_sdl_set_video(window, renderer);
+    lcd_init(NULL, NULL, LCD_INIT_CLEAR_BUFFERS);
+
+    fprintf(stderr, "[gwenesis-linux] starting emulation (rom %zu bytes)\n",
+            gwenesis_linux_rom_size);
+    fflush(stderr);
+
+    run_gwenesis_emulation();
+
+    SDL_Quit();
+    if (gwenesis_rom_heap_allocated)
+        free(gwenesis_linux_rom);
+    return 0;
+}

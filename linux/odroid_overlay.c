@@ -2,8 +2,11 @@
 #include "odroid_system.h"
 #include "odroid_overlay.h"
 
-int odroid_overlay_game_settings_menu(odroid_dialog_choice_t *extra_options, void_callback_t repaint)
+int odroid_overlay_game_settings_menu(odroid_dialog_choice_t *extra_options, void_callback_t repaint, odroid_menu_flags_t flags)
 {
+    (void)extra_options;
+    (void)repaint;
+    (void)flags;
     return 0;
 }
 
