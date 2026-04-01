@@ -609,6 +609,9 @@ void retro_loop()
     uint32_t idle_s;
     bool power_key_pressed = false;
 
+    // Variable para medir el tiempo que lleva el botón pulsado
+    static uint32_t key_press_start_time = 0; 
+
 #pragma GCC diagnostic ignored "-Wint-conversion"
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
 
@@ -695,12 +698,32 @@ void retro_loop()
             }
             else if (last_key == key_up)
             {
-                gui_scroll_list(tab, LINE_UP);
+                // Si es la primera vez que se evalúa la pulsación, guardamos el tiempo
+                if (repeat == 0) {
+                    key_press_start_time = get_elapsed_time();
+                }
+
+                // Si se ha mantenido pulsado más de 5000ms (5 segundos), salta de 20 en 20
+                if (get_elapsed_time() - key_press_start_time > 5000) {
+                    gui_jump_list(tab, -20);
+                } else {
+                    gui_scroll_list(tab, LINE_UP);
+                }
                 repeat++;
             }
             else if (last_key == key_down)
             {
-                gui_scroll_list(tab, LINE_DOWN);
+                // Si es la primera vez que se evalúa la pulsación, guardamos el tiempo
+                if (repeat == 0) {
+                    key_press_start_time = get_elapsed_time();
+                }
+
+                // Si se ha mantenido pulsado más de 5000ms (5 segundos), salta de 20 en 20
+                if (get_elapsed_time() - key_press_start_time > 5000) {
+                    gui_jump_list(tab, 20);
+                } else {
+                    gui_scroll_list(tab, LINE_DOWN);
+                }
                 repeat++;
             }
             else if (last_key == key_left)
