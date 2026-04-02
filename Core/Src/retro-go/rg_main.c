@@ -698,12 +698,12 @@ void retro_loop()
             }
             else if (last_key == key_up)
             {
-                // Si es la primera vez que se evalúa la pulsación, guardamos el tiempo
+                // If it's the first time the pulse is being evaluated, we save the time.
                 if (repeat == 0) {
                     key_press_start_time = get_elapsed_time();
                 }
 
-                // Si se ha mantenido pulsado más de 5000ms (5 segundos), salta de 20 en 20
+                // If it has been held down for more than 5000ms (5 seconds), it jumps in increments of 20.
                 if (get_elapsed_time() - key_press_start_time > 5000) {
                     gui_jump_list(tab, -20);
                 } else {
@@ -713,12 +713,12 @@ void retro_loop()
             }
             else if (last_key == key_down)
             {
-                // Si es la primera vez que se evalúa la pulsación, guardamos el tiempo
+                // If it's the first time the pulse is being evaluated, we save the time.
                 if (repeat == 0) {
                     key_press_start_time = get_elapsed_time();
                 }
 
-                // Si se ha mantenido pulsado más de 5000ms (5 segundos), salta de 20 en 20
+                // If it has been held down for more than 5000ms (5 seconds), it jumps in increments of 20.
                 if (get_elapsed_time() - key_press_start_time > 5000) {
                     gui_jump_list(tab, 20);
                 } else {
