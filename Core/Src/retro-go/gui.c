@@ -1451,10 +1451,10 @@ void gui_draw_list(tab_t *tab)
 
 void gui_jump_list(tab_t *tab, int offset)
 {
-    // funcion de salto de lista por bloques
+    // block list jump function
     listbox_t *list = &tab->listbox;
 
-    // Si la lista está vacía o el salto es 0, no hacemos nada
+    // If the list is empty or the jump is 0, we do nothing.
     if (list->length == 0 || offset == 0)
     {
         return;
@@ -1462,7 +1462,7 @@ void gui_jump_list(tab_t *tab, int offset)
 
     int old_cursor = list->cursor;
 
-    // Calculamos el nuevo cursor con aritmética modular para evitar desbordamientos
+    // We calculate the new cursor using modular arithmetic to avoid overflows
     int cur_cursor = (list->cursor + offset) % list->length;
     if (cur_cursor < 0) {
         cur_cursor += list->length;
@@ -1470,7 +1470,7 @@ void gui_jump_list(tab_t *tab, int offset)
 
     list->cursor = cur_cursor;
 
-    // Disparamos el evento para que la interfaz (carátulas, textos) se actualice
+    // We triggered the event so that the interface (covers, texts) would be updated.
     if (cur_cursor != old_cursor)
     {
         gui_event(TAB_SCROLL, tab);
