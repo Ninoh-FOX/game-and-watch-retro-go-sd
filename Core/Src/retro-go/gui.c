@@ -1448,3 +1448,31 @@ void gui_draw_list(tab_t *tab)
     gui_draw_simple_list(10, tab);
 #endif
 }
+
+void gui_jump_list(tab_t *tab, int offset)
+{
+    // block list jump function
+    listbox_t *list = &tab->listbox;
+
+    // If the list is empty or the jump is 0, we do nothing.
+    if (list->length == 0 || offset == 0)
+    {
+        return;
+    }
+
+    int old_cursor = list->cursor;
+
+    // We calculate the new cursor using modular arithmetic to avoid overflows
+    int cur_cursor = (list->cursor + offset) % list->length;
+    if (cur_cursor < 0) {
+        cur_cursor += list->length;
+    }
+
+    list->cursor = cur_cursor;
+
+    // We triggered the event so that the interface (covers, texts) would be updated.
+    if (cur_cursor != old_cursor)
+    {
+        gui_event(TAB_SCROLL, tab);
+    }
+}
