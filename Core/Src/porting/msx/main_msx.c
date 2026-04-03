@@ -1938,6 +1938,11 @@ void app_main_msx(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     odroid_dialog_choice_t options[10];
     bool drawFrame;
 
+    // Set maximum clock speed for better performance if CPU is not overclocked
+    if (odroid_settings_cpu_oc_level_get() == 0) {
+        SystemClock_Config(2);
+    }
+
     show_disk_icon = false;
 
     // Create RGB8 to RGB565 table

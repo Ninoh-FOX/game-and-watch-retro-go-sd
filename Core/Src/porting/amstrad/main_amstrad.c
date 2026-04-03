@@ -1050,6 +1050,11 @@ void app_main_amstrad(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     int disk_load_result = 0;
     int load_result = 0;
 
+    // Set maximum clock speed for better performance if CPU is not overclocked
+    if (odroid_settings_cpu_oc_level_get() == 0) {
+        SystemClock_Config(2);
+    }
+
     // Create RGB8 to RGB565 table
     for (int i = 0; i < 256; i++)
     {

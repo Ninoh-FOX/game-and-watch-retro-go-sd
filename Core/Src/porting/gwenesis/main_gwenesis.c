@@ -521,6 +521,12 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
 {
 
     printf("Genesis start\n");
+
+    // Set maximum clock speed for better performance if CPU is not overclocked
+    if (odroid_settings_cpu_oc_level_get() == 0) {
+      SystemClock_Config(2);
+  }
+
     odroid_system_init(APPID_MD, GWENESIS_AUDIO_FREQ_NTSC);
     odroid_system_emu_init(&gwenesis_system_LoadState,
                            &gwenesis_system_SaveState, 

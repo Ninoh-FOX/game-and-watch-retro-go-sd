@@ -740,6 +740,11 @@ int app_main_nes_fceu(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     uint8_t *gfx;
     int32_t ssize = 0;
 
+    // Set maximum clock speed for better performance if CPU is not overclocked
+    if (odroid_settings_cpu_oc_level_get() == 0) {
+        SystemClock_Config(2);
+    }
+
     uint32_t sndsamplerate = NES_FREQUENCY_48K;
     odroid_gamepad_state_t joystick;
 
