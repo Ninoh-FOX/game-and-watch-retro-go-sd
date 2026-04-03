@@ -90,10 +90,6 @@ int ym2612_clock; /* ym2612 clock in video clock resolution */
 /* keys inpus (hw & sw) */
 static odroid_gamepad_state_t joystick;
 
-/* Configurable keys mapping for A,B and C */
-
-extern unsigned short button_state[3];
-
 #define NB_OF_COMBO 6
 
 static char ODROID_INPUT_DEF_C;
@@ -449,8 +445,6 @@ void gwenesis_save_local_data(FILE *file) {
   fwrite((unsigned char *)&PAD_A_def, 4, 1, file);
   fwrite((unsigned char *)&PAD_B_def, 4, 1, file);
   fwrite((unsigned char *)&PAD_C_def, 4, 1, file);
-
-  fwrite((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
   fwrite((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
 }
 
@@ -459,9 +453,15 @@ void gwenesis_load_local_data(FILE *file) {
   fread((unsigned char *)&PAD_A_def, 4, 1, file);
   fread((unsigned char *)&PAD_B_def, 4, 1, file);
   fread((unsigned char *)&PAD_C_def, 4, 1, file);
-
-  fread((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
   fread((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
+  switch (gwenesis_lpfilter) {
+  case 1:
+    strcpy(AudioFilter_str, curr_lang->s_md_Option_ON);
+    break;
+  default:
+    strcpy(AudioFilter_str, curr_lang->s_md_Option_OFF);
+    break;
+  }
 }
 
 static bool gwenesis_system_SaveState(const char *savePathName) {
@@ -472,8 +472,10 @@ static bool gwenesis_system_SaveState(const char *savePathName) {
   fwrite((unsigned char *)headerString, 8, 1, file);
   gwenesis_save_state(file);
   gwenesis_save_local_data(file);
-
   fclose(file);
+
+  gwenesis_sram_save();
+
   return true;
 }
 
@@ -488,8 +490,10 @@ static bool gwenesis_system_LoadState(const char *savePathName) {
       gwenesis_load_state(file);
       gwenesis_load_local_data(file);
   }
-
   fclose(file);
+
+  gwenesis_sram_load();
+
   return true;
 }
 
@@ -568,7 +572,7 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     screen = lcd_get_active_buffer();
     gwenesis_vdp_set_buffer(&screen[0]);
     extern unsigned char gwenesis_vdp_regs[0x20];
-    extern unsigned int gwenesis_vdp_status;
+    extern unsigned short gwenesis_vdp_status;
     extern unsigned int screen_width, screen_height;
     int hint_counter;
     extern int hint_pending;
@@ -643,9 +647,6 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
 
     common_emu_input_loop(&joystick, options, &_repaint);
     common_emu_input_loop_handle_turbo(&joystick);
-
-    /* Persist battery-backed SRAM to flash if it was written since last save */
-    gwenesis_sram_save();
 
     // bool drawFrame =
     common_emu_frame_loop();
