@@ -30,6 +30,7 @@ int odroid_overlay_game_menu(odroid_dialog_choice_t *extra_options, void_callbac
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 
 #include "gw_buttons.h"
 #include "gw_lcd.h"
@@ -1424,11 +1425,26 @@ int odroid_savestate_menu(const char *title, const char *rom_path, bool show_pre
         return savestates->used == 1 ? 0 : -1;
     }
 
+    char slot_labels[4][48];
+    for (int i = 0; i < 4; i++) {
+        rg_emu_slot_t *s = &savestates->slots[i];
+        if (s->is_used) {
+            struct tm *tm = localtime(&s->mtime);
+            char tbuf[24];
+            if (tm && strftime(tbuf, sizeof(tbuf), "%d/%m/%Y %H:%M", tm) > 0)
+                snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d  %s", i, tbuf);
+            else
+                snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d", i);
+        } else {
+            snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d  -", i);
+        }
+    }
+
     odroid_dialog_choice_t choices[] = {
-        {(intptr_t)&savestates->slots[0], "Slot 0", NULL, show_preview? (savestates->slots[0].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
-        {(intptr_t)&savestates->slots[1], "Slot 1", NULL, show_preview? (savestates->slots[1].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
-        {(intptr_t)&savestates->slots[2], "Slot 2", NULL, show_preview? (savestates->slots[2].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
-        {(intptr_t)&savestates->slots[3], "Slot 3", NULL, show_preview? (savestates->slots[3].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[0], slot_labels[0], NULL, show_preview? (savestates->slots[0].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[1], slot_labels[1], NULL, show_preview? (savestates->slots[1].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[2], slot_labels[2], NULL, show_preview? (savestates->slots[2].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
+        {(intptr_t)&savestates->slots[3], slot_labels[3], NULL, show_preview? (savestates->slots[3].is_used?1:-1) :1, show_preview?show_preview_cb:NULL},
         ODROID_DIALOG_CHOICE_LAST
     };
     int sel = 0;
