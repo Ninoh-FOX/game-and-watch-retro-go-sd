@@ -259,17 +259,6 @@ static bool zelda3_system_SaveState(char *savePathName) {
   strcpy(savestate_path, savePathName);
   SaveLoadSlot(kSaveLoad_Save, 0);
 
-  // SRAM
-  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
-  FILE *file = fopen(sram_path, "wb");
-  if (file == NULL) {
-    printf("Failed to open SRAM file for writing\n");
-    return false;
-  }
-  fwrite(ZeldaGetSram(), 1, 8192, file);
-  fclose(file);
-  free(sram_path);
-
   odroid_audio_mute(false);
   return true;
 }
@@ -283,17 +272,6 @@ static bool zelda3_system_LoadState(char *savePathName) {
     SaveLoadSlot(kSaveLoad_Load, 0);
   }
 
-  // SRAM
-  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
-  FILE *file = fopen(sram_path, "rb");
-  if (file == NULL) {
-    printf("Failed to open SRAM file for reading\n");
-    return false;
-  }
-  fread(ZeldaGetSram(), 1, 8192, file);
-  fclose(file);
-  free(sram_path);
-
   odroid_audio_mute(false);
   return true;
 }
@@ -305,6 +283,18 @@ static void *Screenshot()
     lcd_clear_active_buffer();
     DrawPpuFrame(lcd_get_active_buffer());
     return lcd_get_active_buffer();
+}
+
+static void zelda3_system_SramSave()
+{
+  // SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "wb");
+  if (file != NULL) {
+    fwrite(ZeldaGetSram(), 1, 8192, file);
+    fclose(file);
+  }
+  free(sram_path);
 }
 
 static void zelda3_sound_start()
@@ -398,7 +388,7 @@ int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   PatchCodeRodataOffset(zelda_rodata, zelda_rodata_length);
 
   odroid_system_init(APPID_ZELDA3, ZELDA3_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot, NULL, NULL, NULL);
+  odroid_system_emu_init(&zelda3_system_LoadState, &zelda3_system_SaveState, &Screenshot, NULL, NULL, &zelda3_system_SramSave);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;
@@ -426,6 +416,15 @@ int app_main_zelda3(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   } else {
     lcd_clear_buffers();
   }
+
+  // Load SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "rb");
+  if (file != NULL) {
+    fread(ZeldaGetSram(), 1, 8192, file);
+    fclose(file);
+  }
+  free(sram_path);
 
   ZeldaGetLanguageAtIndex(selected_language_index, display_language_value);
   ZeldaSetLanguage(display_language_value);

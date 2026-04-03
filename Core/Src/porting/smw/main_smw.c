@@ -239,17 +239,6 @@ static bool smw_system_SaveState(char *savePathName) {
   strcpy(savestate_path, savePathName);
   RtlSaveLoad(kSaveLoad_Save, 0);
 
-  // SRAM
-  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
-  FILE *file = fopen(sram_path, "wb");
-  if (file == NULL) {
-    printf("Failed to open SRAM file for writing\n");
-    return false;
-  }
-  fwrite(RtlGetSram(), 1, 2048, file);
-  fclose(file);
-  free(sram_path);
-
   odroid_audio_mute(false);
   return true;
 }
@@ -263,17 +252,6 @@ static bool smw_system_LoadState(char *savePathName) {
     RtlSaveLoad(kSaveLoad_Load, 0);
   }
 
-  // SRAM
-  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
-  FILE *file = fopen(sram_path, "rb");
-  if (file == NULL) {
-    printf("Failed to open SRAM file for reading\n");
-    return false;
-  }
-  fread(RtlGetSram(), 1, 2048, file);
-  fclose(file);
-  free(sram_path);
-
   odroid_audio_mute(false);
   return true;
 }
@@ -285,6 +263,18 @@ static void *Screenshot()
     lcd_clear_active_buffer();
     DrawPpuFrame(lcd_get_active_buffer());
     return lcd_get_active_buffer();
+}
+
+static void smw_system_SramSave()
+{
+  // Save SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "wb");
+  if (file != NULL) {
+    fwrite(RtlGetSram(), 1, 2048, file);
+    fclose(file);
+  }
+  free(sram_path);
 }
 
 static void smw_sound_start()
@@ -324,7 +314,7 @@ int app_main_smw(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 
   printf("SMW start\n");
   odroid_system_init(APPID_SMW, SMW_AUDIO_SAMPLE_RATE);
-  odroid_system_emu_init(&smw_system_LoadState, &smw_system_SaveState, &Screenshot, NULL, NULL, NULL);
+  odroid_system_emu_init(&smw_system_LoadState, &smw_system_SaveState, &Screenshot, NULL, NULL, &smw_system_SramSave);
   
   if (start_paused) {
     common_emu_state.pause_after_frames = 2;
@@ -397,6 +387,15 @@ int app_main_smw(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
   } else {
     lcd_clear_buffers();
   }
+
+  // Load SRAM
+  char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+  FILE *file = fopen(sram_path, "rb");
+  if (file != NULL) {
+    fread(RtlGetSram(), 1, 2048, file);
+    fclose(file);
+  }
+  free(sram_path);
 
   /* Start at the same time DMAs audio & video */
   /* Audio period and Video period are the same (almost at least 1 hour) */
