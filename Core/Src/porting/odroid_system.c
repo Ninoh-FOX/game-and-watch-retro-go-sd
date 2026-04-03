@@ -398,6 +398,12 @@ void odroid_system_shutdown() {
     }
 }
 
+void odroid_system_sram_save() {
+    if (currentApp.handlers.sram_save) {
+        (*currentApp.handlers.sram_save)();
+    }
+}
+
 IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTime)
 {
     if (skippedFrame)
@@ -422,6 +428,8 @@ IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTi
 void odroid_system_switch_app(int app)
 {
     printf("%s: Switching to app %d.\n", __FUNCTION__, app);
+
+    odroid_system_sram_save();
 
     switch (app)
     {
@@ -553,6 +561,10 @@ static void odroid_system_sleep_post_wakeup_handler() {
 
 static void odroid_system_sleep_internal(system_sleep_flags_t flags, sleep_pre_wakeup_callback_t pre_wakeup_callback)
 {
+    if (flags & (SLEEP_ENTER_SLEEP | SLEEP_ENTER_STANDBY)) {
+        odroid_system_sram_save();
+    }
+
     if (pre_sleep_hook != NULL)
     {
         pre_sleep_hook();

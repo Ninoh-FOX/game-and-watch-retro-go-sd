@@ -474,8 +474,6 @@ static bool gwenesis_system_SaveState(const char *savePathName) {
   gwenesis_save_local_data(file);
   fclose(file);
 
-  gwenesis_sram_save();
-
   return true;
 }
 
@@ -513,6 +511,11 @@ static void *gwenesis_system_Screenshot()
     return (void *)data;
 }
 
+static void gwenesis_system_SramSave()
+{
+    gwenesis_sram_save();
+}
+
 /* Main */
 int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
@@ -524,7 +527,7 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
                            &gwenesis_system_Screenshot,
                            NULL,
                            NULL,
-                           NULL);
+                           &gwenesis_system_SramSave);
    // rg_app_desc_t *app = odroid_system_get_app();
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / 60.0 + 0.5f);
