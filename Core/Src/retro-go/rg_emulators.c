@@ -577,7 +577,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 #endif
 
     odroid_dialog_choice_t choices[] = {
-        {0, curr_lang->s_Resume_game, "", (has_save || has_sram) ? 1:-1, NULL},
+        {0, curr_lang->s_Resume_game, "", (has_save) ? 1:-1, NULL},
         {1, curr_lang->s_New_game, "", 1, NULL},
         ODROID_DIALOG_CHOICE_SEPARATOR,
 //        {3, is_fav ? "Del favorite" : "Add favorite", "", 1, NULL},
