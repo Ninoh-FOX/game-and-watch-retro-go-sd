@@ -1431,12 +1431,12 @@ int odroid_savestate_menu(const char *title, const char *rom_path, bool show_pre
         if (s->is_used) {
             struct tm *tm = localtime(&s->mtime);
             char tbuf[24];
-            if (tm && strftime(tbuf, sizeof(tbuf), "%d/%m/%Y %H:%M", tm) > 0)
+            if (tm && strftime(tbuf, sizeof(tbuf), "%d/%m/%Y %H:%M:%S", tm) > 0)
                 snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d  %s", i, tbuf);
             else
                 snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d", i);
         } else {
-            snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d  -", i);
+            snprintf(slot_labels[i], sizeof(slot_labels[i]), "Slot %d", i);
         }
     }
 
