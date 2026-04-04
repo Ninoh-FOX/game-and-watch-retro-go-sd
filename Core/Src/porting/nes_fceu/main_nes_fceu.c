@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include "gw_buttons.h"
@@ -187,6 +188,133 @@ static void *Screenshot()
     return lcd_get_active_buffer();
 }
 
+/*
+ * .sram file
+ * - Cartridge: concatenation of SaveGame[0..3] (FCEU order), typically same layout as a .sav.
+ * - FDS: no cartridge SRAM; we read/write the in-RAM disk image (FDSROM) after load from flash/ROM.
+ *   That buffer is what changes when the game writes to the virtual disk; .sram snapshots that
+ *   working copy, not the original .fds file on flash.
+ */
+
+ static CartInfo *nes_fceu_cart_for_sram(void)
+ {
+     if (!GameInfo || (GameInfo->type != GIT_CART && GameInfo->type != GIT_VSUNI))
+         return NULL;
+     if (iNESCart.battery && iNESCart.SaveGame[0] && iNESCart.SaveGameLen[0])
+         return &iNESCart;
+ /*	if (UNIFCart.battery && UNIFCart.SaveGame[0] && UNIFCart.SaveGameLen[0])
+         return &UNIFCart;*/
+     return NULL;
+ }
+ 
+ static int nes_fceu_sram_count_blocks(CartInfo *c)
+ {
+     int n = 0;
+     for (int i = 0; i < 4; i++)
+         if (c->SaveGame[i] && c->SaveGameLen[i])
+             n++;
+     return n;
+ }
+ 
+ static void nes_fceu_sram_load(void)
+ {
+     if (!GameInfo || GameInfo->type == GIT_NSF)
+         return;
+ 
+     char *path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+     FILE *f = fopen(path, "rb");
+     if (!f) {
+         free(path);
+         return;
+     }
+ 
+     if (fseek(f, 0, SEEK_END) != 0) {
+         fclose(f);
+         free(path);
+         return;
+     }
+     long fsz = ftell(f);
+     if (fsz <= 0 || fseek(f, 0, SEEK_SET) != 0) {
+         fclose(f);
+         free(path);
+         return;
+     }
+ 
+     if (GameInfo->type == GIT_FDS) {
+         /* Load back into the in-RAM disk buffer (same memory the core emulates) */
+         uint8 *p = FDSROM_ptr();
+         uint32 cap = FDSROM_size();
+         if (p && cap)
+             fread(p, 1, (size_t)fsz < cap ? (size_t)fsz : cap, f);
+     } else {
+         CartInfo *c = nes_fceu_cart_for_sram();
+         if (c) {
+             size_t remaining = (size_t)fsz;
+             for (int i = 0; i < 4; i++) {
+                 if (!c->SaveGame[i] || !c->SaveGameLen[i])
+                     continue;
+                 size_t cap = (size_t)c->SaveGameLen[i];
+                 size_t n = remaining < cap ? remaining : cap;
+                 if (n)
+                     fread(c->SaveGame[i], 1, n, f);
+                 remaining -= n;
+                 if (!remaining)
+                     break;
+             }
+         }
+     }
+ 
+     fclose(f);
+     free(path);
+ }
+ 
+ static void nes_fceu_sram_save_cb(void)
+ {
+     if (!GameInfo || GameInfo->type == GIT_NSF)
+         return;
+ 
+     CartInfo *cart = NULL;
+     int n_cart_blocks = 0;
+     uint8 *fds_p = NULL;
+     uint32 fds_sz = 0;
+ 
+     if (GameInfo->type == GIT_FDS) {
+         /* In-RAM disk copy (see nes_getromdata / fds.c): current state including in-game disk writes */
+         fds_p = FDSROM_ptr();
+         fds_sz = FDSROM_size();
+         if (!fds_p || !fds_sz)
+             return;
+     } else {
+         cart = nes_fceu_cart_for_sram();
+         if (!cart)
+             return;
+         n_cart_blocks = nes_fceu_sram_count_blocks(cart);
+         if (!n_cart_blocks)
+             return;
+     }
+ 
+     char *path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+     FILE *f = fopen(path, "wb");
+     if (!f) {
+         free(path);
+         return;
+     }
+ 
+     if (GameInfo->type == GIT_FDS) {
+         /* Serialize the writable in-RAM disk copy, not the original flash ROM image */
+         fwrite(fds_p, 1, fds_sz, f);
+     } else {
+         for (int i = 0; i < 4; i++) {
+             if (!cart->SaveGame[i] || !cart->SaveGameLen[i])
+                 continue;
+             fwrite(cart->SaveGame[i], 1, cart->SaveGameLen[i], f);
+         }
+     }
+ 
+     fclose(f);
+     free(path);
+ }
+  
 unsigned dendy = 0;
 
 static uint16_t palette565[256];
@@ -783,7 +911,7 @@ int app_main_nes_fceu(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     FCEUI_SetSoundVolume(150);
 
     odroid_system_init(APPID_NES, sndsamplerate);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL, &nes_fceu_sram_save_cb);
 
     if (FSettings.PAL) {
         lcd_set_refresh_rate(50);
@@ -799,6 +927,9 @@ int app_main_nes_fceu(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     audio_start_playing(samplesPerFrame);
 
     AddExState(&gnw_save_data, ~0, 0, 0);
+
+    /* Cart SRAM or FDS in-RAM disk — before savestate so a resumed slot overwrites .sram */
+    nes_fceu_sram_load();
 
     if (load_state) {
         odroid_system_emu_load_state(save_slot);
