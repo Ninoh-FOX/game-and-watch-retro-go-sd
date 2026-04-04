@@ -61,6 +61,13 @@ static void *Screenshot()
     return lcd_get_active_buffer();
 }
 
+static void pkmini_sram_save_cb(void)
+{
+    if (PokeMini_EEPROMWritten) {
+        PokeMini_SaveEEPROMFile(CommandLine.eeprom_file);
+    }
+}
+
 static void blit() {
     uint16_t x_offset = (WIDTH - PKMINI_WIDTH * PKMINI_SCALE) / 2;
     uint16_t y_offset = (HEIGHT - PKMINI_HEIGHT * PKMINI_SCALE) / 2;
@@ -201,12 +208,6 @@ static void Shutdown() {
         fclose(file);
     }
     free(system_config_path);
-    
-    // Save EEPROM
-    if (PokeMini_EEPROMWritten)
-    {
-        PokeMini_SaveEEPROMFile(CommandLine.eeprom_file);
-    }
 
     // Terminate emulator
 	PokeMini_Destroy();
@@ -421,7 +422,7 @@ _Noreturn void app_main_pkmini(uint8_t load_state, uint8_t start_paused, int8_t 
     lcd_set_refresh_rate(PKMINI_FPS);
 
     odroid_system_init(APPID_PKMINI, PKMINI_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, &Shutdown, NULL, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, &Shutdown, NULL, &pkmini_sram_save_cb);
 
     // Init Sound
     audio_start_playing_full_length(PKMINI_BUFFER_LENGTH_MAX+PKMINI_BUFFER_LENGTH_MIN);
