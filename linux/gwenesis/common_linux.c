@@ -14,13 +14,13 @@ extern uint32_t odroid_audio_get_queued_size_bytes(void);
 
 const uint8_t volume_tbl[ODROID_AUDIO_VOLUME_MAX + 1] = {
     (uint8_t)(UINT8_MAX * 0.00f),
+    (uint8_t)(UINT8_MAX * 0.015f),
+    (uint8_t)(UINT8_MAX * 0.03f),
     (uint8_t)(UINT8_MAX * 0.06f),
     (uint8_t)(UINT8_MAX * 0.125f),
     (uint8_t)(UINT8_MAX * 0.187f),
     (uint8_t)(UINT8_MAX * 0.25f),
-    (uint8_t)(UINT8_MAX * 0.35f),
     (uint8_t)(UINT8_MAX * 0.42f),
-    (uint8_t)(UINT8_MAX * 0.60f),
     (uint8_t)(UINT8_MAX * 0.80f),
     (uint8_t)(UINT8_MAX * 1.00f),
 };
