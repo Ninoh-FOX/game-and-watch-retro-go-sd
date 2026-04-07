@@ -168,25 +168,21 @@ static int gettileflag(int tile, int flag) {
 }
 
 static void p8_rectfill(int x0, int y0, int x1, int y1, int col) {
-    x0 = (x0 < 0) ? 0 : (x0 >= WIDTH_P8) ? WIDTH_P8 - 1 : x0;
-    y0 = (y0 < 0) ? 0 : (y0 >= HEIGHT_P8) ? HEIGHT_P8 - 1 : y0;
-    x1 = (x1 < 0) ? 0 : (x1 >= WIDTH_P8) ? WIDTH_P8 - 1 : x1;
-    y1 = (y1 < 0) ? 0 : (y1 >= HEIGHT_P8) ? HEIGHT_P8 - 1 : y1;
+    if (x0 > x1) { int t = x0; x0 = x1; x1 = t; }
+    if (y0 > y1) { int t = y0; y0 = y1; y1 = t; }
 
-    int w = x1 - x0;
-    int h = y1 - y0;
+    /* Clip to screen bounds */
+    if (x1 < 0 || y1 < 0 || x0 >= WIDTH_P8 || y0 >= HEIGHT_P8) return;
+    x0 = x0 < 0 ? 0 : x0;
+    y0 = y0 < 0 ? 0 : y0;
+    x1 = x1 >= WIDTH_P8  ? WIDTH_P8  - 1 : x1;
+    y1 = y1 >= HEIGHT_P8 ? HEIGHT_P8 - 1 : y1;
 
     int colorid = getcolorid(col);
 
-    int start_x = (x0 < 0) ? 0 : x0;
-    int start_y = (y0 < 0) ? 0 : y0;
-
-    if (w > 0 && h > 0) {
-        for (int i = start_y; i < y1 && i < HEIGHT_P8; i++) {
-            for (int j = start_x; j < x1 && j < WIDTH_P8; j++) {
-                int index = (i * PITCH_P8 + j);
-                fb_celeste[index] = colorid;
-            }
+    for (int i = y0; i <= y1; i++) {
+        for (int j = x0; j <= x1; j++) {
+            fb_celeste[i * PITCH_P8 + j] = colorid;
         }
     }
 }
@@ -442,7 +438,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) {
                 p8_rectfill(cx-1, cy-2, cx+2, cy+3, col);
             } else if (r <= 3) {
                 p8_rectfill(cx-3, cy-1, cx+4, cy+2, col);
-                p8_rectfill(cx-1, cy-3, cx+2, cx+4, col);
+                p8_rectfill(cx-1, cy-3, cx+2, cy+4, col);
                 p8_rectfill(cx-2, cy-2, cx+3, cy+3, col);
             }
         } break;
@@ -648,7 +644,7 @@ void app_main_celeste(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     common_emu_state.frame_time_10us = (uint16_t)(100000 / CELESTE_FPS + 0.5f);
 
     odroid_system_init(APPID_HOMEBREW, CELESTE_AUDIO_SAMPLE_RATE);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL, NULL);
 
     // Init Sound
     audio_start_playing(CELESTE_AUDIO_BUFFER_LENGTH);

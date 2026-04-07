@@ -1,5 +1,5 @@
 #include "porting.h"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 uint32_t HAL_GetTick(void)
 {

@@ -46,12 +46,11 @@ __license__ = "GPLv3"
 #include "gwenesis_io.h"
 #include "gwenesis_vdp.h"
 #include "gwenesis_savestate.h"
+#include "gwenesis_sram.h"
 
 #pragma GCC optimize("Ofast")
 
 #define ENABLE_DEBUG_OPTIONS 0
-
-static char *headerString = "Gene0000";
 
 static unsigned int gwenesis_show_debug_bar = 0;
 
@@ -88,10 +87,6 @@ int ym2612_clock; /* ym2612 clock in video clock resolution */
 
 /* keys inpus (hw & sw) */
 static odroid_gamepad_state_t joystick;
-
-/* Configurable keys mapping for A,B and C */
-
-extern unsigned short button_state[3];
 
 #define NB_OF_COMBO 6
 
@@ -448,19 +443,37 @@ void gwenesis_save_local_data(FILE *file) {
   fwrite((unsigned char *)&PAD_A_def, 4, 1, file);
   fwrite((unsigned char *)&PAD_B_def, 4, 1, file);
   fwrite((unsigned char *)&PAD_C_def, 4, 1, file);
-
-  fwrite((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
   fwrite((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
 }
 
-void gwenesis_load_local_data(FILE *file) {
+void gwenesis_load_local_data(FILE *file, int ss_version) {
   fread((unsigned char *)&ABCkeys_value, 4, 1, file);
   fread((unsigned char *)&PAD_A_def, 4, 1, file);
   fread((unsigned char *)&PAD_B_def, 4, 1, file);
   fread((unsigned char *)&PAD_C_def, 4, 1, file);
-
-  fread((unsigned char *)AudioFilter_str, sizeof(int), 1, file);
-  fread((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
+  if (ss_version == 0) {
+    uint8_t legacy_audio_filter[16];
+    fread(legacy_audio_filter, 1, sizeof(legacy_audio_filter), file);
+    fread((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
+    switch (gwenesis_lpfilter) {
+      case 1:
+        strcpy(AudioFilter_str, curr_lang->s_md_Option_ON);
+        break;
+      default:
+        strcpy(AudioFilter_str, curr_lang->s_md_Option_OFF);
+        break;
+    }
+  } else {
+    fread((unsigned char *)&gwenesis_lpfilter, 4, 1, file);
+    switch (gwenesis_lpfilter) {
+      case 1:
+        strcpy(AudioFilter_str, curr_lang->s_md_Option_ON);
+        break;
+      default:
+        strcpy(AudioFilter_str, curr_lang->s_md_Option_OFF);
+        break;
+    }
+  }
 }
 
 static bool gwenesis_system_SaveState(const char *savePathName) {
@@ -468,27 +481,32 @@ static bool gwenesis_system_SaveState(const char *savePathName) {
   if (file == NULL) {
       return false;
   }
-  fwrite((unsigned char *)headerString, 8, 1, file);
+  gwenesis_savestate_write_file_header(file);
   gwenesis_save_state(file);
   gwenesis_save_local_data(file);
-
   fclose(file);
+
   return true;
 }
 
 static bool gwenesis_system_LoadState(const char *savePathName) {
-  char header[8];
+  unsigned char header[GWENESIS_SAVESTATE_HEADER_SIZE];
   FILE *file = fopen(savePathName, "rb");
   if (file == NULL) {
       return false;
   }
-  fread((unsigned char *)header, sizeof(header), 1, file);
-  if (memcmp(headerString, header, 8) == 0) {
-      gwenesis_load_state(file);
-      gwenesis_load_local_data(file);
+  if (fread(header, 1, sizeof(header), file) != sizeof(header)) {
+      fclose(file);
+      return false;
   }
-
+  int ss_version = gwenesis_savestate_version_from_header(header);
+  printf("GWENESIS: Loading state version %d\n", ss_version);
+  gwenesis_load_state(file, ss_version);
+  gwenesis_load_local_data(file, ss_version);
   fclose(file);
+
+  gwenesis_sram_load();
+
   return true;
 }
 
@@ -508,17 +526,29 @@ static void *gwenesis_system_Screenshot()
     return (void *)data;
 }
 
+static void gwenesis_system_SramSave()
+{
+    gwenesis_sram_save();
+}
+
 /* Main */
 int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
 
     printf("Genesis start\n");
+
+    // Set maximum clock speed for better performance if CPU is not overclocked
+    if (odroid_settings_cpu_oc_level_get() == 0) {
+      SystemClock_Config(2);
+  }
+
     odroid_system_init(APPID_MD, GWENESIS_AUDIO_FREQ_NTSC);
     odroid_system_emu_init(&gwenesis_system_LoadState,
                            &gwenesis_system_SaveState, 
                            &gwenesis_system_Screenshot,
                            NULL,
-                           NULL);
+                           NULL,
+                           &gwenesis_system_SramSave);
    // rg_app_desc_t *app = odroid_system_get_app();
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / 60.0 + 0.5f);
@@ -554,12 +584,20 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
     power_on();
     reset_emulation();
 
+    /* Load battery-backed SRAM: one raw file per game (path basename, not slot) */
+    if (gwenesis_sram_enabled) {
+      char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+      gwenesis_set_sram_path(sram_path);
+      free(sram_path);
+      gwenesis_sram_load();
+    }
+
     unsigned short *screen = 0;
 
     screen = lcd_get_active_buffer();
     gwenesis_vdp_set_buffer(&screen[0]);
     extern unsigned char gwenesis_vdp_regs[0x20];
-    extern unsigned int gwenesis_vdp_status;
+    extern unsigned short gwenesis_vdp_status;
     extern unsigned int screen_width, screen_height;
     int hint_counter;
     extern int hint_pending;
@@ -676,19 +714,36 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
         if (drawFrame)
           gwenesis_vdp_render_line(scan_line); /* render scan_line */
 
-        // On these lines, the line counter interrupt is reloaded
-        if ((scan_line == 0) || (scan_line > screen_height)) {
-          //  if (REG0_LINE_INTERRUPT != 0)
-          //    printf("HINTERRUPT counter reloaded: (scan_line: %d, new
-          //    counter: %d)\n", scan_line, REG10_LINE_COUNTER);
-          hint_counter = REG10_LINE_COUNTER;
-        }
+        // H-interrupt line counter.
+        //
+        // Real hardware behaviour (verified against clownmdemu and Nemesis docs):
+        //   * The counter decrements every scanline, active display AND VBlank.
+        //   * It reloads to REG10 whenever it underflows.
+        //   * An actual IRQ4 is only raised during active display (scan_line < screen_height).
+        //   * The counter is reloaded on the very last VBlank line (lines_per_frame-1),
+        //     equivalent to clownmdemu's "scanline -1", so active display always starts
+        //     with a deterministic counter value independent of VBlank length.
+        //     This makes H-int fire at lines 0, REG10+1, 2*(REG10+1), ... every frame,
+        //     which is what raster-effect games (like Ayrton Senna's Super Monaco GP II)
+        //     depend on for palette zones and sky gradients.
 
-        // interrupt line counter
+        // Reload on the last VBlank line, just before active display.
+        if (scan_line == (lines_per_frame - 1))
+          hint_counter = REG10_LINE_COUNTER;
+
+        // Decrement every line; fire IRQ4 during active display (0..screen_height-1)
+        // AND on the last VBlank line (lines_per_frame-1 = clownmdemu's "scanline -1").
+        // Firing on that last VBlank line lets the handler run during scan_line 0's
+        // CPU time, before render_line(0) is called.  This matches clownmdemu, which
+        // fires H-int on scanlines -1..223.  Without it, the very first scan line of
+        // each frame is rendered with the previous frame's reg7 value, causing a
+        // visible wrong background colour on line 0 (e.g. the rear-view mirror zone
+        // in Ayrton Senna's Super Monaco GP II).
         if (--hint_counter < 0) {
-          if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
+          if ((REG0_LINE_INTERRUPT != 0) &&
+              (scan_line < screen_height || scan_line == lines_per_frame - 1)) {
             hint_pending = 1;
-            // printf("Line int pending %d\n",scan_line);
+            // printf("Line int pending %d\n", scan_line);
             if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
               m68k_update_irq(4);
           }
@@ -699,6 +754,16 @@ int app_main_gwenesis(uint8_t load_state, uint8_t start_paused, int8_t save_slot
 
         // vblank begin at the end of last rendered line
         if (scan_line == screen_height) {
+
+          // Toggle the ODD-FRAME bit in the VDP status register.
+          // On real hardware this bit flips every frame (bit 4 of the status word).
+          // Games read it to detect frame parity and use it for:
+          //   - Palette cycling animations (sky gradients, day/night cycles)
+          //   - Sprite flickering / interlace tricks
+          // Without this toggle the bit is always 0, causing games like Ayrton
+          // Senna's Super Monaco GP II to permanently take the "even frame" branch
+          // of their animation code, making palette zones flicker every other frame.
+          gwenesis_vdp_status ^= STATUS_ODDFRAME;
 
           if (REG1_VBLANK_INTERRUPT != 0) {
             // printf("IRQ VBLANK\n");

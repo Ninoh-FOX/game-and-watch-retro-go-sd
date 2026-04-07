@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 WORKDIR /opt
 
-ENV ARM_COMPILER_VERSION=14.3.rel1
+ENV ARM_COMPILER_VERSION=15.2.rel1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && \

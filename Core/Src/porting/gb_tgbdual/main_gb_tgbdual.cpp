@@ -121,6 +121,18 @@ static void *Screenshot()
     return lcd_get_active_buffer();
 }
 
+static void SaveSram() {
+    if (g_gb->get_rom()->has_battery()) {
+        char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+        const int sram_size = g_gb->get_rom()->get_sram_size();
+        FILE *sram_file = fopen(sram_path, "wb");
+        if (sram_file != NULL) {
+            fwrite(g_gb->get_rom()->get_sram(), sram_size, 1, sram_file);
+            fclose(sram_file);
+        }
+        free(sram_path);
+    }
+}
 
 void gb_pcm_submit(int16_t *stream, int samples) {
     if (common_emu_sound_loop_is_muted()) {
@@ -519,7 +531,7 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
     common_emu_state.frame_time_10us = (uint16_t)(100000 / VIDEO_REFRESH_RATE + 0.5f);
 
     odroid_system_init(APPID_GB, GB_AUDIO_FREQUENCY);
-    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL);
+    odroid_system_emu_init(&LoadState, &SaveState, &Screenshot, NULL, NULL, &SaveSram);
 
 #if SD_CARD == 0
     // To optimize free memory for bank caching, we make sure that maximum
@@ -584,6 +596,19 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
         odroid_system_emu_load_state(save_slot);
     } else {
         lcd_clear_buffers();
+    }
+
+    // Load SRAM
+    if (g_gb->get_rom()->has_battery()) {
+        char *sram_path = odroid_system_get_path(ODROID_PATH_SAVE_SRAM, ACTIVE_FILE->path);
+        const int sram_size = g_gb->get_rom()->get_sram_size();
+        FILE *sram_file = fopen(sram_path, "rb");
+        if (sram_file != NULL) {
+            printf("Load SRAM file: %s\n", sram_path);
+            fread(g_gb->get_rom()->get_sram(), sram_size, 1, sram_file);
+            fclose(sram_file);
+        }
+        free(sram_path);
     }
 
     index_palette = g_gb->get_lcd()->get_current_palette();

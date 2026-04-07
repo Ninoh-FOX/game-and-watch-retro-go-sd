@@ -53,7 +53,8 @@ void odroid_system_emu_init(state_handler_t load_cb,
                             state_handler_t save_cb,
                             screenshot_handler_t screenshot_cb,
                             shutdown_handler_t shutdown_cb,
-                            sleep_post_wakeup_handler_t sleep_post_wakeup_cb)
+                            sleep_post_wakeup_handler_t sleep_post_wakeup_cb,
+                            sram_save_handler_t sram_save_cb)
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
@@ -62,7 +63,8 @@ void odroid_system_emu_init(state_handler_t load_cb,
     currentApp.handlers.screenshot = screenshot_cb;
     currentApp.handlers.shutdown = shutdown_cb;
     currentApp.handlers.sleep_post_wakeup = sleep_post_wakeup_cb;
-
+    currentApp.handlers.sram_save = sram_save_cb;
+    
     printf("%s: Init done. GameId=%08lX\n", __func__, currentApp.gameId);
 }
 
@@ -396,6 +398,12 @@ void odroid_system_shutdown() {
     }
 }
 
+void odroid_system_sram_save() {
+    if (currentApp.handlers.sram_save) {
+        (*currentApp.handlers.sram_save)();
+    }
+}
+
 IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTime)
 {
     if (skippedFrame)
@@ -420,6 +428,8 @@ IRAM_ATTR void odroid_system_tick(uint skippedFrame, uint fullFrame, uint busyTi
 void odroid_system_switch_app(int app)
 {
     printf("%s: Switching to app %d.\n", __FUNCTION__, app);
+
+    odroid_system_sram_save();
 
     switch (app)
     {
@@ -551,6 +561,10 @@ static void odroid_system_sleep_post_wakeup_handler() {
 
 static void odroid_system_sleep_internal(system_sleep_flags_t flags, sleep_pre_wakeup_callback_t pre_wakeup_callback)
 {
+    if (flags & (SLEEP_ENTER_SLEEP | SLEEP_ENTER_STANDBY)) {
+        odroid_system_sram_save();
+    }
+
     if (pre_sleep_hook != NULL)
     {
         pre_sleep_hook();

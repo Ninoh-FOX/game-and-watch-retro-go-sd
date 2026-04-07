@@ -30,7 +30,8 @@ void odroid_system_emu_init(state_handler_t load_cb,
                             state_handler_t save_cb,
                             screenshot_handler_t screenshot_cb,
                             shutdown_handler_t shutdown_cb,
-                            sleep_post_wakeup_handler_t sleep_post_wakeup_cb)
+                            sleep_post_wakeup_handler_t sleep_post_wakeup_cb,
+                            sram_save_handler_t sram_save_cb)
 {
     // currentApp.gameId = crc32_le(0, buffer, sizeof(buffer));
     currentApp.gameId = 0;
@@ -39,7 +40,7 @@ void odroid_system_emu_init(state_handler_t load_cb,
     currentApp.handlers.screenshot = screenshot_cb;
     currentApp.handlers.shutdown = shutdown_cb;
     currentApp.handlers.sleep_post_wakeup = sleep_post_wakeup_cb;
-
+    currentApp.handlers.sram_save = sram_save_cb;
     printf("%s: Init done. GameId=%08X\n", __func__, currentApp.gameId);
 }
 
