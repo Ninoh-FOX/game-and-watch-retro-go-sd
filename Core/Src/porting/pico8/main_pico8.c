@@ -303,6 +303,13 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
     }
 }
 
+/* D-pad mouse-emulation toggle (host pause-menu item, see app_main_pico8). */
+bool mouse_user_disabled = false;
+bool mouse_menu_registered = false;
+void mouse_toggle_action(void) {
+    mouse_user_disabled = !mouse_user_disabled;
+}
+
 uint32_t sys_get_input_state(void) {
     uint32_t btns = buttons_get();
     uint32_t p8_btns = 0;
@@ -451,8 +458,32 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
             static int hold_x = 0;              /* signed frames-held counter */
             static int hold_y = 0;
             static bool mouse_was_active = false;
+            static bool click_suppress = false;  /* require A/B release after re-entry */
 
-            bool mouse_mode = (p8.ram[0x5F2D] & 1) && !p8_pause_menu_is_active();
+            /* Mouse-emulation gating:
+             *   - cart must enable devkit (poke 0x5F2D, 1)
+             *   - cart must actually read mouse coords (p8.mouse_used) — some
+             *     carts enable devkit only for keyboard input, where mouse
+             *     remap would steal their D-pad
+             *   - user hasn't disabled it via the pause menu toggle
+             *   - pause menu must be closed (so menu navigation uses D-pad) */
+            extern bool mouse_user_disabled;
+            extern bool mouse_menu_registered;
+            bool cart_uses_mouse = (p8.ram[0x5F2D] & 1) && p8.mouse_used;
+            /* Re-register every frame so the label reflects the current state
+             * (host item label is borrowed by reference; we point at one of
+             * two static strings depending on mouse_user_disabled). */
+            if (cart_uses_mouse) {
+                p8_pause_menu_set_host_item(
+                    mouse_user_disabled ? "dpad mouse: off" : "dpad mouse: on",
+                    mouse_toggle_action);
+                mouse_menu_registered = true;
+            } else if (mouse_menu_registered) {
+                p8_pause_menu_set_host_item(NULL, NULL);
+                mouse_menu_registered = false;
+            }
+            bool mouse_mode = cart_uses_mouse && !mouse_user_disabled
+                              && !p8_pause_menu_is_active();
             if (mouse_mode) {
                 if (!mouse_was_active) {
                     /* Re-center on entry / pause menu close */
@@ -464,6 +495,9 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
                     }
                     hold_x = hold_y = 0;
                     mouse_was_active = true;
+                    /* Suppress phantom click from the A/B that closed the
+                     * pause menu — require both buttons to be released first. */
+                    click_suppress = true;
                 }
 
                 bool L = joystick.values[ODROID_INPUT_LEFT];
@@ -508,9 +542,15 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
                 p8.mouse_y = my_q8 >> 8;
 
                 /* B = left click (bit 0), A = right click (bit 1) */
+                bool a = joystick.values[ODROID_INPUT_A];
+                bool b = joystick.values[ODROID_INPUT_B];
+                if (click_suppress) {
+                    if (!a && !b) click_suppress = false;
+                    a = b = false;
+                }
                 int mb = 0;
-                if (joystick.values[ODROID_INPUT_B]) mb |= 1;
-                if (joystick.values[ODROID_INPUT_A]) mb |= 2;
+                if (b) mb |= 1;
+                if (a) mb |= 2;
                 p8.mouse_btn = mb;
 
                 /* Strip dpad + face-button bits so the cart only sees mouse */
