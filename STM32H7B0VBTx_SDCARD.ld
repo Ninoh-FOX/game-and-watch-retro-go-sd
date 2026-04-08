@@ -109,6 +109,9 @@ MEMORY
 
   /* RODATA */
   RODATA   (x)   : ORIGIN = 0xCAFE0000,   LENGTH = 0xFFFFFFFF
+
+  /* PICO-8 code (sentinel address, patched to QSPI XIP at runtime) */
+  PICO8_CODE (x) : ORIGIN = 0xBEEF0000,   LENGTH = 512K
 }
 
 
@@ -595,6 +598,91 @@ INCLUDE build/fceumm_mappers.ld
     ASSERT(ABSOLUTE(_OVERLAY_CELESTE_BSS_END) < __RAM_EMU_END__, "Error: CELESTE BSS overflow");
   }
   _OVERLAY_CELESTE_BSS_SIZE = SIZEOF(.overlay_celeste_bss);
+
+  /* PICO-8 cold code → sentinel address (patched to QSPI XIP at runtime)
+     Only cart loading and Lua compiler — these run once at startup, not per-frame. */
+  .pico8_code : {
+    . = ALIGN(4);
+    __pico8_code_start__ = .;
+    /* Lua compiler (only runs at cart load) */
+    build/pico8/lparser.o (.text .text* .rodata .rodata*)
+    build/pico8/llex.o (.text .text* .rodata .rodata*)
+    build/pico8/lcode.o (.text .text* .rodata .rodata*)
+    build/pico8/ldump.o (.text .text* .rodata .rodata*)
+    /* Cart loading / PNG decoding */
+    build/pico8/p8_cart.o (.text .text* .rodata .rodata*)
+    build/pico8/p8_cart_png.o (.text .text* .rodata .rodata*)
+    /* String library (format etc, not hot) */
+    build/pico8/lstrlib.o (.text .text* .rodata .rodata*)
+    /* Save state (only runs from pause menu, not during gameplay) */
+    build/pico8/eris.o (.text .text* .rodata .rodata*)
+    build/pico8/p8_savestate.o (.text .text* .rodata .rodata*)
+
+    /* Cold functions from hot object files (init, diagnostics, errors).
+     * Moved here to free ~15KB RAM for the pool allocator.
+     * Uses -ffunction-sections: each function has .text.NAME section. */
+
+    /* p8_core.o — init only */
+    build/pico8/p8_core.o (.text.p8_preprocess_cart)
+    build/pico8/p8_core.o (.text.p8_init)
+    build/pico8/p8_core.o (.text.utf8_to_p8scii)
+    build/pico8/p8_core.o (.text.p8_setup_coroutine)
+    build/pico8/p8_core.o (.text.p8_reset)
+
+    /* p8_api.o — init / save-load only (includes nested lambdas) */
+    build/pico8/p8_api.o (.text.p8_lua_init .text._ZZ11p8_lua_init* .rodata._ZZ11p8_lua_init*)
+
+    /* Diagnostics — only on OOM or debug */
+    build/pico8/lgcpage.o (.text._Z17gcpage_dump_statsP15GCPageAllocator)
+    build/pico8/lgcpage.o (.text._Z17gcpage_dump_pagesP15GCPageAllocatorii)
+    build/pico8/p8_pool_alloc.o (.text.p8_pool_alloc_profile_dump)
+
+    /* Frozen globals — init / save-load only */
+    build/pico8/ltable.o (.text._Z11luaH_freezeP9lua_StateP5Table)
+    build/pico8/ltable.o (.text._Z24p8_frozen_rebind_globalsP9lua_Statei)
+
+    /* Error formatting — only on errors */
+    build/pico8/lauxlib.o (.text._Z14luaL_tracebackP9lua_StateS0_PKci)
+    build/pico8/lobject.o (.text._Z17luaO_pushvfstringP9lua_StatePKcSt9__va_list)
+    build/pico8/lobject.o (.text._Z12luaO_chunkidPcPKcj)
+
+    . = ALIGN(4);
+    __pico8_code_end__ = .;
+  } > PICO8_CODE
+
+  /* Discard exception unwind tables for pico8 — uses longjmp, not C++ exceptions.
+     These contain R_ARM_PREL31 relocations that overflow at the sentinel address. */
+  /DISCARD/ : {
+    build/pico8/*.o (.ARM.exidx* .ARM.extab*)
+  }
+
+  /* PICO-8 overlay → RAM (all hot code + data) */
+  .overlay_pico8 __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_pico8_start__ = .;
+    _PICO8_MAIN_CODE_START = .;
+    build/pico8/main_pico8.o (.text .text* .data .data* .rodata .rodata*)
+    build/pico8/p8_multicart.o (.text .text* .data .data* .rodata .rodata*)
+    _PICO8_MAIN_CODE_END = .;
+    /* All remaining .text/.rodata/.data (hot runtime code) */
+    build/pico8/*.o (.text .text* .rodata .rodata* .data .data*)
+    . = ALIGN(4);
+    _OVERLAY_PICO8_LOAD_END = .;
+  }
+  _OVERLAY_PICO8_LOAD_START = LOADADDR(.overlay_pico8);
+  _OVERLAY_PICO8_SIZE = SIZEOF(.overlay_pico8);
+
+  .overlay_pico8_bss _OVERLAY_PICO8_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_PICO8_BSS_START = .;
+    build/pico8/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/pico8/*.o (COMMON)
+    __ram_emu_pico8_end__ = .;
+    _OVERLAY_PICO8_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_PICO8_BSS_END) < __RAM_EMU_END__, "Error: PICO8 BSS overflow");
+  }
+  _OVERLAY_PICO8_BSS_SIZE = SIZEOF(.overlay_pico8_bss);
 
   .overlay_tama __RAM_EMU_START__ : {
     . = ALIGN(4);

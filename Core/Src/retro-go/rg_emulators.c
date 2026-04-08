@@ -28,6 +28,7 @@
 #include "main_smw.h"
 #include "main_videopac.h"
 #include "main_celeste.h"
+#include "main_pico8.h"
 #include "main_tama.h"
 #include "main_pkmini.h"
 #include "main_a2600.h"
@@ -36,6 +37,105 @@
 #include "gw_flash.h"
 #include "gw_flash_alloc.h"
 
+
+/**
+ * PatchPico8SentinelRefs - Patches 0xBEEF0000-range sentinel addresses
+ * in a memory region to point to the actual QSPI XIP flash address.
+ */
+#define PICO8_CODE_BASE 0xBEEF0000
+
+static int PatchPico8Region(uint32_t *start, uint32_t *end, int32_t offset, uint32_t code_size)
+{
+  int patched = 0;
+  for (uint32_t *ptr = start; ptr < end; ptr++) {
+    uint32_t value = *ptr;
+    /* Check for sentinel range (including Thumb bit 0) */
+    if ((value & ~1) >= PICO8_CODE_BASE && (value & ~1) < PICO8_CODE_BASE + code_size) {
+      *ptr = value + offset;
+      patched++;
+    }
+  }
+  return patched;
+}
+
+/**
+ * Pico8CacheCodeToFlash - Cache pico8.ro to flash with sentinel patching.
+ * Uses RAM_EMU as temp buffer: cache file → copy flash to RAM → patch → reprogram.
+ * Safe for re-caching: checks if flash content is already patched (no sentinel refs remain).
+ */
+static uint8_t *Pico8CacheCodeToFlash(uint32_t *code_size_out)
+{
+  printf("P8: caching pico8.ro to flash...\n");
+
+  /* Step 1: Cache the file to flash normally */
+  uint8_t *code_addr = odroid_overlay_cache_file_in_flash("/cores/pico8.ro", code_size_out, false);
+  if (!code_addr) {
+    printf("P8: pico8.ro cache FAILED (not found on SD?)\n");
+    return NULL;
+  }
+  if (*code_size_out == 0) {
+    printf("P8: pico8.ro cache returned size 0\n");
+    return NULL;
+  }
+
+  int32_t offset = (int32_t)((uint32_t)code_addr - PICO8_CODE_BASE);
+  printf("P8: pico8.ro cached at %p, size=%lu, offset=%ld\n",
+         code_addr, (unsigned long)*code_size_out, (long)offset);
+
+  /* Step 2: Copy flash content to RAM_EMU (temp buffer, will be overwritten by pico8.bin later) */
+  printf("P8: copying %lu bytes from flash to RAM for patching...\n",
+         (unsigned long)*code_size_out);
+  uint8_t *ram_buf = (uint8_t *)__RAM_EMU_START__;
+  memcpy(ram_buf, code_addr, *code_size_out);
+
+  /* Step 3: Patch all sentinel addresses in the RAM copy */
+  int patched = PatchPico8Region((uint32_t *)ram_buf,
+                                 (uint32_t *)(ram_buf + *code_size_out),
+                                 offset, *code_size_out);
+  printf("P8: patched %d sentinel refs in code blob\n", patched);
+
+  if (patched > 0) {
+    /* Step 4: Reprogram the patched content back to flash */
+    uint32_t flash_offset = (uint32_t)code_addr - (uint32_t)&__EXTFLASH_BASE__;
+    uint32_t erase_size = (*code_size_out + 4095) & ~4095u;  /* Round up to 4KB */
+
+    printf("P8: reprogramming flash at offset 0x%08lX, erase=%lu, prog=%lu\n",
+           (unsigned long)flash_offset, (unsigned long)erase_size,
+           (unsigned long)*code_size_out);
+
+    OSPI_DisableMemoryMappedMode();
+    OSPI_EraseSync(flash_offset, erase_size);
+    OSPI_Program(flash_offset, ram_buf, *code_size_out);
+    OSPI_EnableMemoryMappedMode();
+
+    /* Step 5: Verify first word was patched correctly */
+    uint32_t first_word = *(uint32_t *)code_addr;
+    printf("P8: flash reprogram done. first word: 0x%08lX\n",
+           (unsigned long)first_word);
+  } else {
+    printf("P8: no sentinel refs found (already patched from previous boot)\n");
+  }
+
+  return code_addr;
+}
+
+/**
+ * PatchPico8RamData - Patch sentinel addresses in RAM overlay data.
+ * Scans all of .overlay_pico8 + .overlay_pico8_bss (including main_pico8 veneers).
+ */
+static void PatchPico8RamData(uint8_t *code_addr, uint32_t code_size)
+{
+  int32_t offset = (uint32_t)code_addr - PICO8_CODE_BASE;
+  printf("P8: patching RAM %p..%p (main_code %p..%p, overlay size=%u, bss size=%u)\n",
+         __RAM_EMU_START__, &_OVERLAY_PICO8_BSS_END,
+         &_PICO8_MAIN_CODE_START, &_PICO8_MAIN_CODE_END,
+         (unsigned)(size_t)&_OVERLAY_PICO8_SIZE,
+         (unsigned)(size_t)&_OVERLAY_PICO8_BSS_SIZE);
+  int patched = PatchPico8Region((uint32_t *)__RAM_EMU_START__,
+                                 (uint32_t *)&_OVERLAY_PICO8_BSS_END,
+                                 offset, code_size);
+  printf("P8: patched %d refs in RAM data\n", patched);
+}
 
 const unsigned char *ROM_DATA = NULL;
 unsigned ROM_DATA_LENGTH;
@@ -48,7 +148,7 @@ static retro_emulator_file_t *shared_files = NULL;
 #define COVERFLOW 0
 #endif /* COVERFLOW */
 // Increase when adding new emulators
-#define MAX_EMULATORS 18
+#define MAX_EMULATORS 19
 static retro_emulator_t emulators[MAX_EMULATORS];
 static rom_system_t systems[MAX_EMULATORS];
 static int emulators_count = 0;
@@ -838,6 +938,23 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PKMINI_SIZE);
         app_main_pkmini(load_state, start_paused, save_slot);
       }
+    } else if(strcmp(system_name, "PICO-8") == 0) {
+      /* Try XIP code split: code in flash (patched), data in RAM */
+      uint32_t pico8_code_size = 0;
+      uint8_t *pico8_code_addr = Pico8CacheCodeToFlash(&pico8_code_size);
+
+      if (pico8_code_addr && odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__)) {
+        memset(&_OVERLAY_PICO8_BSS_START, 0x0, (size_t)&_OVERLAY_PICO8_BSS_SIZE);
+        PatchPico8RamData(pico8_code_addr, pico8_code_size);
+        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PICO8_SIZE + (size_t)&_OVERLAY_PICO8_BSS_SIZE);
+        SCB_InvalidateICache();
+        app_main_pico8(load_state, start_paused, save_slot);
+      } else if (odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__)) {
+        /* Fallback: old monolithic path (pico8.ro missing from SD) */
+        memset(&_OVERLAY_PICO8_BSS_START, 0x0, (size_t)&_OVERLAY_PICO8_BSS_SIZE);
+        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PICO8_SIZE);
+        app_main_pico8(load_state, start_paused, save_slot);
+      }
     }
 
 #if CHEAT_CODES == 1
@@ -881,6 +998,7 @@ void emulators_init()
     add_emulator("Tamagotchi", "tama", "b", RG_LOGO_PAD_TAMA, RG_LOGO_HEADER_TAMA, NO_GAME_DATA);
     add_emulator("Pokemon Mini", "mini", "min", RG_LOGO_PAD_PKMINI, RG_LOGO_HEADER_PKMINI, NO_GAME_DATA);
     add_emulator("Homebrew", "homebrew", "bin", RG_LOGO_EMPTY, RG_LOGO_HEADER_HOMEBREW, NO_GAME_DATA);
+    add_emulator("PICO-8", "pico8", "p8 png", RG_LOGO_EMPTY, RG_LOGO_HEADER_PICO8, GAME_DATA);
 }
 
 bool emulator_is_file_valid(retro_emulator_file_t *file)

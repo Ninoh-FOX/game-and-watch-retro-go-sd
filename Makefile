@@ -798,6 +798,56 @@ $(CORE_CCLESTE)/celeste.c \
 $(CORE_CCLESTE)/celeste_audio.c \
 Core/Src/porting/celeste/main_celeste.c
 
+# PICO-8 engine
+CORE_PICO8 = external/pico8-engine
+PICO8_C_SOURCES = \
+$(CORE_PICO8)/src/core/p8_pool_alloc.c \
+$(CORE_PICO8)/src/core/p8_math.c \
+Core/Src/porting/pico8/main_pico8.c \
+Core/Src/porting/pico8/p8_multicart.c
+
+PICO8_CXX_STUBS = \
+Core/Src/porting/pico8/p8_stubs.cpp
+
+# z8lua sources compiled as C++ (fix32.h requires C++)
+PICO8_CXX_SOURCES = \
+$(CORE_PICO8)/src/core/p8_core.cpp \
+$(CORE_PICO8)/src/core/p8_api.cpp \
+$(CORE_PICO8)/src/core/p8_cart.cpp \
+$(CORE_PICO8)/src/core/p8_cart_png.cpp \
+$(CORE_PICO8)/src/core/p8_audio.cpp \
+$(CORE_PICO8)/src/core/p8_savestate.cpp \
+$(CORE_PICO8)/src/z8lua/eris.c \
+$(CORE_PICO8)/src/z8lua/lapi.c \
+$(CORE_PICO8)/src/z8lua/lauxlib.c \
+$(CORE_PICO8)/src/z8lua/lbaselib.c \
+$(CORE_PICO8)/src/z8lua/lcode.c \
+$(CORE_PICO8)/src/z8lua/lcorolib.c \
+$(CORE_PICO8)/src/z8lua/lctype.c \
+$(CORE_PICO8)/src/z8lua/ldblib.c \
+$(CORE_PICO8)/src/z8lua/ldebug.c \
+$(CORE_PICO8)/src/z8lua/ldo.c \
+$(CORE_PICO8)/src/z8lua/ldump.c \
+$(CORE_PICO8)/src/z8lua/lfunc.c \
+$(CORE_PICO8)/src/z8lua/lgc.c \
+$(CORE_PICO8)/src/z8lua/lgcpage.c \
+$(CORE_PICO8)/src/z8lua/linit.c \
+$(CORE_PICO8)/src/z8lua/llex.c \
+$(CORE_PICO8)/src/z8lua/lmem.c \
+$(CORE_PICO8)/src/z8lua/lobject.c \
+$(CORE_PICO8)/src/z8lua/lopcodes.c \
+$(CORE_PICO8)/src/z8lua/lparser.c \
+$(CORE_PICO8)/src/z8lua/lpico8lib.c \
+$(CORE_PICO8)/src/z8lua/lstate.c \
+$(CORE_PICO8)/src/z8lua/lstring.c \
+$(CORE_PICO8)/src/z8lua/lstrlib.c \
+$(CORE_PICO8)/src/z8lua/ltable.c \
+$(CORE_PICO8)/src/z8lua/ltablib.c \
+$(CORE_PICO8)/src/z8lua/ltm.c \
+$(CORE_PICO8)/src/z8lua/lundump.c \
+$(CORE_PICO8)/src/z8lua/lvm.c \
+$(CORE_PICO8)/src/z8lua/lzio.c
+
 CORE_ZELDA3 = external/zelda3
 ZELDA3_C_SOURCES = \
 $(CORE_ZELDA3)/zelda_rtl.c \
@@ -1048,6 +1098,17 @@ CELESTE_C_INCLUDES +=  \
 -I$(CORE_CCLESTE)\
 -I./
 
+PICO8_C_INCLUDES = \
+-ICore/Inc \
+-ICore/Src/porting/lib \
+-Iretro-go-stm32/components/odroid \
+-I$(CORE_PICO8)/include \
+-I$(CORE_PICO8)/src/z8lua \
+-DP8_EMBEDDED \
+-DP8_USE_POOL_ALLOC \
+-DLUA_USE_LONGJMP \
+-I./
+
 TAMA_C_INCLUDES +=  \
 -ICore/Inc \
 -ICore/Src/porting/lib \
@@ -1070,7 +1131,7 @@ include Makefile.common
 
 $(BUILD_DIR)/$(TARGET)_extflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
-	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_nes_fceu -j .overlay_gb -j .overlay_tgb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md -j .overlay_a2600 -j .overlay_a7800 -j .overlay_amstrad -j .overlay_zelda3 -j .overlay_smw -j .overlay_videopac -j .overlay_celeste -j .overlay_tama -j .overlay_pkmini $< $(BUILD_DIR)/$(TARGET)_extflash.bin
+	$(V)$(BIN) -j ._itcram_hot -j ._ram_exec -j ._extflash -j .overlay_nes -j .overlay_nes_fceu -j .overlay_gb -j .overlay_tgb -j .overlay_sms -j .overlay_col -j .overlay_pce -j .overlay_msx -j .overlay_gw -j .overlay_wsv -j .overlay_md -j .overlay_a2600 -j .overlay_a7800 -j .overlay_amstrad -j .overlay_zelda3 -j .overlay_smw -j .overlay_videopac -j .overlay_celeste -j .overlay_pico8 -j .overlay_tama -j .overlay_pkmini $< $(BUILD_DIR)/$(TARGET)_extflash.bin
 
 $(BUILD_DIR)/$(TARGET)_intflash.bin: $(BUILD_DIR)/$(TARGET).elf | $(BUILD_DIR)
 	$(V)$(ECHO) [ BIN ] $(notdir $@)
