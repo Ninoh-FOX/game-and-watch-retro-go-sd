@@ -622,8 +622,10 @@ INCLUDE build/fceumm_mappers.ld
      * Moved here to free ~15KB RAM for the pool allocator.
      * Uses -ffunction-sections: each function has .text.NAME section. */
 
+    /* p8_preprocess.o — entire file is cold init code (cart text rewriting) */
+    build/pico8/p8_preprocess.o (.text .text* .rodata .rodata*)
+
     /* p8_core.o — init only */
-    build/pico8/p8_core.o (.text.p8_preprocess_cart)
     build/pico8/p8_core.o (.text.p8_init)
     build/pico8/p8_core.o (.text.utf8_to_p8scii)
     build/pico8/p8_core.o (.text.p8_setup_coroutine)

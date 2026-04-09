@@ -622,12 +622,17 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
                     if (p8.L) { lua_close(p8.L); p8.L = NULL; p8.cart_co = NULL; }
                     /* Reset frozen globals (allocated from pool, not freed by lua_close) */
                     { extern void luaH_frozen_reset(void); luaH_frozen_reset(); }
-                    /* Full re-init from scratch (p8_pool_setup resets the main pool) */
+                    /* Full re-init from scratch */
                     p8_init(ACTIVE_FILE->path, false);
                     wdog_refresh();
                     p8_setup_coroutine();
                     wdog_refresh();
-                    p8_embedded_snapshot_rom();
+                    /* p8_embedded_snapshot_rom already called inside p8_init
+                     * (before dump/reload). Calling it again here overwrites
+                     * p8.ram snapshot AFTER the Lua state has been rebuilt,
+                     * potentially writing into memory that overlaps with the
+                     * new Lua heap. The first snapshot is sufficient for
+                     * reload() support. */
                     skip_frame = 0;
                     strncpy(p8.shell.loaded_cart, ACTIVE_FILE->path, sizeof(p8.shell.loaded_cart) - 1);
                 }

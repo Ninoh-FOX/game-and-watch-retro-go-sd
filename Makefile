@@ -812,6 +812,7 @@ Core/Src/porting/pico8/p8_stubs.cpp
 # z8lua sources compiled as C++ (fix32.h requires C++)
 PICO8_CXX_SOURCES = \
 $(CORE_PICO8)/src/core/p8_core.cpp \
+$(CORE_PICO8)/src/core/p8_preprocess.cpp \
 $(CORE_PICO8)/src/core/p8_api.cpp \
 $(CORE_PICO8)/src/core/p8_cart.cpp \
 $(CORE_PICO8)/src/core/p8_cart_png.cpp \
