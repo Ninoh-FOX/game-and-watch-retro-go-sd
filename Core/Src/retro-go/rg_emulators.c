@@ -38,6 +38,10 @@
 #include "gw_flash_alloc.h"
 
 
+/* Exposed for ITCM sentinel patching (main_pico8.c) */
+uint8_t *pico8_code_flash_addr = NULL;
+uint32_t pico8_code_flash_size = 0;
+
 /**
  * PatchPico8SentinelRefs - Patches 0xBEEF0000-range sentinel addresses
  * in a memory region to point to the actual QSPI XIP flash address.
@@ -942,10 +946,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
       /* Try XIP code split: code in flash (patched), data in RAM */
       uint32_t pico8_code_size = 0;
       uint8_t *pico8_code_addr = Pico8CacheCodeToFlash(&pico8_code_size);
-
       if (pico8_code_addr && odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__)) {
         memset(&_OVERLAY_PICO8_BSS_START, 0x0, (size_t)&_OVERLAY_PICO8_BSS_SIZE);
         PatchPico8RamData(pico8_code_addr, pico8_code_size);
+        /* Expose for ITCM sentinel patching in main_pico8.c (after SD load) */
+        pico8_code_flash_addr = pico8_code_addr;
+        pico8_code_flash_size = pico8_code_size;
+
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PICO8_SIZE + (size_t)&_OVERLAY_PICO8_BSS_SIZE);
         SCB_InvalidateICache();
         app_main_pico8(load_state, start_paused, save_slot);

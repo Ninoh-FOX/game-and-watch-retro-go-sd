@@ -128,7 +128,7 @@ SECTIONS
 
   /* Hot code: VMA in ITCM (zero-wait), LMA in external flash.
      Loaded from SD card (/cores/pico8_itcm.bin) at pico8 init.
-     lvm(17KB) + ltable(6KB) + lgc(7KB) = ~30KB */
+     lvm(17KB) + ltable(6KB) + lgc(7KB) + lapi(9KB) + ldo(3KB) = ~42KB */
   _sitcram_hot = LOADADDR(._itcram_hot);
   ._itcram_hot :
   {
@@ -137,6 +137,15 @@ SECTIONS
     build/pico8/lvm.o (.text .text.* .rodata .rodata.*)
     build/pico8/ltable.o (.text .text.* .rodata .rodata.*)
     build/pico8/lgc.o (.text .text.* .rodata .rodata.*)
+    build/pico8/lapi.o (.text .text.* .rodata .rodata.*)
+    build/pico8/ldo.o (.text .text.* .rodata .rodata.*)
+    . = ALIGN(4);
+    __itcram_hot_code_end__ = .;
+    /* Reserve 1KB for linker long-branch stubs (veneers).
+       The linker appends stubs after explicit content but within the section.
+       objcopy extracts the section by size, so we must ensure the section
+       is large enough to include them. Unused bytes are harmless (NOPs). */
+    . = __itcram_hot_code_end__ + 1024;
     . = ALIGN(4);
     __itcram_hot_end__ = .;
     __itcram_end__ = .;
@@ -687,7 +696,7 @@ INCLUDE build/fceumm_mappers.ld
     /* All remaining code + data (hot runtime).
        lvm.o+ltable.o .text/.rodata excluded — in ._itcram_hot for ITCM.
        Their .data stays here via the wildcard at the end. */
-    EXCLUDE_FILE(build/pico8/lvm.o build/pico8/ltable.o build/pico8/lgc.o) build/pico8/*.o (.text .text* .rodata .rodata*)
+    EXCLUDE_FILE(build/pico8/lvm.o build/pico8/ltable.o build/pico8/lgc.o build/pico8/lapi.o build/pico8/ldo.o) build/pico8/*.o (.text .text* .rodata .rodata*)
     build/pico8/*.o (.data .data*)
     . = ALIGN(4);
     _OVERLAY_PICO8_LOAD_END = .;
@@ -876,7 +885,6 @@ INCLUDE build/fceumm_mappers.ld
   . = ALIGN(4);
   .bss :
   {
-    /* This is used by the startup in order to initialize the .bss secion */
     _sbss = .;         /* define a global symbol at bss start */
     __bss_start__ = _sbss;
     *(.bss)

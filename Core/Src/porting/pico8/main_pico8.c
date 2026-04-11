@@ -37,6 +37,9 @@ extern "C" {
     void itc_init(void);
     void* itc_malloc(size_t size);
     void* itc_calloc(size_t count, size_t size);
+    /* ITCM sentinel patching (set by rg_emulators.c before app_main_pico8) */
+    extern uint8_t *pico8_code_flash_addr;
+    extern uint32_t pico8_code_flash_size;
 }
 
 /* Initialize the secondary TLSF pool in unused AHB-RAM (~120KB).
@@ -83,25 +86,54 @@ void p8_srd_pool_setup(void) {
 static uint8_t* embedded_cart_rom = NULL;  /* allocated in main pool by p8_embedded_snapshot_rom */
 
 static int itcm_setup_done = 0;
+static size_t itcm_loaded_size = 0;  /* actual bytes loaded (includes linker stubs) */
 
 void p8_itcm_pool_setup(void) {
 
-    /* Load ITCM hot code (luaV_execute + ltable + lgc) from SD card.
-     * Always reload — multicart switches re-enter this function. */
+    /* Load ITCM hot code from SD card.
+     * Always reload — multicart switches re-enter this function.
+     * After loading, patch sentinel addresses (0xBEEF0000 range) in the ITCM
+     * code to point to the real QSPI XIP address, same as overlay patching. */
     {
-        extern uint32_t __itcram_hot_start__, __itcram_hot_end__;
+        extern uint32_t __itcram_hot_start__;
         uint32_t dst = (uint32_t)&__itcram_hot_start__;
-        uint32_t len = (uint32_t)&__itcram_hot_end__ - dst;
-        if (len > 0) {
-            FILE *f = fopen("/cores/pico8_itcm.bin", "rb");
-            if (f) {
-                size_t read = fread((void*)dst, 1, len, f);
-                fclose(f);
-                printf("P8: ITCM hot code loaded from SD: %u bytes to 0x%08lx\n",
-                       (unsigned)read, dst);
+        FILE *f = fopen("/cores/pico8_itcm.bin", "rb");
+        if (f) {
+            /* Read full file — includes linker stubs beyond __itcram_hot_end__ */
+            fseek(f, 0, SEEK_END);
+            size_t file_size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            size_t read = fread((void*)dst, 1, file_size, f);
+            fclose(f);
+            itcm_loaded_size = read;
+            printf("P8: ITCM hot code loaded from SD: %u bytes to 0x%08lx\n",
+                   (unsigned)read, dst);
+
+            /* Patch sentinel refs in ITCM (veneers targeting pico8 XIP code).
+             * pico8_code_flash_addr set by rg_emulators.c before app_main_pico8. */
+            if (pico8_code_flash_addr && pico8_code_flash_size > 0) {
+                int32_t offset = (uint32_t)pico8_code_flash_addr - 0xBEEF0000;
+                int patched = 0;
+                /* NOTE: dst can be 0 (ITCM starts at address 0x00000000).
+                 * Use volatile to prevent the compiler from optimizing away
+                 * the loop as NULL-pointer UB. */
+                volatile uint32_t *start = (volatile uint32_t*)dst;
+                volatile uint32_t *end = (volatile uint32_t*)(dst + read);
+                for (volatile uint32_t *ptr = start; ptr < end; ptr++) {
+                    uint32_t value = *ptr;
+                    if ((value & ~1u) >= 0xBEEF0000 &&
+                        (value & ~1u) < 0xBEEF0000 + pico8_code_flash_size) {
+                        *(uint32_t*)ptr = value + offset;
+                        patched++;
+                    }
+                }
+                printf("P8: ITCM patched %d sentinel refs\n", patched);
             } else {
-                printf("P8: WARNING: /cores/pico8_itcm.bin not found — VM runs from AXI SRAM\n");
+                printf("P8: ITCM sentinel patch skipped (flash_addr=%p)\n",
+                       (void*)pico8_code_flash_addr);
             }
+        } else {
+            printf("P8: WARNING: /cores/pico8_itcm.bin not found — VM runs from AXI SRAM\n");
         }
     }
 
@@ -112,10 +144,20 @@ void p8_itcm_pool_setup(void) {
         return;
     itcm_setup_done = 1;
 
-    /* Reset ITCM bump — frees logo cache and other menu allocations.
-     * On exit, odroid_system_switch_app(0) reboots the device so
-     * logos are re-cached from SD on next boot. */
-    itc_init();
+    /* Reset ITCM bump to after loaded code (includes linker stubs).
+     * itc_init() resets to __itcram_end__ which may not include stubs,
+     * so we advance the bump past the actual loaded file size. */
+    {
+        extern uint32_t __itcram_hot_start__;
+        uint32_t code_end = (uint32_t)&__itcram_hot_start__ + itcm_loaded_size;
+        /* itc_init sets bump to __itcram_end__. If loaded code is larger,
+         * allocate the difference to skip past the stubs. */
+        itc_init();
+        extern uint32_t __itcram_end__;
+        if (code_end > (uint32_t)&__itcram_end__) {
+            itc_malloc(code_end - (uint32_t)&__itcram_end__);
+        }
+    }
 
     /* Allocate back_page in ITCM (must be AFTER itc_init to avoid overlap).
      * ITCM starts at 0x00000000, so valid pointers CAN be 0.
