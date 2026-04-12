@@ -146,6 +146,25 @@ static char str_buffer[128];
 
 retro_gui_t gui;
 
+extern uint16_t odroid_settings_MainMenuCursorTab_get(uint16_t tab_index);
+extern void odroid_settings_MainMenuCursorTab_set(uint16_t tab_index, uint16_t value);
+
+static void gui_save_tab_cursor(tab_t *tab)
+{
+    int tab_index = gui.selected;
+
+    for (int i = 0; i < gui.tabcount; i++)
+    {
+        if (gui.tabs[i] == tab)
+        {
+            tab_index = i;
+            break;
+        }
+    }
+
+    odroid_settings_MainMenuCursorTab_set(tab_index, tab->listbox.cursor);
+}
+
 void gui_event(gui_event_t event, tab_t *tab)
 {
     if (tab->event_handler)
@@ -195,10 +214,22 @@ void gui_init_tab(tab_t *tab)
     /* -------------------------- */
 #endif
 
-    sprintf(str_buffer, "Sel.%.11s", tab->name);
+    //sprintf(str_buffer, "Sel.%.11s", tab->name);
     // tab->listbox.cursor = odroid_settings_int32_get(str_buffer, 0);
+    int tab_index = gui.selected;
+    for (int i = 0; i < gui.tabcount; i++)
+    {
+        if (gui.tabs[i] == tab)
+        {
+            tab_index = i;
+            break;
+        }
+    }
+    tab->listbox.cursor = odroid_settings_MainMenuCursorTab_get(tab_index);
+
+    // Keep compatibility with previously stored global cursor.
     tab_t *selected_tab = gui_get_tab(odroid_settings_MainMenuSelectedTab_get());
-    if (tab->name == selected_tab->name)
+    if (selected_tab && tab->name == selected_tab->name)
     {
         tab->listbox.cursor = odroid_settings_MainMenuCursor_get();
     }
@@ -226,10 +257,17 @@ tab_t *gui_get_current_tab()
 
 tab_t *gui_set_current_tab(int index)
 {
+	tab_t *previous_tab = gui_get_current_tab();
+	
     index %= gui.tabcount;
 
     if (index < 0)
         index += gui.tabcount;
+	
+    if (previous_tab && gui.selected != index)
+    {
+        gui_save_tab_cursor(previous_tab);
+    }
 
     gui.selected = index;
 
@@ -240,6 +278,7 @@ void gui_save_current_tab()
 {
     tab_t *tab = gui_get_current_tab();
 
+	gui_save_tab_cursor(tab);
     odroid_settings_MainMenuCursor_set(tab->listbox.cursor);
     odroid_settings_MainMenuSelectedTab_set(gui.selected);
     odroid_settings_commit();

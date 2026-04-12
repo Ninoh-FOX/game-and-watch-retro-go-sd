@@ -13,6 +13,7 @@
 
 #define CONFIG_MAGIC 0xcafef00d
 #define ODROID_APPID_COUNT 4
+#define MAIN_MENU_CURSOR_TABS_MAX 20
 
 #if !defined  (COVERFLOW)
   #define COVERFLOW 0
@@ -72,6 +73,7 @@ typedef struct persistent_config {
     uint16_t main_menu_timeout_s;
     uint16_t main_menu_selected_tab;
     uint16_t main_menu_cursor;
+	uint16_t main_menu_cursor_tab[MAIN_MENU_CURSOR_TABS_MAX];
 
     bool debug_clock_always_on;
 
@@ -82,7 +84,7 @@ typedef struct persistent_config {
 
 static const persistent_config_t persistent_config_default = {
     .magic = CONFIG_MAGIC,
-    .version = 6,
+    .version = 7,
 
     .backlight = ODROID_BACKLIGHT_LEVEL6,
     .start_action = ODROID_START_ACTION_RESUME,
@@ -120,6 +122,7 @@ static const persistent_config_t persistent_config_default = {
     .main_menu_timeout_s = 60 * 10, // Turn off after 10 minutes of idle time in the main menu
     .main_menu_selected_tab = 0,
     .main_menu_cursor = 0,
+	.main_menu_cursor_tab = {0},
     .debug_clock_always_on = false,
     .app = {
         {0}, // Launcher
@@ -567,6 +570,21 @@ void odroid_settings_MainMenuCursor_set(uint16_t value)
     persistent_config_ram.main_menu_cursor = value;
 }
 
+uint16_t odroid_settings_MainMenuCursorTab_get(uint16_t tab_index)
+{
+    if (tab_index >= MAIN_MENU_CURSOR_TABS_MAX)
+        return 0;
+
+    return persistent_config_ram.main_menu_cursor_tab[tab_index];
+}
+
+void odroid_settings_MainMenuCursorTab_set(uint16_t tab_index, uint16_t value)
+{
+    if (tab_index >= MAIN_MENU_CURSOR_TABS_MAX)
+        return;
+
+    persistent_config_ram.main_menu_cursor_tab[tab_index] = value;
+}
 
 int32_t odroid_settings_Palette_get()
 {
