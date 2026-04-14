@@ -351,35 +351,87 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
          * PICO-8 reference (Ghidra blit_pico8_back_page_to_pico8_screen):
          * palette-per-scanline is resolved using the SOURCE row (pre-mode),
          * then screen mode is applied in a separate in-place pass. So we
-         * index 0x5F70 by src_y, not p8_y — matches SDL2 backend. */
-        for (int dy = 0; dy < SCALE_H; dy++) {
-            int p8_y = lut_y[dy];
-            pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
+         * index 0x5F70 by src_y, not p8_y — matches SDL2 backend.
+         *
+         * Mode is frame-constant, so we hoist the per-axis transform into
+         * LUTs and rebuild only when mode changes. Inner loops are then as
+         * tight as the fast path (single table lookup per pixel).
+         *
+         * Non-rotation (modes 0-3, 6 + stretch/mirror family):
+         *   src_x = f(p8_x) only, src_y = f(p8_y) only
+         *   → src_x_lut[SCALE_W], src_y_lut[SCALE_H]
+         *   → palette pick hoisted to outer loop (src_y row-constant)
+         *
+         * Rotation (modes 5, 7 — 90° rotations): axes swap:
+         *   src_x = f(p8_y), src_y = f(p8_x)
+         *   → src_x_lut indexed by dy, src_y_lut indexed by dx
+         *   → palette pick stays inner (src_y varies per pixel) */
+        static uint8_t src_x_lut[SCALE_W];   /* non-rot: col→src_x, rot: row→src_x */
+        static uint8_t src_y_lut[SCALE_H];   /* non-rot: row→src_y, rot: col→src_y */
+        static uint8_t cached_mode = 0xFF;
+        bool rotation = (mode & 0x80) && ((mode & 0x07) == 5 || (mode & 0x07) == 7);
 
-            for (int dx = 0; dx < SCALE_W; dx++) {
-                int p8_x = lut_x[dx];
-                int src_x, src_y;
-
-                if (mode & 0x80) {
-                    switch (mode & 0x07) {
-                        case 1: src_x = 127 - p8_x; src_y = p8_y; break;
-                        case 2: src_x = p8_x; src_y = 127 - p8_y; break;
-                        case 3: case 6: src_x = 127 - p8_x; src_y = 127 - p8_y; break;
-                        case 5: src_x = p8_y; src_y = 127 - p8_x; break;
-                        case 7: src_x = 127 - p8_y; src_y = p8_x; break;
-                        default: src_x = p8_x; src_y = p8_y; break;
-                    }
-                } else {
-                    bool sh = mode & 1, sv = mode & 2, mi = mode & 4;
-                    if (mi) {
-                        src_x = sh ? ((p8_x < 64) ? p8_x : (127 - p8_x)) : p8_x;
-                        src_y = sv ? ((p8_y < 64) ? p8_y : (127 - p8_y)) : p8_y;
-                    } else {
-                        src_x = sh ? (p8_x / 2) : p8_x;
-                        src_y = sv ? (p8_y / 2) : p8_y;
-                    }
+        if (mode != cached_mode) {
+            cached_mode = mode;
+            if (rotation) {
+                /* Mode 5: src_x = p8_y, src_y = 127 - p8_x (90° CCW)
+                 * Mode 7: src_x = 127 - p8_y, src_y = p8_x (90° CW) */
+                bool m5 = (mode & 0x07) == 5;
+                for (int dy = 0; dy < SCALE_H; dy++) {
+                    int p8_y = lut_y[dy];
+                    src_x_lut[dy] = m5 ? p8_y : (127 - p8_y);
                 }
+                for (int dx = 0; dx < SCALE_W; dx++) {
+                    int p8_x = lut_x[dx];
+                    src_y_lut[dx] = m5 ? (127 - p8_x) : p8_x;
+                }
+            } else {
+                /* Y axis */
+                bool flip_y, stretch_y, mirror_y;
+                if (mode & 0x80) {
+                    flip_y = (mode & 7) == 2 || (mode & 7) == 3 || (mode & 7) == 6;
+                    stretch_y = mirror_y = false;
+                } else {
+                    flip_y = false;
+                    stretch_y = (mode & 2) && !(mode & 4);
+                    mirror_y  = (mode & 2) &&  (mode & 4);
+                }
+                for (int dy = 0; dy < SCALE_H; dy++) {
+                    int p8_y = lut_y[dy];
+                    int src_y;
+                    if (flip_y)         src_y = 127 - p8_y;
+                    else if (stretch_y) src_y = p8_y / 2;
+                    else if (mirror_y)  src_y = (p8_y < 64) ? p8_y : (127 - p8_y);
+                    else                src_y = p8_y;
+                    src_y_lut[dy] = src_y;
+                }
+                /* X axis */
+                bool flip_x, stretch_x, mirror_x;
+                if (mode & 0x80) {
+                    flip_x = (mode & 7) == 1 || (mode & 7) == 3 || (mode & 7) == 6;
+                    stretch_x = mirror_x = false;
+                } else {
+                    flip_x = false;
+                    stretch_x = (mode & 1) && !(mode & 4);
+                    mirror_x  = (mode & 1) &&  (mode & 4);
+                }
+                for (int dx = 0; dx < SCALE_W; dx++) {
+                    int p8_x = lut_x[dx];
+                    int src_x;
+                    if (flip_x)         src_x = 127 - p8_x;
+                    else if (stretch_x) src_x = p8_x / 2;
+                    else if (mirror_x)  src_x = (p8_x < 64) ? p8_x : (127 - p8_x);
+                    else                src_x = p8_x;
+                    src_x_lut[dx] = src_x;
+                }
+            }
+        }
 
+        if (!rotation) {
+            /* Fast hoisted form: inner loop identical cost to fast path */
+            for (int dy = 0; dy < SCALE_H; dy++) {
+                int src_y = src_y_lut[dy];
+                const uint8_t* src_row = bp + src_y * 128;
                 const uint16_t* pal;
                 if (use_scanline_toggle &&
                     ((p8.ram[0x5F70 + (src_y >> 3)] >> (src_y & 7)) & 1)) {
@@ -387,7 +439,27 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
                 } else {
                     pal = pal_primary;
                 }
-                dst_row[dx] = pal[bp[src_y * 128 + src_x] & 0x0F];
+                pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
+                for (int dx = 0; dx < SCALE_W; dx++) {
+                    dst_row[dx] = pal[src_row[src_x_lut[dx]] & 0x0F];
+                }
+            }
+        } else {
+            /* Rotation: src_y varies per pixel → palette pick stays inner */
+            for (int dy = 0; dy < SCALE_H; dy++) {
+                int src_x = src_x_lut[dy];
+                pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
+                for (int dx = 0; dx < SCALE_W; dx++) {
+                    int src_y = src_y_lut[dx];
+                    const uint16_t* pal;
+                    if (use_scanline_toggle &&
+                        ((p8.ram[0x5F70 + (src_y >> 3)] >> (src_y & 7)) & 1)) {
+                        pal = pal_secondary;
+                    } else {
+                        pal = pal_primary;
+                    }
+                    dst_row[dx] = pal[bp[src_y * 128 + src_x] & 0x0F];
+                }
             }
         }
     }
@@ -722,11 +794,9 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
             if (menu_suppress) {
                 prev_menu = p8_btns | (1 << 4) | (1 << 5) | (1 << 6);
                 menu_suppress = false;
-                printf("P8: pause menu opened, btns=0x%x\n", (unsigned)p8_btns);
             }
             uint32_t newly = p8_btns & ~prev_menu;
             prev_menu = p8_btns;
-            if (newly) printf("P8: menu newly=0x%x btns=0x%x\n", (unsigned)newly, (unsigned)p8_btns);
             p8_pause_menu_update(newly);
             if (p8_pause_menu_is_active()) {
                 p8_pause_menu_draw();
@@ -749,10 +819,8 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
                 common_ingame_overlay();
             } else {
                 menu_suppress = true;
-                printf("P8: pause menu closed\n");
                 /* Check if "reset cart" was selected */
                 if (p8.next_cart_path[0] != '\0') {
-                    printf("P8: resetting cart\n");
                     p8.next_cart_path[0] = '\0';
                     /* Flush save data */
                     if (p8.cartdata_dirty) gw_flush_cartdata();
