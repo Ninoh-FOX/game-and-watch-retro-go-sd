@@ -182,10 +182,74 @@ void p8_itcm_init(void) {
 #define P8_HEIGHT        128
 #define LCD_WIDTH        320
 #define LCD_HEIGHT       240
-#define SCALE_W          240  /* 128 * 15/8 = 240 */
-#define SCALE_H          240
-#define OFFSET_X         ((LCD_WIDTH - SCALE_W) / 2)   /* 40 */
-#define OFFSET_Y         ((LCD_HEIGHT - SCALE_H) / 2)  /* 0 */
+
+/* Scaling modes — mapped from retro-go's odroid_display_scaling_t.
+ *   OFF:    128×128 centered (offset 96,56), no scaling
+ *   FIT:    240×240 centered (offset 40, 0), aspect-preserved 15/8 scale
+ *   FULL:   256×240          (offset 32, 0), 2x pixel double with 8 output
+ *                            rows cropped top+bottom (source y=4..123 shown)
+ *   CUSTOM: same as FIT (reserved for future use)
+ * Default on first PICO-8 launch is FIT; user can change via the retro-go
+ * system-pause "Scaling" option and the choice persists per-app. */
+#define MAX_SCALE_W      256
+#define MAX_SCALE_H      240
+
+static uint16_t cur_scale_w, cur_scale_h, cur_offset_x, cur_offset_y;
+static uint8_t  scale_lut_x[MAX_SCALE_W];
+static uint8_t  scale_lut_y[MAX_SCALE_H];
+static odroid_display_scaling_t cur_scaling = (odroid_display_scaling_t)-1;
+
+/* Invalidated on scaling change so the full-LCD memset runs again (old
+ * border content would otherwise remain visible when switching to a mode
+ * with smaller active area). */
+static pixel_t *scale_cleared_bufs[2] = { NULL, NULL };
+
+/* src_x/src_y LUTs for the screen-mode "Full path" — file-scope so the
+ * scaling-mode rebuild can invalidate them together with scale_lut_*. */
+static uint8_t scale_src_x_lut[MAX_SCALE_W];
+static uint8_t scale_src_y_lut[MAX_SCALE_H];
+static uint8_t scale_cached_mode = 0xFF;
+
+/* Resolve the current scaling mode into scale_w/h + offsets + LUTs. No-op
+ * when the mode hasn't changed since the last call. Call at the top of
+ * any function that reads cur_scale_w/h/offset — cheap (one int compare
+ * in the steady state). */
+static void pico8_scaling_sync(void)
+{
+    odroid_display_scaling_t m = odroid_display_get_scaling_mode();
+    if (m == cur_scaling) return;
+    cur_scaling = m;
+    switch (m) {
+    case ODROID_DISPLAY_SCALING_OFF:
+        cur_scale_w = 128; cur_scale_h = 128;
+        cur_offset_x = (LCD_WIDTH  - 128) / 2;  /* 96 */
+        cur_offset_y = (LCD_HEIGHT - 128) / 2;  /* 56 */
+        for (int i = 0; i < 128; i++) scale_lut_x[i] = (uint8_t)i;
+        for (int i = 0; i < 128; i++) scale_lut_y[i] = (uint8_t)i;
+        break;
+    case ODROID_DISPLAY_SCALING_FULL:
+        /* 2x pixel doubling in both axes → virtual 256×256, clipped to
+         * 240 by shifting input by 8 output rows (= 4 source rows). */
+        cur_scale_w = 256; cur_scale_h = 240;
+        cur_offset_x = (LCD_WIDTH - 256) / 2;   /* 32 */
+        cur_offset_y = 0;
+        for (int i = 0; i < 256; i++) scale_lut_x[i] = (uint8_t)(i / 2);
+        for (int i = 0; i < 240; i++) scale_lut_y[i] = (uint8_t)((i + 8) / 2);
+        break;
+    case ODROID_DISPLAY_SCALING_FIT:
+    case ODROID_DISPLAY_SCALING_CUSTOM:
+    default:
+        cur_scale_w = 240; cur_scale_h = 240;
+        cur_offset_x = (LCD_WIDTH  - 240) / 2;  /* 40 */
+        cur_offset_y = 0;
+        for (int i = 0; i < 240; i++) scale_lut_x[i] = (uint8_t)(i * P8_WIDTH  / 240);
+        for (int i = 0; i < 240; i++) scale_lut_y[i] = (uint8_t)(i * P8_HEIGHT / 240);
+        break;
+    }
+    /* Per-mode caches depend on the LUT contents → invalidate. */
+    scale_cleared_bufs[0] = scale_cleared_bufs[1] = NULL;
+    scale_cached_mode = 0xFF;  /* forces src_x/y LUT rebuild in slow path */
+}
 
 /* ============================================================
  * Multicart support: load("#cart_name") searches SD card
@@ -311,39 +375,32 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
     }
     pal_cache_hw_src = hw565_src;
 
+    /* Pick up any runtime scaling-mode change from retro-go's pause menu. */
+    pico8_scaling_sync();
+
     bool use_scanline_toggle = (p8.ram[0x5F5F] & 0x10) != 0;
     uint8_t mode = p8.ram[0x5F2C] & ~0x40;
+    const int sw = cur_scale_w, sh = cur_scale_h;
+    const int ox = cur_offset_x, oy = cur_offset_y;
 
-    /* Precompute X/Y scale lookup tables (128→240) */
-    static uint8_t lut_x[SCALE_W], lut_y[SCALE_H];
-    static bool lut_init = false;
-    if (!lut_init) {
-        for (int i = 0; i < SCALE_W; i++) lut_x[i] = (uint8_t)(i * P8_WIDTH / SCALE_W);
-        for (int i = 0; i < SCALE_H; i++) lut_y[i] = (uint8_t)(i * P8_HEIGHT / SCALE_H);
-        lut_init = true;
-    }
-
-    /* Clear once per LCD buffer with a single memset. The center 240×240 PICO-8
-     * area gets overwritten by the render loop below; the 40px borders stay 0.
-     * memset is much faster than the per-row border loop (AXI burst stores).
-     * Two LCD buffers, so this runs at most twice per pico8 session. */
-    {
-        static pixel_t* cleared_bufs[2] = {NULL, NULL};
-        if (lcd != cleared_bufs[0] && lcd != cleared_bufs[1]) {
-            memset(lcd, 0, LCD_WIDTH * LCD_HEIGHT * sizeof(pixel_t));
-            if (cleared_bufs[0] == NULL) cleared_bufs[0] = lcd;
-            else                         cleared_bufs[1] = lcd;
-        }
+    /* Clear once per LCD buffer with a single memset. The center PICO-8 area
+     * gets overwritten by the render loop below; the borders stay 0. memset
+     * is faster than per-row border loops (AXI burst stores). Invalidated
+     * on scaling-mode change so the new border area gets cleared. */
+    if (lcd != scale_cleared_bufs[0] && lcd != scale_cleared_bufs[1]) {
+        memset(lcd, 0, LCD_WIDTH * LCD_HEIGHT * sizeof(pixel_t));
+        if (scale_cleared_bufs[0] == NULL) scale_cleared_bufs[0] = lcd;
+        else                               scale_cleared_bufs[1] = lcd;
     }
 
     /* Main render loop */
     if (mode == 0 && !use_scanline_toggle) {
         /* Fast path: no screen mode, no scanline toggle (99% of carts) */
-        for (int dy = 0; dy < SCALE_H; dy++) {
-            const uint8_t* src_row = bp + lut_y[dy] * 128;
-            pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
-            for (int dx = 0; dx < SCALE_W; dx++) {
-                dst_row[dx] = pal_primary[src_row[lut_x[dx]] & 0x0F];
+        for (int dy = 0; dy < sh; dy++) {
+            const uint8_t* src_row = bp + scale_lut_y[dy] * 128;
+            pixel_t* dst_row = lcd + (oy + dy) * LCD_WIDTH + ox;
+            for (int dx = 0; dx < sw; dx++) {
+                dst_row[dx] = pal_primary[src_row[scale_lut_x[dx]] & 0x0F];
             }
         }
     } else {
@@ -359,31 +416,26 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
          *
          * Non-rotation (modes 0-3, 6 + stretch/mirror family):
          *   src_x = f(p8_x) only, src_y = f(p8_y) only
-         *   → src_x_lut[SCALE_W], src_y_lut[SCALE_H]
          *   → palette pick hoisted to outer loop (src_y row-constant)
          *
          * Rotation (modes 5, 7 — 90° rotations): axes swap:
          *   src_x = f(p8_y), src_y = f(p8_x)
-         *   → src_x_lut indexed by dy, src_y_lut indexed by dx
          *   → palette pick stays inner (src_y varies per pixel) */
-        static uint8_t src_x_lut[SCALE_W];   /* non-rot: col→src_x, rot: row→src_x */
-        static uint8_t src_y_lut[SCALE_H];   /* non-rot: row→src_y, rot: col→src_y */
-        static uint8_t cached_mode = 0xFF;
         bool rotation = (mode & 0x80) && ((mode & 0x07) == 5 || (mode & 0x07) == 7);
 
-        if (mode != cached_mode) {
-            cached_mode = mode;
+        if (mode != scale_cached_mode) {
+            scale_cached_mode = mode;
             if (rotation) {
                 /* Mode 5: src_x = p8_y, src_y = 127 - p8_x (90° CCW)
                  * Mode 7: src_x = 127 - p8_y, src_y = p8_x (90° CW) */
                 bool m5 = (mode & 0x07) == 5;
-                for (int dy = 0; dy < SCALE_H; dy++) {
-                    int p8_y = lut_y[dy];
-                    src_x_lut[dy] = m5 ? p8_y : (127 - p8_y);
+                for (int dy = 0; dy < sh; dy++) {
+                    int p8_y = scale_lut_y[dy];
+                    scale_src_x_lut[dy] = m5 ? p8_y : (127 - p8_y);
                 }
-                for (int dx = 0; dx < SCALE_W; dx++) {
-                    int p8_x = lut_x[dx];
-                    src_y_lut[dx] = m5 ? (127 - p8_x) : p8_x;
+                for (int dx = 0; dx < sw; dx++) {
+                    int p8_x = scale_lut_x[dx];
+                    scale_src_y_lut[dx] = m5 ? (127 - p8_x) : p8_x;
                 }
             } else {
                 /* Y axis */
@@ -396,14 +448,14 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
                     stretch_y = (mode & 2) && !(mode & 4);
                     mirror_y  = (mode & 2) &&  (mode & 4);
                 }
-                for (int dy = 0; dy < SCALE_H; dy++) {
-                    int p8_y = lut_y[dy];
+                for (int dy = 0; dy < sh; dy++) {
+                    int p8_y = scale_lut_y[dy];
                     int src_y;
                     if (flip_y)         src_y = 127 - p8_y;
                     else if (stretch_y) src_y = p8_y / 2;
                     else if (mirror_y)  src_y = (p8_y < 64) ? p8_y : (127 - p8_y);
                     else                src_y = p8_y;
-                    src_y_lut[dy] = src_y;
+                    scale_src_y_lut[dy] = src_y;
                 }
                 /* X axis */
                 bool flip_x, stretch_x, mirror_x;
@@ -415,22 +467,22 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
                     stretch_x = (mode & 1) && !(mode & 4);
                     mirror_x  = (mode & 1) &&  (mode & 4);
                 }
-                for (int dx = 0; dx < SCALE_W; dx++) {
-                    int p8_x = lut_x[dx];
+                for (int dx = 0; dx < sw; dx++) {
+                    int p8_x = scale_lut_x[dx];
                     int src_x;
                     if (flip_x)         src_x = 127 - p8_x;
                     else if (stretch_x) src_x = p8_x / 2;
                     else if (mirror_x)  src_x = (p8_x < 64) ? p8_x : (127 - p8_x);
                     else                src_x = p8_x;
-                    src_x_lut[dx] = src_x;
+                    scale_src_x_lut[dx] = src_x;
                 }
             }
         }
 
         if (!rotation) {
             /* Fast hoisted form: inner loop identical cost to fast path */
-            for (int dy = 0; dy < SCALE_H; dy++) {
-                int src_y = src_y_lut[dy];
+            for (int dy = 0; dy < sh; dy++) {
+                int src_y = scale_src_y_lut[dy];
                 const uint8_t* src_row = bp + src_y * 128;
                 const uint16_t* pal;
                 if (use_scanline_toggle &&
@@ -439,18 +491,18 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
                 } else {
                     pal = pal_primary;
                 }
-                pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
-                for (int dx = 0; dx < SCALE_W; dx++) {
-                    dst_row[dx] = pal[src_row[src_x_lut[dx]] & 0x0F];
+                pixel_t* dst_row = lcd + (oy + dy) * LCD_WIDTH + ox;
+                for (int dx = 0; dx < sw; dx++) {
+                    dst_row[dx] = pal[src_row[scale_src_x_lut[dx]] & 0x0F];
                 }
             }
         } else {
             /* Rotation: src_y varies per pixel → palette pick stays inner */
-            for (int dy = 0; dy < SCALE_H; dy++) {
-                int src_x = src_x_lut[dy];
-                pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
-                for (int dx = 0; dx < SCALE_W; dx++) {
-                    int src_y = src_y_lut[dx];
+            for (int dy = 0; dy < sh; dy++) {
+                int src_x = scale_src_x_lut[dy];
+                pixel_t* dst_row = lcd + (oy + dy) * LCD_WIDTH + ox;
+                for (int dx = 0; dx < sw; dx++) {
+                    int src_y = scale_src_y_lut[dx];
                     const uint16_t* pal;
                     if (use_scanline_toggle &&
                         ((p8.ram[0x5F70 + (src_y >> 3)] >> (src_y & 7)) & 1)) {
@@ -466,7 +518,7 @@ void sys_draw_frame(const uint8_t* framebuffer, const uint32_t* palette) {
 }
 
 /* Render a 128x128 framebuffer of RAW hardware-palette indices (0..31)
- * directly to the LCD, scaled to the 240x240 PICO-8 area. Bypasses the
+ * directly to the LCD, scaled per the current scaling mode. Bypasses the
  * cart's screen palette and screen mode entirely. Used by the pause menu:
  * p8_pause_menu_draw bakes the screen palette into back_page values 0..31
  * (gray-bit becomes index +16), and the menu overlay is drawn with raw hw
@@ -478,6 +530,10 @@ void sys_draw_shell_frame(const uint8_t* framebuffer, int width, int height,
     (void)width; (void)height;  /* embedded is always 128x128 */
     pixel_t* lcd = (pixel_t*)lcd_get_active_buffer();
 
+    pico8_scaling_sync();
+    const int sw = cur_scale_w, sh = cur_scale_h;
+    const int ox = cur_offset_x, oy = cur_offset_y;
+
     /* RGB565 LUT for the 32 hardware palette entries */
     uint16_t hw565[32];
     for (int i = 0; i < 32; i++) {
@@ -485,26 +541,17 @@ void sys_draw_shell_frame(const uint8_t* framebuffer, int width, int height,
         hw565[i] = ((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x07E0) | ((rgb >> 3) & 0x001F);
     }
 
-    /* Reuse the same scale LUTs as sys_draw_frame (precomputed there) */
-    static uint8_t lut_x[SCALE_W], lut_y[SCALE_H];
-    static bool lut_init = false;
-    if (!lut_init) {
-        for (int i = 0; i < SCALE_W; i++) lut_x[i] = (uint8_t)(i * P8_WIDTH / SCALE_W);
-        for (int i = 0; i < SCALE_H; i++) lut_y[i] = (uint8_t)(i * P8_HEIGHT / SCALE_H);
-        lut_init = true;
-    }
-
     /* Don't bother caching cleared_bufs here — sys_draw_frame already does
      * it for the gameplay path; the menu only re-blits the same buffer on
-     * input changes, so the cost is negligible. The 40px borders stay 0
-     * from the prior gameplay clear. */
+     * input changes, so the cost is negligible. The borders stay 0 from
+     * the prior gameplay clear. */
 
-    for (int dy = 0; dy < SCALE_H; dy++) {
-        const uint8_t* src_row = framebuffer + lut_y[dy] * 128;
-        pixel_t* dst_row = lcd + (OFFSET_Y + dy) * LCD_WIDTH + OFFSET_X;
-        for (int dx = 0; dx < SCALE_W; dx++) {
+    for (int dy = 0; dy < sh; dy++) {
+        const uint8_t* src_row = framebuffer + scale_lut_y[dy] * 128;
+        pixel_t* dst_row = lcd + (oy + dy) * LCD_WIDTH + ox;
+        for (int dx = 0; dx < sw; dx++) {
             /* No mask: 0..31 indexes the full hw palette (16 standard + 16 gray) */
-            dst_row[dx] = hw565[src_row[lut_x[dx]] & 0x1F];
+            dst_row[dx] = hw565[src_row[scale_lut_x[dx]] & 0x1F];
         }
     }
 }
@@ -591,6 +638,16 @@ static void p8_app_init(void)
     common_emu_state.frame_time_10us = (uint16_t)(100000 / P8_DISPLAY_FPS + 0.5f);
     odroid_system_init(APPID_PICO8, AUDIO_SAMPLE_RATE);
     odroid_system_emu_init(NULL, NULL, NULL, NULL, NULL, NULL);
+
+    /* Default scaling to FIT (240×240 centered) on first launch — retro-go's
+     * global default is FULL, which stretches PICO-8's 128×128 too far. User
+     * can override via the system pause-menu "Scaling" option; the choice
+     * persists per-app. Sentinel key "P8ScInit" flags that we've seeded the
+     * mode once so we don't keep overwriting the user's later choice. */
+    if (odroid_settings_app_int32_get("P8ScInit", 0) == 0) {
+        odroid_display_set_scaling_mode(ODROID_DISPLAY_SCALING_FIT);
+        odroid_settings_app_int32_set("P8ScInit", 1);
+    }
 
     printf("P8: RAM free before init: %u KB\n", (unsigned)(ram_get_free_size() / 1024));
 
