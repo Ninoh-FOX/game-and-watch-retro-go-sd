@@ -44,6 +44,7 @@ static struct {
     bool        charging;
     bool        power_good;
     struct {
+        bool            initialized;
         int             percent;
         bq24072_state_t state;
     }           last;
@@ -159,6 +160,7 @@ int bq24072_get_percent_filtered(void)
 {
     int             percent;
     bq24072_state_t state;
+    const int       correction_threshold = 10;
 
     if (bq24072_data.value == 0)
     {
@@ -168,6 +170,15 @@ int bq24072_get_percent_filtered(void)
 
     state = bq24072_get_state();
     percent = bq24072_get_percent();
+
+    if (!bq24072_data.last.initialized)
+    {
+        bq24072_data.last.initialized = true;
+        bq24072_data.last.state = state;
+        bq24072_data.last.percent = percent;
+
+        return percent;
+    }
 
     if (state != bq24072_data.last.state)
     {
@@ -188,12 +199,22 @@ int bq24072_get_percent_filtered(void)
             {
                 bq24072_data.last.percent = percent;
             }
+            else if ((bq24072_data.last.percent - percent) >= correction_threshold)
+            {
+                // Recover quickly from an outlier first sample after warm reboots.
+                bq24072_data.last.percent = percent;
+            }
 
             return bq24072_data.last.percent;
 
         case BQ24072_STATE_DISCHARGING:
             if (percent < bq24072_data.last.percent)
             {
+                bq24072_data.last.percent = percent;
+            }
+            else if ((percent - bq24072_data.last.percent) >= correction_threshold)
+            {
+                // Recover quickly from an outlier first sample after warm reboots.
                 bq24072_data.last.percent = percent;
             }
 
@@ -207,4 +228,3 @@ void bq24072_poll(void)
 {
     HAL_ADC_Start_IT(&hadc1);
 }
-
