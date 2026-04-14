@@ -516,19 +516,6 @@ void mouse_toggle_action(void) {
     mouse_user_disabled = !mouse_user_disabled;
 }
 
-uint32_t sys_get_input_state(void) {
-    uint32_t btns = buttons_get();
-    uint32_t p8_btns = 0;
-    if (btns & B_Left)  p8_btns |= (1 << 0);
-    if (btns & B_Right) p8_btns |= (1 << 1);
-    if (btns & B_Up)    p8_btns |= (1 << 2);
-    if (btns & B_Down)  p8_btns |= (1 << 3);
-    if (btns & B_A)     p8_btns |= (1 << 5);  /* X button (swapped) */
-    if (btns & B_B)     p8_btns |= (1 << 4);  /* O button (swapped) */
-    if (btns & B_PAUSE) p8_btns |= (1 << 16); /* Pause */
-    return p8_btns;
-}
-
 uint32_t sys_get_time_ms(void) {
     return HAL_GetTick();
 }
@@ -556,18 +543,30 @@ void __assert_func(const char *file, int line, const char *func, const char *exp
 }
 
 /* ============================================================
- * Audio resampling: 22050 Hz → 48000 Hz
- * ============================================================ */
-static void resample_audio(const int16_t* src, int src_samples,
-                           int16_t* dst, int dst_samples) {
-    /* Linear interpolation upsampler */
+ * Audio resampling: 22050 Hz → 48000 Hz + volume scale (fused).
+ * ============================================================
+ * Linear-interpolation upsampler using a Q16.16 fixed-point accumulator:
+ * `step` is computed once per call, inner loop just adds — no per-sample
+ * divides (vs old code which did 2 per output sample = ~1600 divides per
+ * 60 Hz audio frame). Volume is applied in the same pass to avoid a
+ * second linear sweep over the 800-sample DMA buffer.
+ *   vol is 0..255 from the retro-go volume table; 255 gives ≈ unity gain.
+ */
+static void resample_and_scale_audio(const int16_t *src, int src_samples,
+                                     int16_t *dst, int dst_samples,
+                                     int32_t vol)
+{
+    uint32_t step = ((uint32_t)src_samples << 16) / (uint32_t)dst_samples;
+    uint32_t pos_q = 0;
+    int last_idx = src_samples - 1;
     for (int i = 0; i < dst_samples; i++) {
-        /* Map destination sample to source position (fixed-point) */
-        uint32_t pos = (uint32_t)i * src_samples / dst_samples;
-        uint32_t frac = ((uint32_t)i * src_samples * 256 / dst_samples) & 0xFF;
-        int16_t s0 = src[pos];
-        int16_t s1 = (pos + 1 < (uint32_t)src_samples) ? src[pos + 1] : s0;
-        dst[i] = (int16_t)(s0 + ((int32_t)(s1 - s0) * frac >> 8));
+        uint32_t pos  = pos_q >> 16;
+        uint32_t frac = (pos_q >> 8) & 0xFF;   /* top 8 bits of fractional */
+        int32_t s0 = src[pos];
+        int32_t s1 = ((int)pos < last_idx) ? src[pos + 1] : s0;
+        int32_t interp = s0 + (((s1 - s0) * (int32_t)frac) >> 8);
+        dst[i] = (int16_t)((interp * vol) >> 8);
+        pos_q += step;
     }
 }
 
@@ -580,19 +579,18 @@ static void p8_blit(void) {
 }
 
 /* ============================================================
- * Main entry point
+ * app_main_pico8 helpers — extracted from the main loop so each concern
+ * lives in one named place. All are static; scope is limited to this TU.
  * ============================================================ */
-void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
-{
-    (void)load_state; (void)start_paused; (void)save_slot;
 
-    // Minimal logging to save logbuf space for runtime messages
+/* One-shot setup: framework init, cart load, pools, audio, LCD clear. */
+static void p8_app_init(void)
+{
     ram_start = (uint32_t) &_OVERLAY_PICO8_BSS_END;
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / P8_DISPLAY_FPS + 0.5f);
     odroid_system_init(APPID_PICO8, AUDIO_SAMPLE_RATE);
     odroid_system_emu_init(NULL, NULL, NULL, NULL, NULL, NULL);
-
 
     printf("P8: RAM free before init: %u KB\n", (unsigned)(ram_get_free_size() / 1024));
 
@@ -610,21 +608,349 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
     p8_setup_coroutine();
     wdog_refresh();
 
-    int audio_out_samples = AUDIO_SAMPLE_RATE / P8_DISPLAY_FPS;
     audio_clear_active_buffer();
     audio_clear_inactive_buffer();
-    audio_start_playing(audio_out_samples);
+    audio_start_playing(AUDIO_SAMPLE_RATE / P8_DISPLAY_FPS);
 
     lcd_clear_active_buffer();
     lcd_clear_inactive_buffer();
+}
 
-    odroid_dialog_choice_t options[] = {
-        ODROID_DIALOG_CHOICE_LAST
-    };
+/* G&W gamepad state → PICO-8 btn bitmask (A/B swapped for O/X). */
+static uint32_t map_gw_to_p8_buttons(const odroid_gamepad_state_t *j)
+{
+    uint32_t p = 0;
+    if (j->values[ODROID_INPUT_LEFT])  p |= (1 << 0);
+    if (j->values[ODROID_INPUT_RIGHT]) p |= (1 << 1);
+    if (j->values[ODROID_INPUT_UP])    p |= (1 << 2);
+    if (j->values[ODROID_INPUT_DOWN])  p |= (1 << 3);
+    if (j->values[ODROID_INPUT_A])     p |= (1 << 5);  /* X button (swapped) */
+    if (j->values[ODROID_INPUT_B])     p |= (1 << 4);  /* O button (swapped) */
+    return p;
+}
 
+/* Mouse emulation: D-pad drives cursor, B/A = left/right click, when the
+ * cart enables devkit (poke 0x5F2D,1) and actually reads mouse coords. On
+ * active mouse mode, strips dpad+face-button bits from *p8_btns so the
+ * cart only sees mouse events. Registers a "dpad mouse: on/off" entry in
+ * the pause menu so the user can disable it. */
+static void update_mouse_emulation(const odroid_gamepad_state_t *j, uint32_t *p8_btns)
+{
+    static int32_t mx_q8 = 64 << 8;     /* sub-pixel cursor pos, q8 */
+    static int32_t my_q8 = 64 << 8;
+    static int hold_x = 0;              /* signed frames-held counter */
+    static int hold_y = 0;
+    static bool mouse_was_active = false;
+    static bool click_suppress = false;  /* require A/B release after re-entry */
+
+    bool cart_uses_mouse = (p8.ram[0x5F2D] & 1) && p8.mouse_used;
+    /* Re-register every frame so the label reflects the current state
+     * (host item label is borrowed by reference). */
+    if (cart_uses_mouse) {
+        p8_pause_menu_set_host_item(
+            mouse_user_disabled ? "dpad mouse: off" : "dpad mouse: on",
+            mouse_toggle_action);
+        mouse_menu_registered = true;
+    } else if (mouse_menu_registered) {
+        p8_pause_menu_set_host_item(NULL, NULL);
+        mouse_menu_registered = false;
+    }
+
+    bool mouse_mode = cart_uses_mouse && !mouse_user_disabled
+                      && !p8_pause_menu_is_active();
+    if (!mouse_mode) {
+        if (mouse_was_active) {
+            p8.mouse_btn = 0;
+            mouse_was_active = false;
+        }
+        return;
+    }
+
+    if (!mouse_was_active) {
+        /* Re-center on entry / pause menu close */
+        mx_q8 = (int32_t)p8.mouse_x << 8;
+        my_q8 = (int32_t)p8.mouse_y << 8;
+        if (mx_q8 == 0 && my_q8 == 0) {
+            mx_q8 = 64 << 8;
+            my_q8 = 64 << 8;
+        }
+        hold_x = hold_y = 0;
+        mouse_was_active = true;
+        /* Suppress phantom click from the A/B that closed the pause menu */
+        click_suppress = true;
+    }
+
+    bool L = j->values[ODROID_INPUT_LEFT];
+    bool R = j->values[ODROID_INPUT_RIGHT];
+    bool U = j->values[ODROID_INPUT_UP];
+    bool D = j->values[ODROID_INPUT_DOWN];
+
+    /* Hold counters: positive = right/down, negative = left/up.
+     * Reverse direction resets to ±1 so the next press is slow. */
+    if (L && !R)      hold_x = (hold_x > 0) ? -1 : hold_x - 1;
+    else if (R && !L) hold_x = (hold_x < 0) ?  1 : hold_x + 1;
+    else              hold_x = 0;
+    if (U && !D)      hold_y = (hold_y > 0) ? -1 : hold_y - 1;
+    else if (D && !U) hold_y = (hold_y < 0) ?  1 : hold_y + 1;
+    else              hold_y = 0;
+
+    /* Acceleration curve, q8 px/frame:
+     *   first frame   ~0.25 px (precise)
+     *   ~30 frames    ~3.0 px
+     *   capped        4.0 px */
+    #define P8_MOUSE_STEP_Q8(hold) ({                          \
+        int _n = (hold) < 0 ? -(hold) : (hold);                \
+        int _q = 0;                                            \
+        if (_n > 0) {                                          \
+            _q = 64 + (_n - 1) * 24;                           \
+            if (_q > 1024) _q = 1024;                          \
+        }                                                      \
+        (hold) < 0 ? -_q : _q;                                 \
+    })
+    mx_q8 += P8_MOUSE_STEP_Q8(hold_x);
+    my_q8 += P8_MOUSE_STEP_Q8(hold_y);
+    #undef P8_MOUSE_STEP_Q8
+
+    /* Clamp to PICO-8 screen 0..127 */
+    if (mx_q8 < 0) mx_q8 = 0;
+    if (my_q8 < 0) my_q8 = 0;
+    if (mx_q8 > (127 << 8)) mx_q8 = (127 << 8);
+    if (my_q8 > (127 << 8)) my_q8 = (127 << 8);
+
+    p8.mouse_x = mx_q8 >> 8;
+    p8.mouse_y = my_q8 >> 8;
+
+    /* B = left click (bit 0), A = right click (bit 1) */
+    bool a = j->values[ODROID_INPUT_A];
+    bool b = j->values[ODROID_INPUT_B];
+    if (click_suppress) {
+        if (!a && !b) click_suppress = false;
+        a = b = false;
+    }
+    int mb = 0;
+    if (b) mb |= 1;
+    if (a) mb |= 2;
+    p8.mouse_btn = mb;
+
+    /* Strip dpad + face-button bits so the cart only sees mouse */
+    *p8_btns &= ~((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) |
+                  (1 << 4) | (1 << 5));
+}
+
+/* Pause menu: toggle on GAME (Mario) / START (Zelda); when active, drive
+ * menu navigation and draw it over the frozen back_page. On close, check
+ * whether the user selected "reset cart" and re-init if so. Returns true
+ * if the caller should `continue` (menu frame consumed or cart reset). */
+static bool handle_pause_menu(const odroid_gamepad_state_t *j, uint32_t p8_btns, int *skip_frame)
+{
+    static bool prev_pause_btn = false;
+    bool pause_now = j->values[ODROID_INPUT_START]  /* GAME (Mario) */
+                  || j->values[ODROID_INPUT_X];     /* START (Zelda) */
+    if (pause_now && !prev_pause_btn) {
+        if (p8_pause_menu_is_active()) p8_pause_menu_close();
+        else                           p8_pause_menu_open();
+    }
+    prev_pause_btn = pause_now;
+
+    if (!p8_pause_menu_is_active()) return false;
+
+    static uint32_t prev_menu = 0;
+    static bool menu_suppress = true;
+    if (menu_suppress) {
+        prev_menu = p8_btns | (1 << 4) | (1 << 5) | (1 << 6);
+        menu_suppress = false;
+    }
+    uint32_t newly = p8_btns & ~prev_menu;
+    prev_menu = p8_btns;
+    p8_pause_menu_update(newly);
+
+    if (p8_pause_menu_is_active()) {
+        p8_pause_menu_draw();
+        /* back_page contains raw hw palette indices (0..31) — game pixels
+         * pre-mapped through 0x5F10 by p8_pause_menu_draw, menu colors as
+         * direct hw indices. sys_draw_shell_frame bypasses screen palette
+         * + screen mode and preserves the gray-bit (index +16). Blit to
+         * both LCD buffers so the menu is visible regardless of which is
+         * currently displaying. */
+        audio_clear_active_buffer();
+        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
+        common_ingame_overlay();
+        lcd_swap();
+        audio_clear_active_buffer();
+        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
+        common_ingame_overlay();
+        return true;
+    }
+
+    /* Menu just closed */
+    menu_suppress = true;
+    if (p8.next_cart_path[0] != '\0') {
+        /* "reset cart" was selected — full re-init from scratch */
+        p8.next_cart_path[0] = '\0';
+        if (p8.cartdata_dirty) gw_flush_cartdata();
+        if (p8.L) { lua_close(p8.L); p8.L = NULL; p8.cart_co = NULL; }
+        { extern void luaH_frozen_reset(void); luaH_frozen_reset(); }
+        p8_init(ACTIVE_FILE->path, false);
+        wdog_refresh();
+        p8_setup_coroutine();
+        wdog_refresh();
+        /* p8_embedded_snapshot_rom already called inside p8_init; don't
+         * call again here — would overwrite p8.ram AFTER the Lua state
+         * has been rebuilt, potentially into the new Lua heap. */
+        *skip_frame = 0;
+        strncpy(p8.shell.loaded_cart, ACTIVE_FILE->path, sizeof(p8.shell.loaded_cart) - 1);
+    }
+    return true;
+}
+
+/* Wait for any button press. Used by error/not-found screens. */
+static void wait_for_any_button(void)
+{
+    odroid_gamepad_state_t js;
+    do {
+        wdog_refresh();
+        HAL_Delay(50);
+        odroid_input_read_gamepad(&js);
+    } while (!js.values[ODROID_INPUT_A] && !js.values[ODROID_INPUT_B] &&
+             !js.values[ODROID_INPUT_START]);
+}
+
+/* Cart requested a multicart load via _p8_load:<path> error. Returns true
+ * on success (caller should `continue`); false on failure. */
+static bool handle_multicart_load(const char *cart_path, int *skip_frame)
+{
+    printf("P8: loading multicart: %s\n", cart_path);
+
+    if (p8.cartdata_dirty) gw_flush_cartdata();
+
+    uint32_t new_size = 0;
+    wdog_refresh();
+    uint8_t *new_data = odroid_overlay_cache_file_in_flash(cart_path, &new_size, false);
+    wdog_refresh();
+
+    if (!new_data || new_size == 0) {
+        printf("P8: multicart load failed: %s\n", cart_path);
+        return false;
+    }
+
+    ROM_DATA = new_data;
+    ROM_DATA_LENGTH = new_size;
+
+    /* Save param string before p8_init resets P8_State. The new cart
+     * reads it via stat(6) for state transfer. */
+    char saved_param[256];
+    strncpy(saved_param, p8.next_param_str, sizeof(saved_param) - 1);
+    saved_param[sizeof(saved_param) - 1] = '\0';
+
+    /* Reinitialize engine with soft_load=true (matches PICO-8). soft_load
+     * preserves RAM above 0x4300 — needed for multicarts sharing data via
+     * upper memory (e.g. snekburd's extra spritesheet). */
+    p8_init(cart_path, true);
+    wdog_refresh();
+
+    strncpy(p8.next_param_str, saved_param, sizeof(p8.next_param_str) - 1);
+    p8.next_param_str[sizeof(p8.next_param_str) - 1] = '\0';
+
+    p8_setup_coroutine();
+    wdog_refresh();
+
+    *skip_frame = 0;
+    p8_embedded_snapshot_rom();
+    printf("P8: multicart loaded OK, param='%s'\n", p8.next_param_str);
+    return true;
+}
+
+/* Show "multicart not found" screen, wait for button, return to retro-go menu. */
+__attribute__((noreturn))
+static void show_multicart_not_found(const char *cart_path)
+{
+    lcd_clear_active_buffer();
+    odroid_overlay_draw_text(4,  4, LCD_WIDTH - 8, "Multicart not found:", C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 20, LCD_WIDTH - 8, cart_path,              0xFFFF,      C_GW_RED);
+    odroid_overlay_draw_text(4, 44, LCD_WIDTH - 8, "Place cart file in",   C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 56, LCD_WIDTH - 8, "/roms/pico8/ or",      C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 68, LCD_WIDTH - 8, "/roms/pico8/.multicarts/", C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 92, LCD_WIDTH - 8, "Press any button...",  0xFFFF,      C_GW_RED);
+    lcd_swap();
+    wait_for_any_button();
+    odroid_system_switch_app(0);
+    while (1) {}  /* unreachable; silences [[noreturn]] warning */
+}
+
+/* Show generic error + memory stats, wait for button, return to retro-go menu. */
+__attribute__((noreturn))
+static void show_error_and_exit(const char *err)
+{
+    printf("P8 STOPPED: %s\n", err);
+    lcd_clear_active_buffer();
+    odroid_overlay_draw_text(4,  4, LCD_WIDTH - 8, "PICO-8 Error:", C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 20, LCD_WIDTH - 8, err,             0xFFFF,      C_GW_RED);
+    char mem_info[128];
+    snprintf(mem_info, sizeof(mem_info), "pool=%uKB used=%uKB free=%uKB",
+             (unsigned)(p8_pool_get_total() / 1024),
+             (unsigned)(p8_pool_get_used()  / 1024),
+             (unsigned)(p8_pool_get_free()  / 1024));
+    odroid_overlay_draw_text(4, 44, LCD_WIDTH - 8, mem_info,              C_GW_YELLOW, C_GW_RED);
+    odroid_overlay_draw_text(4, 68, LCD_WIDTH - 8, "Press any button...", 0xFFFF,      C_GW_RED);
+    lcd_swap();
+    wait_for_any_button();
+    if (p8.cartdata_dirty) gw_flush_cartdata();
+    odroid_system_switch_app(0);
+    while (1) {}  /* unreachable */
+}
+
+/* Fill one display frame's worth of audio. Bresenham: 22050/60 = 367.5
+ * samples/frame — accumulator pushes to 368 every other frame. */
+static void fill_audio_for_frame(int audio_out_samples)
+{
+    if (common_emu_sound_loop_is_muted()) return;
+
+    static int audio_frac = 0;
+    int p8_samples = P8_AUDIO_RATE / P8_DISPLAY_FPS;   /* 367 */
+    audio_frac += P8_AUDIO_RATE % P8_DISPLAY_FPS;      /* +30 each frame */
+    if (audio_frac >= P8_DISPLAY_FPS) {
+        audio_frac -= P8_DISPLAY_FPS;
+        p8_samples++;                                   /* 368 this frame */
+    }
+    p8_fill_audio(p8_audio_buf, p8_samples);
+    int32_t vol = common_emu_sound_get_volume();
+    int16_t *audio_out = audio_get_active_buffer();
+    resample_and_scale_audio(p8_audio_buf, p8_samples,
+                             audio_out, audio_out_samples, vol);
+}
+
+/* Once-per-second perf + memory line. */
+static void log_perf_line(int frame_num, uint32_t vm_ms, uint32_t dr_ms, uint32_t tot_ms)
+{
+    printf("F%d vm=%lu dr=%lu tot=%lu | mem=%u/%uKB free=%uKB",
+           frame_num,
+           (unsigned long)vm_ms,
+           (unsigned long)dr_ms,
+           (unsigned long)tot_ms,
+           (unsigned)(p8_pool_get_used()  / 1024),
+           (unsigned)(p8_pool_get_total() / 1024),
+           (unsigned)(p8_pool_get_free()  / 1024));
+    if (p8.L) {
+        int gc_kb = lua_gc(p8.L, LUA_GCCOUNT,  0);
+        int gc_b  = lua_gc(p8.L, LUA_GCCOUNTB, 0);
+        printf(" gc=%d.%dKB base=%ld", gc_kb, gc_b / 100, (long)p8.base_fps);
+    }
+    printf("\n");
+}
+
+/* ============================================================
+ * Main entry point
+ * ============================================================ */
+void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
+{
+    (void)load_state; (void)start_paused; (void)save_slot;
+
+    p8_app_init();
+
+    odroid_dialog_choice_t options[] = { ODROID_DIALOG_CHOICE_LAST };
     odroid_gamepad_state_t joystick;
-
-    static int frame_num = 0;
+    const int audio_out_samples = AUDIO_SAMPLE_RATE / P8_DISPLAY_FPS;
+    int frame_num = 0;
     int skip_frame = 0;  /* For 30fps carts: skip VM on odd display frames */
 
     /* Main loop — always 60fps display. For 30fps carts, p8_step_frame
@@ -634,221 +960,39 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
         uint32_t t0 = HAL_GetTick();
 
         common_emu_frame_loop();
-        /* Prevent frame debt accumulation — PICO-8 frames can vary widely in cost
-         * (6ms normal, 130ms+ death). Always reset to avoid permanent slowdown. */
+        /* Override retro-go's frame-integrator decisions. With variable PICO-8
+         * frame costs (6ms normal, 130ms+ death animation), honouring the
+         * integrator's skip_frames=1/2 advice causes permanent slowdown —
+         * visible framerate never recovers because we'd keep skipping while
+         * the cart logic runs normally. Zero them so common_emu_sound_sync()
+         * below always does a single fixed DMA-tick wait. */
         common_emu_state.skip_frames = 0;
         common_emu_state.pause_frames = 0;
 
-        /* Read input through framework (handles PAUSE menu, turbo, etc.) */
+        /* Read input through framework (handles retro-go system menu, turbo). */
         odroid_input_read_gamepad(&joystick);
         common_emu_input_loop(&joystick, options, &p8_blit);
         common_emu_input_loop_handle_turbo(&joystick);
 
-        /* Map G&W buttons to PICO-8 */
-        uint32_t p8_btns = 0;
-        if (joystick.values[ODROID_INPUT_LEFT])  p8_btns |= (1 << 0);
-        if (joystick.values[ODROID_INPUT_RIGHT]) p8_btns |= (1 << 1);
-        if (joystick.values[ODROID_INPUT_UP])    p8_btns |= (1 << 2);
-        if (joystick.values[ODROID_INPUT_DOWN])  p8_btns |= (1 << 3);
-        if (joystick.values[ODROID_INPUT_A])     p8_btns |= (1 << 5);  /* X button (swapped) */
-        if (joystick.values[ODROID_INPUT_B])     p8_btns |= (1 << 4);  /* O button (swapped) */
-
-        /* Mouse emulation: when the cart enables devkit mode (poke(0x5F2D,1))
-         * and the pause menu is NOT active, the D-pad drives the cursor with
-         * acceleration; B = left click, A = right click. The directional and
-         * face-button bits are stripped from p8_btns so the cart sees only
-         * mouse events while in this mode. */
-        {
-            static int32_t mx_q8 = 64 << 8;     /* sub-pixel cursor pos, q8 */
-            static int32_t my_q8 = 64 << 8;
-            static int hold_x = 0;              /* signed frames-held counter */
-            static int hold_y = 0;
-            static bool mouse_was_active = false;
-            static bool click_suppress = false;  /* require A/B release after re-entry */
-
-            /* Mouse-emulation gating:
-             *   - cart must enable devkit (poke 0x5F2D, 1)
-             *   - cart must actually read mouse coords (p8.mouse_used) — some
-             *     carts enable devkit only for keyboard input, where mouse
-             *     remap would steal their D-pad
-             *   - user hasn't disabled it via the pause menu toggle
-             *   - pause menu must be closed (so menu navigation uses D-pad) */
-            extern bool mouse_user_disabled;
-            extern bool mouse_menu_registered;
-            bool cart_uses_mouse = (p8.ram[0x5F2D] & 1) && p8.mouse_used;
-            /* Re-register every frame so the label reflects the current state
-             * (host item label is borrowed by reference; we point at one of
-             * two static strings depending on mouse_user_disabled). */
-            if (cart_uses_mouse) {
-                p8_pause_menu_set_host_item(
-                    mouse_user_disabled ? "dpad mouse: off" : "dpad mouse: on",
-                    mouse_toggle_action);
-                mouse_menu_registered = true;
-            } else if (mouse_menu_registered) {
-                p8_pause_menu_set_host_item(NULL, NULL);
-                mouse_menu_registered = false;
-            }
-            bool mouse_mode = cart_uses_mouse && !mouse_user_disabled
-                              && !p8_pause_menu_is_active();
-            if (mouse_mode) {
-                if (!mouse_was_active) {
-                    /* Re-center on entry / pause menu close */
-                    mx_q8 = (int32_t)p8.mouse_x << 8;
-                    my_q8 = (int32_t)p8.mouse_y << 8;
-                    if (mx_q8 == 0 && my_q8 == 0) {
-                        mx_q8 = 64 << 8;
-                        my_q8 = 64 << 8;
-                    }
-                    hold_x = hold_y = 0;
-                    mouse_was_active = true;
-                    /* Suppress phantom click from the A/B that closed the
-                     * pause menu — require both buttons to be released first. */
-                    click_suppress = true;
-                }
-
-                bool L = joystick.values[ODROID_INPUT_LEFT];
-                bool R = joystick.values[ODROID_INPUT_RIGHT];
-                bool U = joystick.values[ODROID_INPUT_UP];
-                bool D = joystick.values[ODROID_INPUT_DOWN];
-
-                /* Hold counters: positive = right/down, negative = left/up.
-                 * Reverse direction resets to ±1 so the next press is slow. */
-                if (L && !R)      hold_x = (hold_x > 0) ? -1 : hold_x - 1;
-                else if (R && !L) hold_x = (hold_x < 0) ?  1 : hold_x + 1;
-                else              hold_x = 0;
-                if (U && !D)      hold_y = (hold_y > 0) ? -1 : hold_y - 1;
-                else if (D && !U) hold_y = (hold_y < 0) ?  1 : hold_y + 1;
-                else              hold_y = 0;
-
-                /* Acceleration curve, q8 px/frame:
-                 *   first frame   ~0.25 px (precise)
-                 *   ~30 frames    ~3.0 px
-                 *   capped       4.0 px
-                 * Tap = 1px move, hold = smooth glide. */
-                #define P8_MOUSE_STEP_Q8(hold) ({                          \
-                    int _n = (hold) < 0 ? -(hold) : (hold);                \
-                    int _q = 0;                                            \
-                    if (_n > 0) {                                          \
-                        _q = 64 + (_n - 1) * 24;                           \
-                        if (_q > 1024) _q = 1024;                          \
-                    }                                                      \
-                    (hold) < 0 ? -_q : _q;                                 \
-                })
-                mx_q8 += P8_MOUSE_STEP_Q8(hold_x);
-                my_q8 += P8_MOUSE_STEP_Q8(hold_y);
-                #undef P8_MOUSE_STEP_Q8
-
-                /* Clamp to PICO-8 screen 0..127 */
-                if (mx_q8 < 0) mx_q8 = 0;
-                if (my_q8 < 0) my_q8 = 0;
-                if (mx_q8 > (127 << 8)) mx_q8 = 127 << 8;
-                if (my_q8 > (127 << 8)) my_q8 = 127 << 8;
-
-                p8.mouse_x = mx_q8 >> 8;
-                p8.mouse_y = my_q8 >> 8;
-
-                /* B = left click (bit 0), A = right click (bit 1) */
-                bool a = joystick.values[ODROID_INPUT_A];
-                bool b = joystick.values[ODROID_INPUT_B];
-                if (click_suppress) {
-                    if (!a && !b) click_suppress = false;
-                    a = b = false;
-                }
-                int mb = 0;
-                if (b) mb |= 1;
-                if (a) mb |= 2;
-                p8.mouse_btn = mb;
-
-                /* Strip dpad + face-button bits so the cart only sees mouse */
-                p8_btns &= ~((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) |
-                             (1 << 4) | (1 << 5));
-            } else {
-                if (mouse_was_active) {
-                    p8.mouse_btn = 0;
-                    mouse_was_active = false;
-                }
-            }
-        }
-
+        uint32_t p8_btns = map_gw_to_p8_buttons(&joystick);
+        update_mouse_emulation(&joystick, &p8_btns);
         p8_set_button_state(p8_btns);
 
-        /* Pause menu: toggle on GAME button (Mario G&W = ODROID_INPUT_START)
-         * or START button (Zelda G&W = ODROID_INPUT_X).
-         * PAUSE/VOLUME is consumed by retro-go for its system menu. */
-        {
-            static bool prev_pause_btn = false;
-            bool pause_now = joystick.values[ODROID_INPUT_START]  /* GAME (Mario) */
-                          || joystick.values[ODROID_INPUT_X];     /* START (Zelda) */
-            if (pause_now && !prev_pause_btn) {
-                if (p8_pause_menu_is_active())
-                    p8_pause_menu_close();
-                else
-                    p8_pause_menu_open();
-            }
-            prev_pause_btn = pause_now;
-        }
-        if (p8_pause_menu_is_active()) {
-            /* Edge-detect for menu navigation */
-            static uint32_t prev_menu = 0;
-            static bool menu_suppress = true;
-            if (menu_suppress) {
-                prev_menu = p8_btns | (1 << 4) | (1 << 5) | (1 << 6);
-                menu_suppress = false;
-            }
-            uint32_t newly = p8_btns & ~prev_menu;
-            prev_menu = p8_btns;
-            p8_pause_menu_update(newly);
-            if (p8_pause_menu_is_active()) {
-                p8_pause_menu_draw();
-                /* Use sys_draw_shell_frame: back_page contains raw hw palette
-                 * indices (0..31) — game pixels pre-mapped through 0x5F10 by
-                 * p8_pause_menu_draw, menu colors as direct hw indices. The
-                 * shell-frame path bypasses screen palette + screen mode and
-                 * preserves the gray-bit (index +16). DON'T use p8_blit /
-                 * sys_draw_frame here — its inner-loop & 0x0F mask would drop
-                 * the gray-bit and "boost" any gray-marked colors back to
-                 * their bright versions.
-                 * Blit to BOTH LCD buffers so the menu is visible regardless
-                 * of which buffer the LCD is currently displaying. */
-                audio_clear_active_buffer();
-                sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
-                common_ingame_overlay();
-                lcd_swap();
-                audio_clear_active_buffer();
-                sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
-                common_ingame_overlay();
-            } else {
-                menu_suppress = true;
-                /* Check if "reset cart" was selected */
-                if (p8.next_cart_path[0] != '\0') {
-                    p8.next_cart_path[0] = '\0';
-                    /* Flush save data */
-                    if (p8.cartdata_dirty) gw_flush_cartdata();
-                    /* Close Lua state to free all Lua allocations */
-                    if (p8.L) { lua_close(p8.L); p8.L = NULL; p8.cart_co = NULL; }
-                    /* Reset frozen globals (allocated from pool, not freed by lua_close) */
-                    { extern void luaH_frozen_reset(void); luaH_frozen_reset(); }
-                    /* Full re-init from scratch */
-                    p8_init(ACTIVE_FILE->path, false);
-                    wdog_refresh();
-                    p8_setup_coroutine();
-                    wdog_refresh();
-                    /* p8_embedded_snapshot_rom already called inside p8_init
-                     * (before dump/reload). Calling it again here overwrites
-                     * p8.ram snapshot AFTER the Lua state has been rebuilt,
-                     * potentially writing into memory that overlaps with the
-                     * new Lua heap. The first snapshot is sufficient for
-                     * reload() support. */
-                    skip_frame = 0;
-                    strncpy(p8.shell.loaded_cart, ACTIVE_FILE->path, sizeof(p8.shell.loaded_cart) - 1);
-                }
-            }
-            continue;
-        }
+        if (handle_pause_menu(&joystick, p8_btns, &skip_frame)) continue;
 
-        /* For 30fps carts: run VM every other display frame.
-         * 60fps carts run every frame. Audio always fills every frame
-         * (the audio engine ticks independently of the Lua frame). */
+        /* Fill audio BEFORE the VM step. Audio is always the tightest
+         * real-time deadline: the DMA half-buffer runs out every 16.67ms
+         * and must be refilled before then or we get crackle (last half
+         * replayed). Filling here — right after the previous iteration's
+         * sound_sync wait — gives the DMA the maximum possible headroom
+         * before a slow VM frame (death animation, heavy _update) pushes
+         * the next fill past the deadline. There's a ~1-frame (16.67ms)
+         * latency cost (sfx() triggered in this frame's _update is heard
+         * in the next frame), which is well below audible threshold. */
+        fill_audio_for_frame(audio_out_samples);
+
+        /* 30fps carts run VM every other display frame; the alternate frame
+         * re-displays the last output. 60fps carts run VM every frame. */
         bool run_vm = true;
         if (p8.target_fps <= 30) {
             skip_frame ^= 1;
@@ -856,170 +1000,37 @@ void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
         }
 
         uint32_t t1 = HAL_GetTick();
-        if (run_vm) {
-            if (!p8_step_frame()) {
-                const char* err = p8_get_last_error();
-
-                /* Check for multicart load request */
-                if (strncmp(err, "_p8_load:", 9) == 0) {
-                    const char* cart_path = err + 9;
-                    printf("P8: loading multicart: %s\n", cart_path);
-
-                    /* Flush cartdata before switching carts */
-                    if (p8.cartdata_dirty) gw_flush_cartdata();
-
-                    /* Cache the new cart from SD into flash (shows progress bar) */
-                    uint32_t new_size = 0;
-                    wdog_refresh();
-                    uint8_t* new_data = odroid_overlay_cache_file_in_flash(
-                        cart_path, &new_size, false);
-                    wdog_refresh();
-
-                    if (new_data && new_size > 0) {
-                        /* Update ROM_DATA to point to new cart in flash */
-                        ROM_DATA = new_data;
-                        ROM_DATA_LENGTH = new_size;
-
-                        /* Save param string before p8_init resets P8_State.
-                         * The new cart reads it via stat(6) for state transfer. */
-                        char saved_param[256];
-                        strncpy(saved_param, p8.next_param_str, sizeof(saved_param) - 1);
-                        saved_param[sizeof(saved_param) - 1] = '\0';
-
-                        /* Reinitialize engine with soft_load=true (matches PICO-8).
-                         * soft_load preserves RAM above 0x4300 (upper spritesheet,
-                         * general purpose memory) — needed for multicarts that share
-                         * data via upper memory (e.g. snekburd's extra spritesheet). */
-                        p8_init(cart_path, true);
-                        wdog_refresh();
-
-                        /* Restore param string so new cart can read via stat(6) */
-                        strncpy(p8.next_param_str, saved_param, sizeof(p8.next_param_str) - 1);
-                        p8.next_param_str[sizeof(p8.next_param_str) - 1] = '\0';
-
-                        p8_setup_coroutine();
-                        wdog_refresh();
-
-                        /* Reset frame skip state */
-                        skip_frame = 0;
-
-                        /* Snapshot ROM for reload() */
-                        p8_embedded_snapshot_rom();
-
-                        printf("P8: multicart loaded OK, param='%s'\n", p8.next_param_str);
-                        continue;  /* back to main loop */
-                    } else {
-                        printf("P8: multicart load failed: %s\n", cart_path);
-                        /* Show alert with cart name, then return to menu */
-                        lcd_clear_active_buffer();
-                        odroid_overlay_draw_text(4, 4, LCD_WIDTH - 8,
-                            "Multicart not found:", C_GW_YELLOW, C_GW_RED);
-                        odroid_overlay_draw_text(4, 20, LCD_WIDTH - 8,
-                            cart_path, 0xFFFF, C_GW_RED);
-                        odroid_overlay_draw_text(4, 44, LCD_WIDTH - 8,
-                            "Place cart file in", C_GW_YELLOW, C_GW_RED);
-                        odroid_overlay_draw_text(4, 56, LCD_WIDTH - 8,
-                            "/roms/pico8/ or", C_GW_YELLOW, C_GW_RED);
-                        odroid_overlay_draw_text(4, 68, LCD_WIDTH - 8,
-                            "/roms/pico8/.multicarts/", C_GW_YELLOW, C_GW_RED);
-                        odroid_overlay_draw_text(4, 92, LCD_WIDTH - 8,
-                            "Press any button...", 0xFFFF, C_GW_RED);
-                        lcd_swap();
-                        odroid_gamepad_state_t js;
-                        do { wdog_refresh(); HAL_Delay(50); odroid_input_read_gamepad(&js);
-                        } while (!js.values[ODROID_INPUT_A] && !js.values[ODROID_INPUT_B] &&
-                                 !js.values[ODROID_INPUT_START]);
-                        odroid_system_switch_app(0);
-                    }
-                }
-
-                printf("P8 STOPPED: %s\n", err);
-                /* Show error on screen, wait for any button, then return to menu */
-                lcd_clear_active_buffer();
-                odroid_overlay_draw_text(4, 4, LCD_WIDTH - 8, "PICO-8 Error:", C_GW_YELLOW, C_GW_RED);
-                odroid_overlay_draw_text(4, 20, LCD_WIDTH - 8, err, 0xFFFF, C_GW_RED);
-                char mem_info[128];
-                sprintf(mem_info, "pool=%uKB used=%uKB free=%uKB",
-                        (unsigned)(p8_pool_get_total() / 1024),
-                        (unsigned)(p8_pool_get_used() / 1024),
-                        (unsigned)(p8_pool_get_free() / 1024));
-                odroid_overlay_draw_text(4, 44, LCD_WIDTH - 8, mem_info, C_GW_YELLOW, C_GW_RED);
-                odroid_overlay_draw_text(4, 68, LCD_WIDTH - 8, "Press any button...", 0xFFFF, C_GW_RED);
-                lcd_swap();
-                /* Wait for button press */
-                odroid_gamepad_state_t js;
-                do { wdog_refresh(); HAL_Delay(50); odroid_input_read_gamepad(&js);
-                } while (!js.values[ODROID_INPUT_A] && !js.values[ODROID_INPUT_B] &&
-                         !js.values[ODROID_INPUT_START]);
-                /* Flush cartdata before exiting */
-                if (p8.cartdata_dirty) gw_flush_cartdata();
-                odroid_system_switch_app(0);
+        if (run_vm && !p8_step_frame()) {
+            const char *err = p8_get_last_error();
+            /* Multicart load request uses a synthetic "_p8_load:<path>" error */
+            if (strncmp(err, "_p8_load:", 9) == 0) {
+                const char *cart_path = err + 9;
+                if (handle_multicart_load(cart_path, &skip_frame)) continue;
+                show_multicart_not_found(cart_path);  /* noreturn */
             }
+            show_error_and_exit(err);  /* noreturn */
         }
 
-        /* Audio — fill every display frame (audio ticks independently).
-         * 22050/60 = 367.5 samples/frame — Bresenham accumulator for exact rate. */
-        if (!common_emu_sound_loop_is_muted()) {
-            static int audio_frac = 0;
-            int p8_samples = P8_AUDIO_RATE / P8_DISPLAY_FPS;  /* 367 */
-            audio_frac += P8_AUDIO_RATE % P8_DISPLAY_FPS;      /* +30 each frame */
-            if (audio_frac >= P8_DISPLAY_FPS) {
-                audio_frac -= P8_DISPLAY_FPS;
-                p8_samples++;  /* 368 this frame */
-            }
-            p8_fill_audio(p8_audio_buf, p8_samples);
-            int32_t vol = common_emu_sound_get_volume();
-            int16_t* audio_out = audio_get_active_buffer();
-            resample_audio(p8_audio_buf, p8_samples,
-                           audio_out, audio_out_samples);
-            uint16_t buf_len = audio_get_buffer_length();
-            for (int i = 0; i < buf_len; i++) {
-                audio_out[i] = (int16_t)(((int32_t)audio_out[i] * vol) >> 8);
-            }
-        }
-
-        /* Display — host-driven tick (re-displays last frame for 30fps skip) */
+        /* Display — host-driven tick (re-displays last frame on skip frames) */
         uint32_t t3 = HAL_GetTick();
         p8_display_tick();
         common_ingame_overlay();
         lcd_swap();
-        /* Vsync disabled — testing audio stutter */
-        // lcd_wait_for_vblank();
         uint32_t t4 = HAL_GetTick();
 
         /* Periodic tasks: every 60 frames (~1 sec at 60fps) */
         if (++frame_num % 60 == 0) {
-            /* Debounced cartdata flush — at most once per second, not per dset() */
-            if (p8.cartdata_dirty) gw_flush_cartdata();
-
-            uint32_t tot = t4 - t0;
-            uint32_t t_step = t3 - t1;
-            printf("F%d vm=%lu dr=%lu tot=%lu | mem=%u/%uKB free=%uKB",
-                   frame_num,
-                   (unsigned long)t_step,
-                   (unsigned long)(t4 - t3),
-                   (unsigned long)tot,
-                   (unsigned)(p8_pool_get_used() / 1024),
-                   (unsigned)(p8_pool_get_total() / 1024),
-                   (unsigned)(p8_pool_get_free() / 1024));
-            if (p8.L) {
-                int gc_kb = lua_gc(p8.L, LUA_GCCOUNT, 0);
-                int gc_b  = lua_gc(p8.L, LUA_GCCOUNTB, 0);
-                printf(" gc=%d.%dKB base=%d", gc_kb, gc_b / 100, p8.base_fps);
-            }
-            printf("\n");
+            if (p8.cartdata_dirty) gw_flush_cartdata();  /* debounced flush */
+            log_perf_line(frame_num, t3 - t1, t4 - t3, t4 - t0);
         }
 
-        /* Stop-the-world GC: full collect between frames.
-         * Incremental GCSTEP caused crashes (bubble_bobble, pico_ball) —
-         * the restart/stop cycle corrupts GC state with paged allocator. */
-        if (p8.L) {
-            lua_gc(p8.L, LUA_GCCOLLECT, 0);
-        }
+        /* Stop-the-world GC: full collect between frames. Incremental
+         * GCSTEP caused crashes (bubble_bobble, pico_ball) — restart/stop
+         * cycle corrupts GC state with paged allocator. */
+        if (p8.L) lua_gc(p8.L, LUA_GCCOLLECT, 0);
 
-        /* Frame pacing: reset skip/pause to prevent integrator debt buildup */
-        common_emu_state.pause_frames = 0;
-        common_emu_state.skip_frames = 0;
+        /* Nothing between here and the next iteration's top-of-loop reset
+         * reads skip/pause, so we don't re-zero them here. */
         common_emu_sound_sync(false);
     }
 }
