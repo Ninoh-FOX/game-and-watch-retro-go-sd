@@ -87,61 +87,65 @@ static uint8_t bq24072_level_from_table(uint16_t adc_value, const bq24072_level_
 
 static int bq24072_percent_from_table(uint16_t adc_value, const bq24072_level_table_t* table)
 {
-    const int step_percent = 20;
-    uint16_t low;
-    uint16_t high;
-    int base;
+    static const uint8_t soc_anchor[6] = {
+        0,   // <= th[0]
+        1,   // <= th[1]
+        6,   // <= th[2]
+        18,  // <= th[3]
+        45,  // <= th[4]
+        100, // >  th[4]
+    };
 
+    int segment;
+    uint16_t low_adc;
+    uint16_t high_adc;
+    int low_percent;
+    int high_percent;
+    int span_adc;
+
+    // OFW thresholds define level transitions. The first thresholds are very
+    // close, so mapping them as 20/40% steps reports too much charge near empty.
     if (adc_value <= table->th[0])
     {
-        // 0..20% region
-        low = 0;
-        high = table->th[0];
-        base = 0;
+        return soc_anchor[0];
     }
-    else if (adc_value <= table->th[1])
+
+    if (adc_value > table->th[4])
     {
-        low = table->th[0];
-        high = table->th[1];
-        base = 20;
+        return soc_anchor[5];
+    }
+
+    if (adc_value <= table->th[1])
+    {
+        segment = 0;
     }
     else if (adc_value <= table->th[2])
     {
-        low = table->th[1];
-        high = table->th[2];
-        base = 40;
+        segment = 1;
     }
     else if (adc_value <= table->th[3])
     {
-        low = table->th[2];
-        high = table->th[3];
-        base = 60;
-    }
-    else if (adc_value <= table->th[4])
-    {
-        low = table->th[3];
-        high = table->th[4];
-        base = 80;
+        segment = 2;
     }
     else
     {
-        // 80..100% tail above top threshold (same width as previous segment).
-        low = table->th[4];
-        high = table->th[4] + (table->th[4] - table->th[3]);
-        base = 80;
+        segment = 3;
     }
 
-    if (high <= low)
+    low_adc = table->th[segment];
+    high_adc = table->th[segment + 1];
+    low_percent = soc_anchor[segment + 1];
+    high_percent = soc_anchor[segment + 2];
+
+    if (high_adc <= low_adc)
     {
-        return base;
+        return low_percent;
     }
 
-    if (adc_value >= high)
-    {
-        return base + step_percent;
-    }
+    span_adc = (int)high_adc - (int)low_adc;
 
-    return base + (((int)(adc_value - low) * step_percent) / (int)(high - low));
+    return low_percent +
+           (((int)adc_value - (int)low_adc) * (high_percent - low_percent)) / span_adc;
 }
 
 static const bq24072_level_table_t* bq24072_select_table(uint16_t adc_value, bq24072_state_t state)
