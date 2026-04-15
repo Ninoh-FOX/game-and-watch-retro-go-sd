@@ -8,9 +8,6 @@
 
 #include "utils.h"
 
-#define BQ24072_BATTERY_FULL    13000
-#define BQ24072_BATTERY_LOWBAT  11000
-
 #define BQ24072_PROFILING   0
 
 typedef enum {
@@ -53,6 +50,112 @@ static struct {
         bq24072_state_t state;
     }           last;
 } bq24072_data;
+
+typedef struct {
+    uint16_t th[5];
+} bq24072_level_table_t;
+
+/*
+ * Threshold sets extracted from OFW (FUN_00003148 / FUN_0000320e).
+ * OFW selects different tables depending on runtime flags and charge context.
+ */
+static const bq24072_level_table_t bq24072_levels_low_discharging = {
+    .th = {0x29a5, 0x29c5, 0x2cb5, 0x2dcf, 0x2f86},
+};
+
+static const bq24072_level_table_t bq24072_levels_low_charging = {
+    .th = {0x2a62, 0x2a81, 0x2d71, 0x2e8c, 0x3043},
+};
+
+static const bq24072_level_table_t bq24072_levels_high_discharging = {
+    .th = {0x8f28, 0x8f94, 0x99af, 0x9d79, 0xa35e},
+};
+
+static const bq24072_level_table_t bq24072_levels_high_charging = {
+    .th = {0x95e5, 0x9651, 0xa06c, 0xa436, 0xaa1b},
+};
+
+static uint8_t bq24072_level_from_table(uint16_t adc_value, const bq24072_level_table_t* table)
+{
+    if (adc_value > table->th[4]) return 5;
+    if (adc_value > table->th[3]) return 4;
+    if (adc_value > table->th[2]) return 3;
+    if (adc_value > table->th[1]) return 2;
+    if (adc_value > table->th[0]) return 1;
+    return 0;
+}
+
+static int bq24072_percent_from_table(uint16_t adc_value, const bq24072_level_table_t* table)
+{
+    const int step_percent = 20;
+    uint16_t low;
+    uint16_t high;
+    int base;
+
+    if (adc_value <= table->th[0])
+    {
+        // 0..20% region
+        low = 0;
+        high = table->th[0];
+        base = 0;
+    }
+    else if (adc_value <= table->th[1])
+    {
+        low = table->th[0];
+        high = table->th[1];
+        base = 20;
+    }
+    else if (adc_value <= table->th[2])
+    {
+        low = table->th[1];
+        high = table->th[2];
+        base = 40;
+    }
+    else if (adc_value <= table->th[3])
+    {
+        low = table->th[2];
+        high = table->th[3];
+        base = 60;
+    }
+    else if (adc_value <= table->th[4])
+    {
+        low = table->th[3];
+        high = table->th[4];
+        base = 80;
+    }
+    else
+    {
+        // 80..100% tail above top threshold (same width as previous segment).
+        low = table->th[4];
+        high = table->th[4] + (table->th[4] - table->th[3]);
+        base = 80;
+    }
+
+    if (high <= low)
+    {
+        return base;
+    }
+
+    if (adc_value >= high)
+    {
+        return base + step_percent;
+    }
+
+    return base + (((int)(adc_value - low) * step_percent) / (int)(high - low));
+}
+
+static const bq24072_level_table_t* bq24072_select_table(uint16_t adc_value, bq24072_state_t state)
+{
+    bool low_domain = (adc_value < 0x4000);
+    bool charging_context = (state == BQ24072_STATE_CHARGING) || (state == BQ24072_STATE_FULL);
+
+    if (low_domain)
+    {
+        return charging_context ? &bq24072_levels_low_charging : &bq24072_levels_low_discharging;
+    }
+
+    return charging_context ? &bq24072_levels_high_charging : &bq24072_levels_high_discharging;
+}
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
@@ -171,25 +274,25 @@ bq24072_state_t bq24072_get_state(void)
 
 int bq24072_get_percent(void)
 {
-    int     span = BQ24072_BATTERY_FULL - BQ24072_BATTERY_LOWBAT;
+    bq24072_state_t state;
+    const bq24072_level_table_t* table;
+    int percent;
 
-    if (bq24072_get_state() == BQ24072_STATE_MISSING)
+    state = bq24072_get_state();
+    if (state == BQ24072_STATE_MISSING)
     {
         return 0;
     }
 
-    if (bq24072_data.value - BQ24072_BATTERY_LOWBAT <= 0)
-    {
-        return 0;
-    }
-    else if (bq24072_data.value >= BQ24072_BATTERY_FULL)
-    {
-        return 100;
-    }
-    else
-    {
-        return (bq24072_data.value - BQ24072_BATTERY_LOWBAT)*100 / span;
-    }
+    table = bq24072_select_table(bq24072_data.value, state);
+    percent = bq24072_percent_from_table(bq24072_data.value, table);
+
+    // Keep level helper referenced for easier debug correlation with OFW logs.
+    (void)bq24072_level_from_table(bq24072_data.value, table);
+
+    if (percent < 0) return 0;
+    if (percent > 100) return 100;
+    return percent;
 }
 
 int bq24072_get_percent_filtered(void)
@@ -209,15 +312,6 @@ int bq24072_get_percent_filtered(void)
     state = bq24072_get_state();
     percent = bq24072_get_percent();
 	
-    if (!bq24072_data.last.initialized)
-    {
-        bq24072_data.last.initialized = true;
-        bq24072_data.last.state = state;
-        bq24072_data.last.percent = percent;
-
-        return percent;
-    }
-
     if (!bq24072_data.last.initialized)
     {
         bq24072_data.last.initialized = true;
@@ -247,6 +341,14 @@ int bq24072_get_percent_filtered(void)
         case BQ24072_STATE_CHARGING:
         case BQ24072_STATE_DISCHARGING:
             delta = percent - bq24072_data.last.percent;
+
+            if ((state == BQ24072_STATE_DISCHARGING) && (delta > 0))
+            {
+                // OFW-like discharge behavior: avoid increasing displayed
+                // battery level while power is not connected.
+                return bq24072_data.last.percent;
+            }
+
             if ((delta >= snap_threshold) || (delta <= -snap_threshold))
             {
                 // If the reported value is far from the filtered value,
