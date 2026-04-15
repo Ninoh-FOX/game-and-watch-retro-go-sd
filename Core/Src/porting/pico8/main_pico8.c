@@ -917,11 +917,11 @@ static bool handle_pause_menu(const odroid_gamepad_state_t *j, uint32_t p8_btns,
          * both LCD buffers so the menu is visible regardless of which is
          * currently displaying. */
         audio_clear_active_buffer();
-        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
+        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8_get_palette());
         common_ingame_overlay();
         lcd_swap();
         audio_clear_active_buffer();
-        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8.hardware_palette);
+        sys_draw_shell_frame(p8_get_display_buffer(), 128, 128, p8_get_palette());
         common_ingame_overlay();
         return true;
     }
