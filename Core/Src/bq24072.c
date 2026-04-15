@@ -41,6 +41,10 @@ static volatile uint32_t bq24072_battery_value;
 
 static struct {
     uint16_t    value;
+	bool        adc_settle_pending;
+    bool        sample_valid;
+    uint8_t     sample_count;
+    uint32_t    sample_sum;
     bool        charging;
     bool        power_good;
     struct {
@@ -52,7 +56,31 @@ static struct {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    bq24072_data.value = HAL_ADC_GetValue(hadc);
+    uint16_t sample;
+
+    if (bq24072_data.adc_settle_pending)
+    {
+        // Discard the first conversion after each start to avoid stale
+       // sample-and-hold residue (especially after warm boots from OFW).
+        (void)HAL_ADC_GetValue(hadc);
+        bq24072_data.adc_settle_pending = false;
+        HAL_ADC_Start_IT(hadc);
+        return;
+    }
+
+    sample = HAL_ADC_GetValue(hadc);
+    bq24072_data.sample_sum += sample;
+    bq24072_data.sample_count++;
+
+    // OFW-like behavior: do not trust a single sample. Publish only after
+    // accumulating a small window so warm-boot spikes do not leak to UI.
+    if (bq24072_data.sample_count >= 8)
+    {
+        bq24072_data.value = (uint16_t)(bq24072_data.sample_sum / bq24072_data.sample_count);
+        bq24072_data.sample_sum = 0;
+        bq24072_data.sample_count = 0;
+        bq24072_data.sample_valid = true;
+    }
 
 #if BQ24072_PROFILING == 1
     bq24072_battery_value = bq24072_data.value;
@@ -63,6 +91,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 int32_t bq24072_init(void)
 {
+    bq24072_data.value = 0;
+    bq24072_data.adc_settle_pending = false;
+    bq24072_data.sample_valid = false;
+    bq24072_data.sample_count = 0;
+    bq24072_data.sample_sum = 0;
+    bq24072_data.last.initialized = false;
+
+	
     // Read initial states
     bq24072_handle_power_good();
     bq24072_handle_charging();
@@ -159,17 +195,28 @@ int bq24072_get_percent(void)
 int bq24072_get_percent_filtered(void)
 {
     int             percent;
+	int             delta;
     bq24072_state_t state;
-    const int       correction_threshold = 10;
+	const int       snap_threshold = 5;
+    const int       step = 1;
 
-    if (bq24072_data.value == 0)
+    if (!bq24072_data.sample_valid)
     {
-        // No value read from ADC yet
-        return 0;
+        // No stable averaged value yet: keep previous UI value if available.
+        return bq24072_data.last.initialized ? bq24072_data.last.percent : 0;
     }
 
     state = bq24072_get_state();
     percent = bq24072_get_percent();
+	
+    if (!bq24072_data.last.initialized)
+    {
+        bq24072_data.last.initialized = true;
+        bq24072_data.last.state = state;
+        bq24072_data.last.percent = percent;
+
+        return percent;
+    }
 
     if (!bq24072_data.last.initialized)
     {
@@ -191,31 +238,30 @@ int bq24072_get_percent_filtered(void)
     switch (state)
     {
         case BQ24072_STATE_MISSING:
+			bq24072_data.last.percent = 0;
+            return 0;
         case BQ24072_STATE_FULL:
+			bq24072_data.last.percent = percent;
             return percent;
 
         case BQ24072_STATE_CHARGING:
-            if (percent > bq24072_data.last.percent)
-            {
-                bq24072_data.last.percent = percent;
-            }
-            else if ((bq24072_data.last.percent - percent) >= correction_threshold)
-            {
-                // Recover quickly from an outlier first sample after warm reboots.
-                bq24072_data.last.percent = percent;
-            }
-
-            return bq24072_data.last.percent;
-
         case BQ24072_STATE_DISCHARGING:
-            if (percent < bq24072_data.last.percent)
+            delta = percent - bq24072_data.last.percent;
+            if ((delta >= snap_threshold) || (delta <= -snap_threshold))
             {
-                bq24072_data.last.percent = percent;
+                // If the reported value is far from the filtered value,
+                // trust it immediately to avoid being pinned to a bad boot sample.
+                 bq24072_data.last.percent = percent;
             }
-            else if ((percent - bq24072_data.last.percent) >= correction_threshold)
+
+
+            else if (delta > 0)
             {
-                // Recover quickly from an outlier first sample after warm reboots.
-                bq24072_data.last.percent = percent;
+                bq24072_data.last.percent += step;
+            }
+            else if (delta < 0)
+            {
+                bq24072_data.last.percent -= step;
             }
 
             return bq24072_data.last.percent;
@@ -226,5 +272,6 @@ int bq24072_get_percent_filtered(void)
 
 void bq24072_poll(void)
 {
+	bq24072_data.adc_settle_pending = true;
     HAL_ADC_Start_IT(&hadc1);
 }
