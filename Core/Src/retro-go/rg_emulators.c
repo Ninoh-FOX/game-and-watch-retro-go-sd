@@ -179,45 +179,6 @@ static const char *rom_entry_path_segment(const retro_emulator_file_t *f)
     return (p && p[1] != '\0') ? (p + 1) : f->name;
 }
 
-bool rg_emulator_tab_selected_is_rom_folder(tab_t *tab)
-{
-    listbox_item_t *item;
-    const retro_emulator_file_t *file;
-
-    if (!tab)
-        return false;
-    item = gui_get_selected_item(tab);
-    if (!item || !item->arg)
-        return false;
-    if (rg_rom_list_arg_is_parent(item->arg))
-        return false;
-    file = (const retro_emulator_file_t *)item->arg;
-    return file->ext == NULL;
-}
-
-bool rg_emulator_try_enter_selected_folder(tab_t *tab)
-{
-    retro_emulator_t *emu;
-    listbox_item_t *item;
-    retro_emulator_file_t *file;
-
-    if (!tab || !tab->arg)
-        return false;
-    item = gui_get_selected_item(tab);
-    if (!item || !item->arg || rg_rom_list_arg_is_parent(item->arg))
-        return false;
-    file = (retro_emulator_file_t *)item->arg;
-    if (file->ext != NULL)
-        return false;
-    emu = (retro_emulator_t *)tab->arg;
-    if (!emulator_browse_append(emu, rom_entry_path_segment(file)))
-        return false;
-    /* Start selection at first row in the new folder. */
-    tab->listbox.cursor = 0;
-    gui_event(TAB_REFRESH_LIST, tab);
-    return true;
-}
-
 bool rg_emulator_validate_browse_path_for_tab(tab_t *tab)
 {
     if (!tab || !tab->arg)

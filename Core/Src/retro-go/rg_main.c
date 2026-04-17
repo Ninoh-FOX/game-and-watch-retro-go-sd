@@ -614,9 +614,6 @@ void retro_loop()
     /* Inside a ROM subfolder: long B = parent folder; short B = KEY_PRESS_B (infos). */
     static uint32_t b_subfolder_hold_t0 = 0;
     static bool b_subfolder_long_consumed = false;
-    /* Tab-next when selection is a folder: short tap = next system; long hold = enter folder. */
-    static uint32_t tab_next_hold_t0 = 0;
-    static bool tab_next_long_consumed = false;
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
@@ -702,36 +699,6 @@ void retro_loop()
             }
         }
 
-        if (rg_emulator_tab_selected_is_rom_folder(tab))
-        {
-            if (gui.joystick.values[key_right])
-            {
-                if (tab_next_hold_t0 == 0)
-                    tab_next_hold_t0 = get_elapsed_time();
-                else if (!tab_next_long_consumed &&
-                         get_elapsed_time() - tab_next_hold_t0 >= 500)
-                {
-                    if (rg_emulator_try_enter_selected_folder(tab))
-                        tab_next_long_consumed = true;
-                }
-            }
-            else
-            {
-                if (tab_next_hold_t0 != 0 && !tab_next_long_consumed)
-                    gui_change_tab(+1);
-                tab_next_hold_t0 = 0;
-                tab_next_long_consumed = false;
-            }
-        }
-        else
-        {
-            if (!gui.joystick.values[key_right])
-            {
-                tab_next_hold_t0 = 0;
-                tab_next_long_consumed = false;
-            }
-        }
-
         if (idle_s > 0 && gui.joystick.bitmask == 0)
         {
             gui_event(TAB_IDLE, tab);
@@ -801,8 +768,7 @@ void retro_loop()
             }
             else if (last_key == key_right)
             {
-                if (!rg_emulator_tab_selected_is_rom_folder(tab))
-                    gui_change_tab(+1);
+                gui_change_tab(+1);
                 repeat++;
             }
             else if (last_key == ODROID_INPUT_A)

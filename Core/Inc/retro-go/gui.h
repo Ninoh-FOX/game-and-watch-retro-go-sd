@@ -97,8 +97,6 @@ void gui_event(gui_event_t event, tab_t *tab);
 bool rg_emulator_browse_pop_if_in_subfolder(tab_t *tab);
 /** True when ROM list is browsing below /roms/<system>/ (not root of that system). */
 bool rg_emulator_tab_in_rom_subfolder(const tab_t *tab);
-bool rg_emulator_tab_selected_is_rom_folder(tab_t *tab);
-bool rg_emulator_try_enter_selected_folder(tab_t *tab);
 bool rg_emulator_validate_browse_path_for_tab(tab_t *tab);
 void gui_redraw_callback(void);
 void gui_redraw(void);
