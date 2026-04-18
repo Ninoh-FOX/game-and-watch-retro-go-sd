@@ -94,7 +94,7 @@ static void initialize_metadata() {
         return;
     }
 
-    metadata = ram_calloc(1, sizeof(Metadata));
+    metadata = calloc(1, sizeof(Metadata));
     reset_metadata(0);
 }
 
@@ -277,15 +277,14 @@ static bool circular_flash_write(const char *file_path,
     return true;
 }
 
-// Clear the metadata in RAM only, to call if ram has been freed
-void clear_flash_alloc_metadata() {
-    metadata = NULL;
-}
-
 // Clear all metadata and delete the metadata file
 void flash_alloc_reset()
 {
-    metadata = NULL;
+    if (metadata)
+    {
+        free(metadata);
+        metadata = NULL;
+    }
     remove(METADATA_FILE);
 }
 

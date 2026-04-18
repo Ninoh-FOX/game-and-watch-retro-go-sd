@@ -56,7 +56,7 @@ ENTRY(Reset_Handler)
 _estack = _stack_top;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
-_Heap_Size = 32 * 1024;     /* required amount of heap */
+_Heap_Size = 22 * 1024;     /* reduced from 32KB to fit PICO-8 p8.ram in DTCM */
 
 _Stack_Redzone_Size = 256;  /* size of stack overflow protection */
 _Min_Stack_Size = 20 * 1024; /* required amount of stack */
@@ -640,6 +640,32 @@ SECTIONS
   }
   _OVERLAY_TAMA_BSS_SIZE = SIZEOF(.overlay_tama_bss);
 
+  .overlay_pico8 __RAM_EMU_START__ : {
+    . = ALIGN(4);
+    __ram_emu_pico8_start__ = .;
+    KEEP(*(.pico8_entry))
+    _PICO8_MAIN_CODE_START = .;
+    build/pico8/main_pico8.o (.text .text* .data .data* .rodata .rodata*)
+    _PICO8_MAIN_CODE_END = .;
+    build/pico8/*.o (.data .data* .text .text* .rodata .rodata*)
+    . = ALIGN(4);
+    _OVERLAY_PICO8_LOAD_END = .;
+  } AT> EXTFLASH
+  _OVERLAY_PICO8_LOAD_START = LOADADDR(.overlay_pico8);
+  _OVERLAY_PICO8_SIZE = SIZEOF(.overlay_pico8);
+
+  .overlay_pico8_bss _OVERLAY_PICO8_LOAD_END : {
+    . = ALIGN(4);
+    _OVERLAY_PICO8_BSS_START = .;
+    build/pico8/*.o (.bss .bss*)
+    . = ALIGN(4);
+    build/pico8/*.o (COMMON)
+    __ram_emu_pico8_end__ = .;
+    _OVERLAY_PICO8_BSS_END = .;
+    ASSERT(ABSOLUTE(_OVERLAY_PICO8_BSS_END) < __RAM_EMU_END__, "Error: PICO8 BSS overflow");
+  }
+  _OVERLAY_PICO8_BSS_SIZE = SIZEOF(.overlay_pico8_bss);
+
   /* Place this symbol after the last overlay definition */
   .overlay_end : {
     __extflash_end__ = .;
@@ -681,6 +707,13 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
+  } >FLASH
+
+  /* Firmware ABI table at fixed offset 0x400 from intflash start.
+     See SDCARD linker + Core/Inc/retro-go/gw_firmware_abi.h. */
+  .firmware_abi ORIGIN(FLASH) + 0x400 :
+  {
+    KEEP(*(.firmware_abi))
   } >FLASH
 
   /* The program code and other data goes into FLASH */
@@ -789,6 +822,15 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
+  } >DTCMRAM
+
+  /* PICO-8 RAM (64KB) in DTCM — must match closed engine's linker. */
+  ._dtcm_p8ram (NOLOAD) :
+  {
+    . = ALIGN(4);
+    __dtcm_p8ram_start__ = .;
+    . = . + 0x10000;
+    __dtcm_p8ram_end__ = .;
   } >DTCMRAM
 
   ._user_heap :
