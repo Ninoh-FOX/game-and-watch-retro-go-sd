@@ -690,6 +690,8 @@ INCLUDE build/fceumm_mappers.ld
   .overlay_pico8 __RAM_EMU_START__ : {
     . = ALIGN(4);
     __ram_emu_pico8_start__ = .;
+    /* Entry trampoline at offset 0 — firmware dispatches here */
+    KEEP(*(.pico8_entry))
     _PICO8_MAIN_CODE_START = .;
     build/pico8/main_pico8.o (.text .text* .data .data* .rodata .rodata*)
     build/pico8/p8_multicart.o (.text .text* .data .data* .rodata .rodata*)

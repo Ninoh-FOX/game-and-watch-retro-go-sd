@@ -807,7 +807,8 @@ Core/Src/porting/pico8/main_pico8.c \
 Core/Src/porting/pico8/p8_multicart.c
 
 PICO8_CXX_STUBS = \
-Core/Src/porting/pico8/p8_stubs.cpp
+Core/Src/porting/pico8/p8_stubs.cpp \
+$(CORE_PICO8)/src/core/p8_firmware_bridge.cpp
 
 # z8lua sources compiled as C++ (fix32.h requires C++)
 PICO8_CXX_SOURCES = \

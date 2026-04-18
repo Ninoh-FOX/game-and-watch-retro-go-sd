@@ -153,13 +153,15 @@ void p8_itcm_init(void) {
      * ITCM starts at 0x00000000, so valid pointers CAN be 0.
      * itc_calloc returns 0xFFFFFFFF on failure → fall back to main pool. */
     if (p8_back_page_ptr() == (uint8_t*)0xFFFFFFFF) {
-        extern uint32_t __itcram_hot_start__;
-        extern uint32_t __itcram_end__;
-        uint32_t code_end = (uint32_t)&__itcram_hot_start__ + itcm_loaded_size;
+        /* Reset ITCM bump allocator, then advance past the loaded hot code.
+         * On GPL firmware, __itcram_end__ = 0 (empty ITCM section) so the
+         * allocator starts at 0. We MUST always advance by the loaded size
+         * to prevent back_page from overlapping the hot code.
+         * The old conditional (code_end > __itcram_end__) failed because
+         * the engine's baked __itcram_end__ == code_end, but firmware's
+         * allocator started at 0. */
         itc_init();
-        if (code_end > (uint32_t)&__itcram_end__) {
-            itc_malloc(code_end - (uint32_t)&__itcram_end__);
-        }
+        itc_malloc(itcm_loaded_size);
         void* itc_ptr = itc_calloc(1, 128 * 128);
         if (itc_ptr != (void*)0xFFFFFFFF) {
             p8_set_back_page((uint8_t*)itc_ptr);
@@ -717,10 +719,14 @@ static void p8_blit(void) {
  * lives in one named place. All are static; scope is limited to this TU.
  * ============================================================ */
 
+/* Firmware ABI bridge sync — writes shared variables back to firmware */
+extern "C" void p8_firmware_bridge_sync(void);
+
 /* One-shot setup: framework init, cart load, pools, audio, LCD clear. */
 static void p8_app_init(void)
 {
     ram_start = (uint32_t) &_OVERLAY_PICO8_BSS_END;
+    p8_firmware_bridge_sync();  /* write ram_start back to firmware global */
 
     common_emu_state.frame_time_10us = (uint16_t)(100000 / P8_DISPLAY_FPS + 0.5f);
     odroid_system_init(APPID_PICO8, AUDIO_SAMPLE_RATE);
@@ -1085,10 +1091,25 @@ static void log_perf_line(int frame_num, uint32_t vm_ms, uint32_t dr_ms, uint32_
 /* ============================================================
  * Main entry point
  * ============================================================ */
+/* Firmware ABI bridge init — must be called before any engine code
+ * accesses firmware globals (ACTIVE_FILE, ROM_DATA, etc.) */
+extern "C" void p8_firmware_bridge_init(void);
+extern "C" void p8_firmware_bridge_sync(void);
+
+/* Entry trampoline placed at overlay offset 0 via .pico8_entry section.
+ * Firmware dispatches through a function pointer at __RAM_EMU_START__
+ * so this MUST be the first code in the overlay. */
+__attribute__((section(".pico8_entry"), used, naked))
+void pico8_entry_trampoline(void)
+{
+    asm volatile ("b app_main_pico8");
+}
+
 void app_main_pico8(uint8_t load_state, uint8_t start_paused, int8_t save_slot)
 {
     (void)load_state; (void)start_paused; (void)save_slot;
 
+    p8_firmware_bridge_init();
     p8_app_init();
 
     odroid_dialog_choice_t options[] = { ODROID_DIALOG_CHOICE_LAST };

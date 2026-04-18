@@ -797,20 +797,32 @@ $(BUILD_DIR)/celeste/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_
 # ltable.c has no dispatch loop and is safe to compile at -O3.
 PICO8_EXTRA_FLAGS = -fno-exceptions
 
+# Firmware ABI bridge: after compile, every engine .o is post-processed
+# with objcopy --redefine-syms to rewrite references to libc/libgcc
+# symbols (memcpy, __aeabi_fadd, fopen, ...) into p8_-prefixed forms
+# that resolve to the trampolines in p8_firmware_bridge.cpp. This keeps
+# engine binaries firmware-address-independent — calls go through the
+# versioned ABI table at VTOR+0x400 instead of baked-in intflash
+# addresses. See Core/Inc/retro-go/gw_firmware_abi.h (GPL repo).
+PICO8_ABI_REDEFINE = Core/Src/porting/pico8/pico8_abi_redefine_syms.txt
+
 # Hot file: table operations. -O3 inlines luaH_get etc. more aggressively;
 # this file is called from lvm.c on IC misses and benefits from inlining.
 # GCC honours the LAST -O flag, so appending -O3 overrides the -O2 in $(CXXFLAGS).
-$(BUILD_DIR)/pico8/ltable.o: external/pico8-engine/src/z8lua/ltable.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
+$(BUILD_DIR)/pico8/ltable.o: external/pico8-engine/src/z8lua/ltable.c Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CXX pico8 -O3 ] $(notdir $<)
 	$(V)$(CXX) -c $(CXXFLAGS) -O3 $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.c=.lst)) $< -o $@
+	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
 
-$(BUILD_DIR)/pico8/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
+$(BUILD_DIR)/pico8/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CXX pico8 ] $(notdir $<)
 	$(V)$(CXX) -c $(CXXFLAGS) $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.c=.lst)) $< -o $@
+	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
 
-$(BUILD_DIR)/pico8/%.o: %.cpp Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
+$(BUILD_DIR)/pico8/%.o: %.cpp Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CXX pico8 ] $(notdir $<)
 	$(V)$(CXX) -c $(CXXFLAGS) $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.cpp=.lst)) $< -o $@
+	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
 
 $(BUILD_DIR)/tama/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC tama ] $(notdir $<)
