@@ -432,7 +432,10 @@ static int scan_folder_cb(const rg_scandir_t *entry, void *arg)
                 slot->name[1] = ' ';
             }
         }
-        /* Folder cover: built-in JPEG wired in gui.c (COVERFLOW). */
+#if COVERFLOW != 0
+        /* Folders are not ROM-named cover files; avoid fopen on SD for each folder row. */
+        slot->img_state = IMG_STATE_NO_COVER;
+#endif
     }
     else
     {
