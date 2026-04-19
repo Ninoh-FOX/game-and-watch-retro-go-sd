@@ -61,7 +61,7 @@ through a **versioned ABI table** at a fixed flash offset.
 │              │ ├──────────────────────────────────────────┤ │
 │              │ │ Overlay BSS (zeroed at load)  ~40KB      │ │
 │              │ ├──────────────────────────────────────────┤ │
-│              │ │ Main TLSF pool (Lua heap)    ~560KB      │ │
+│              │ │ Main TLSF pool (Lua heap)    ~717KB      │ │
 │              │ └──────────────────────────────────────────┘ │
 ├──────────────┼──────────────────────────────────────────────┤
 │ QSPI Flash   │ XIP code (loaded from pico8.ro)              │
@@ -185,7 +185,8 @@ User selects a .p8 cart in the retro-go launcher
     │    (via ABI trampoline)  │   │
     │                          │   │
     │ d) p8_init():            │   │
-    │    • DTCM p8.ram from ABI│   │
+    │    • DTCM p8.ram from    │
+│      platform struct     │   │
     │    • Pool allocator init │   │
     │    • ITCM hot code load  │   │
     │      from SD card        │   │
@@ -269,7 +270,7 @@ typedef struct {
 |------|------|---------|
 | `Core/Inc/retro-go/gw_firmware_abi.h` | GPL | Struct definition + VTOR accessor |
 | `Core/Src/retro-go/gw_firmware_abi.c` | GPL | Populated instance (function addresses) |
-| `external/pico8-engine/include/gw_firmware_abi.h` | Engine | Engine-side copy (opaque types) |
+| `Core/Src/porting/pico8/p8_firmware_bridge.cpp` | Engine overlay | ABI trampolines (libc + G&W) |
 
 ### Linker placement
 
@@ -447,6 +448,17 @@ Without the unconditional advance, `itc_calloc` returns 0x00000000 and
 `back_page` overlaps with the VM hot code — causing progressive corruption
 of Lua VM instructions during rendering.
 
+## Platform Struct (`p8_platform_t`)
+
+The engine receives all host-specific services through a `p8_platform_t`
+struct passed at init. This includes memory regions (main pool, AHB, SRD),
+special memory (DTCM for p8.ram, ITCM allocator, scratch buffer for
+savestate staging), timing callbacks, and platform init hooks.
+
+The engine source code contains **no references** to G&W firmware functions
+or headers — all platform coupling is through this struct. The struct is
+defined in `external/pico8-engine/include/p8_platform.h`.
+
 ## DTCM p8.ram Allocation
 
 The engine's 64KB PICO-8 RAM (`p8.ram`) is placed in DTCM for zero-wait
@@ -504,4 +516,4 @@ Heap size was reduced from 32KB to 22KB to fit the 64KB reservation.
 - Bridge trampoline overhead: ~6 cycles per call (load ABI pointer + indirect branch)
 - Hot-path functions (memcpy, memset, lcd_swap): called at frame granularity, overhead negligible
 - Per-pixel/per-sample operations stay within the engine overlay and ITCM — no ABI calls
-- Pool allocator overhead: ~3KB of overlay space for bridge code (721→718KB pool)
+- Pool allocator overhead: ~4KB of overlay space for bridge + platform code (721→717KB pool)
