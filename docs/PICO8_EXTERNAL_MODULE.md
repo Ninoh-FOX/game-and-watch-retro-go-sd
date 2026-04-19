@@ -20,16 +20,16 @@ through a **versioned ABI table** at a fixed flash offset.
 │ (256KB)      │ │ ISR Vector Table (684 bytes)             │ │
 │              │ ├──────────────────────────────────────────┤ │
 │              │ │ ★ Firmware ABI Table (VTOR+0x400)        │ │
-│              │ │   gw_firmware_abi_t: ~500 bytes           │ │
-│              │ │   120+ function pointers + data pointers  │ │
+│              │ │   gw_firmware_abi_t: ~500 bytes          │ │
+│              │ │   120+ function pointers + data pointers │ │
 │              │ ├──────────────────────────────────────────┤ │
 │              │ │ .text (firmware code, libc, HAL)         │ │
 │              │ │ .rodata, .data                           │ │
 │              │ └──────────────────────────────────────────┘ │
 ├──────────────┼──────────────────────────────────────────────┤
-│ ITCM         │ Hot code (loaded from pico8_itcm.bin)       │
+│ ITCM         │ Hot code (loaded from pico8_itcm.bin)        │
 │ (64KB)       │ ┌──────────────────────────────────────────┐ │
-│ @ 0x00000000 │ │ lvm.o  (VM dispatch)        ~16KB       │ │
+│ @ 0x00000000 │ │ lvm.o  (VM dispatch)        ~16KB        │ │
 │              │ │ ltable.o (hash lookups)       ~6KB       │ │
 │              │ │ lgc.o  (garbage collector)    ~7KB       │ │
 │              │ │ lapi.o (Lua C API)            ~8KB       │ │
@@ -41,10 +41,10 @@ through a **versioned ABI table** at a fixed flash offset.
 │              │ │ free                          ~2KB       │ │
 │              │ └──────────────────────────────────────────┘ │
 ├──────────────┼──────────────────────────────────────────────┤
-│ DTCM         │ Firmware BSS + PICO-8 RAM                   │
+│ DTCM         │ Firmware BSS + PICO-8 RAM                    │
 │ (128KB)      │ ┌──────────────────────────────────────────┐ │
-│ @ 0x20000000 │ │ .data + .bss (firmware)      ~14KB      │ │
-│              │ │ ._dtcm_p8ram (p8.ram)         64KB      │ │
+│ @ 0x20000000 │ │ .data + .bss (firmware)      ~14KB       │ │
+│              │ │ ._dtcm_p8ram (p8.ram)         64KB       │ │
 │              │ │ heap (malloc)                  22KB      │ │
 │              │ │ stack                          24KB      │ │
 │              │ └──────────────────────────────────────────┘ │
@@ -67,12 +67,12 @@ through a **versioned ABI table** at a fixed flash offset.
 │ QSPI Flash   │ XIP code (loaded from pico8.ro)              │
 │ (32MB)       │ ┌──────────────────────────────────────────┐ │
 │ @ 0x90000000 │ │ pico8.ro (cold code, sentinel-patched)   │ │
-│              │ │   Lua compiler, cart loader, savestate    │ │
-│              │ │   ~92KB                                   │ │
+│              │ │   Lua compiler, cart loader, savestate   │ │
+│              │ │   ~92KB                                  │ │
 │              │ └──────────────────────────────────────────┘ │
 ├──────────────┼──────────────────────────────────────────────┤
-│ AHB SRAM     │ AHB pool (124KB) — large Lua allocations    │
-│ SRD SRAM     │ SRD pool (32KB) — overflow allocations      │
+│ AHB SRAM     │ AHB pool (124KB) — large Lua allocations     │
+│ SRD SRAM     │ SRD pool (32KB) — overflow allocations       │
 └──────────────┴──────────────────────────────────────────────┘
 ```
 
@@ -93,7 +93,7 @@ User selects a .p8 cart in the retro-go launcher
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 1. CACHE pico8.ro TO FLASH   │
+    │ 1. CACHE pico8.ro TO FLASH    │
     │                               │
     │ Pico8CacheCodeToFlash():      │
     │ • Read /cores/pico8.ro → RAM  │
@@ -107,47 +107,47 @@ User selects a .p8 cart in the retro-go launcher
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 2. LOAD pico8.bin TO RAM     │
+    │ 2. LOAD pico8.bin TO RAM      │
     │                               │
     │ odroid_overlay_cache_file_    │
-    │ in_ram("/cores/pico8.bin",   │
+    │ in_ram("/cores/pico8.bin",    │
     │        __RAM_EMU_START__)     │
     │                               │
-    │ → 125KB loaded to 0x2404b000 │
+    │ → 125KB loaded to 0x2404b000  │
     └───────────────┬───────────────┘
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 3. ZERO BSS                  │
+    │ 3. ZERO BSS                   │
     │                               │
     │ memset(loaded_end, 0, 256KB)  │
-    │ Engine BSS (~40KB) zeroed.   │
+    │ Engine BSS (~40KB) zeroed.    │
     │ Uses actual loaded size, not  │
     │ linker-defined stub size.     │
     └───────────────┬───────────────┘
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 4. PATCH RAM OVERLAY         │
+    │ 4. PATCH RAM OVERLAY          │
     │                               │
     │ PatchPico8Region():           │
     │ Scan loaded data for          │
-    │ 0xBEEFxxxx sentinel addrs.   │
-    │ Replace with actual QSPI     │
-    │ addresses (from step 1).     │
+    │ 0xBEEFxxxx sentinel addrs.    │
+    │ Replace with actual QSPI      │
+    │ addresses (from step 1).      │
     │ Only scans loaded data, NOT   │
-    │ zeroed BSS (avoids false     │
+    │ zeroed BSS (avoids false      │
     │ positives).                   │
     │                               │
-    │ → 16 refs patched            │
+    │ → 16 refs patched             │
     └───────────────┬───────────────┘
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 5. CACHE MAINTENANCE         │
+    │ 5. CACHE MAINTENANCE          │
     │                               │
-    │ SCB_CleanDCache_by_Addr()    │
-    │ SCB_InvalidateICache()       │
+    │ SCB_CleanDCache_by_Addr()     │
+    │ SCB_InvalidateICache()        │
     │                               │
     │ Ensures CPU fetches patched   │
     │ code, not stale cache.        │
@@ -155,48 +155,48 @@ User selects a .p8 cart in the retro-go launcher
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 6. DISPATCH VIA TRAMPOLINE   │
+    │ 6. DISPATCH VIA TRAMPOLINE    │
     │                               │
     │ Jump to __RAM_EMU_START__ | 1 │
-    │ (offset 0 of overlay = entry │
-    │  trampoline, NOT the linker  │
-    │  veneer for app_main_pico8)  │
+    │ (offset 0 of overlay = entry  │
+    │  trampoline, NOT the linker   │
+    │  veneer for app_main_pico8)   │
     │                               │
     │ .pico8_entry section:         │
-    │   b.w app_main_pico8         │
+    │   b.w app_main_pico8          │
     └───────────────┬───────────────┘
                     │
                     ▼
     ┌───────────────────────────────┐
-    │ 7. ENGINE INIT               │
+    │ 7. ENGINE INIT                │
     │                               │
     │ app_main_pico8():             │
-    │ a) p8_firmware_bridge_init() │
-    │    Read ABI data pointers    │
-    │    (ACTIVE_FILE, ROM_DATA,   │
-    │     ram_start, _impure_ptr)  │
+    │ a) p8_firmware_bridge_init()  │
+    │    Read ABI data pointers     │
+    │    (ACTIVE_FILE, ROM_DATA,    │
+    │     ram_start, _impure_ptr)   │
     │                               │
-    │ b) ram_start = BSS_END       │
-    │    p8_firmware_bridge_sync() │
-    │    Write ram_start back to   │
-    │    firmware global via ABI   │
+    │ b) ram_start = BSS_END        │
+    │    p8_firmware_bridge_sync()  │
+    │    Write ram_start back to    │
+    │    firmware global via ABI    │
     │                               │
-    │ c) odroid_system_init() ─┐   │
-    │    (via ABI trampoline)  │   │
-    │                          │   │
-    │ d) p8_init():            │   │
-    │    • DTCM p8.ram from    │
-│      platform struct     │   │
-    │    • Pool allocator init │   │
-    │    • ITCM hot code load  │   │
-    │      from SD card        │   │
-    │    • Sentinel-patch ITCM │   │
-    │    • back_page alloc     │   │
-    │      (AFTER hot code!)   │   │
-    │    • Cart extract        │   │
-    │    • Lua VM init         │   │
-    │    • openlibs            │   │
-    │    • Cart compile + run  │   │
+    │ c) odroid_system_init() ─┐    │
+    │    (via ABI trampoline)  │    │
+    │                          │    │
+    │ d) p8_init():            │    │
+    │    • DTCM p8.ram from    │    |
+    │      platform struct     │    |
+    │    • Pool allocator init │    │
+    │    • ITCM hot code load  │    │
+    │      from SD card        │    │
+    │    • Sentinel-patch ITCM │    │
+    │    • back_page alloc     │    │
+    │      (AFTER hot code!)   │    │
+    │    • Cart extract        │    │
+    │    • Lua VM init         │    │
+    │    • openlibs            │    │
+    │    • Cart compile + run  │    │
     └───────────────────────────────┘
 ```
 
