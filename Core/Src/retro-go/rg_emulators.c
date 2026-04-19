@@ -1154,24 +1154,69 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         app_main_pkmini(load_state, start_paused, save_slot);
       }
     } else if(strcmp(system_name, "PICO-8") == 0) {
-      /* Try XIP code split: code in flash (patched), data in RAM */
+      /* Try XIP code split: code in flash (patched), data in RAM.
+       *
+       * The GPL firmware's linker-defined _OVERLAY_PICO8_SIZE / _BSS_SIZE
+       * reflect the STUB overlay (596 bytes), not the separately-distributed
+       * engine binary (~125 KB). We use the actual loaded file size for
+       * sentinel patching, BSS zeroing, and cache maintenance so the real
+       * engine binary works correctly when dropped onto the SD card.
+       *
+       * ram_start must be set before Pico8CacheCodeToFlash because the
+       * flash allocator (store_file_in_flash) uses ram_calloc for metadata. */
+      /* ram_start must be set for Pico8CacheCodeToFlash because the flash
+       * allocator (store_file_in_flash) uses ram_calloc for metadata.
+       * After the flash cache call, reset the RAM allocator — pico8.bin
+       * will be loaded to RAM_EMU, overwriting any metadata allocated there.
+       * The engine's p8_firmware_bridge_sync() sets ram_start properly
+       * before any pool allocations. */
+      ram_start = (uint32_t)&__RAM_EMU_START__;
       uint32_t pico8_code_size = 0;
       uint8_t *pico8_code_addr = Pico8CacheCodeToFlash(&pico8_code_size);
-      if (pico8_code_addr && odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__)) {
-        memset(&_OVERLAY_PICO8_BSS_START, 0x0, (size_t)&_OVERLAY_PICO8_BSS_SIZE);
-        PatchPico8RamData(pico8_code_addr, pico8_code_size);
+      ahb_init();  /* reset current_ram_pointer before overlay load */
+      ram_start = 0;
+      size_t pico8_bin_size = 0;
+      if (pico8_code_addr &&
+          (pico8_bin_size = odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__))) {
+        /* Zero BSS: the separately-distributed engine binary has a much
+         * larger BSS (~40 KB) than the GPL stub. We don't know the exact
+         * BSS size, so zero from end-of-loaded-data to a generous upper
+         * bound (256 KB past loaded data, capped at RAM_EMU end). This
+         * ensures the engine's p8 struct, pool state, etc. start clean. */
+        uint8_t *bss_start = (uint8_t *)&__RAM_EMU_START__ + pico8_bin_size;
+        uint8_t *bss_end   = bss_start + 256 * 1024;
+        if (bss_end > (uint8_t *)&__RAM_EMU_START__ + (size_t)&_OVERLAY_PICO8_SIZE + 512*1024)
+            bss_end = (uint8_t *)&__RAM_EMU_START__ + (size_t)&_OVERLAY_PICO8_SIZE + 512*1024;
+        /* Sentinel scan covers ONLY loaded code+data (pico8.bin), NOT the
+         * zeroed BSS. BSS is all zeros → no sentinel matches. Scanning
+         * BSS is harmless but scanning loaded DATA risks false positives:
+         * any fix32 constant in the -16657..-16565 range (0xBEEFxxxx)
+         * would be incorrectly "patched" and corrupted. */
+        uint8_t *scan_end = (uint8_t *)&__RAM_EMU_START__ + pico8_bin_size;
+
+        memset(bss_start, 0x0, bss_end - bss_start);
+        int patched = PatchPico8Region((uint32_t *)__RAM_EMU_START__, (uint32_t *)scan_end,
+                         (int32_t)((uint32_t)pico8_code_addr - PICO8_CODE_BASE),
+                         pico8_code_size);
+        printf("P8: patched %d refs in RAM %p..%p (loaded %u bytes)\n",
+               patched, __RAM_EMU_START__, scan_end, (unsigned)pico8_bin_size);
         /* Expose for ITCM sentinel patching in main_pico8.c (after SD load) */
         pico8_code_flash_addr = pico8_code_addr;
         pico8_code_flash_size = pico8_code_size;
 
-        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PICO8_SIZE + (size_t)&_OVERLAY_PICO8_BSS_SIZE);
+        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, pico8_bin_size + 128*1024);
         SCB_InvalidateICache();
-        app_main_pico8(load_state, start_paused, save_slot);
-      } else if (odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__)) {
+        /* Dispatch via entry trampoline at overlay offset 0, not via
+         * linker veneer — the loaded binary may have app_main_pico8 at a
+         * different offset than the GPL stub's link-time layout. */
+        ((void (*)(uint8_t, uint8_t, int8_t))((uintptr_t)__RAM_EMU_START__ | 1))(load_state, start_paused, save_slot);
+      } else if ((pico8_bin_size = odroid_overlay_cache_file_in_ram("/cores/pico8.bin", (uint8_t *)&__RAM_EMU_START__))) {
         /* Fallback: old monolithic path (pico8.ro missing from SD) */
-        memset(&_OVERLAY_PICO8_BSS_START, 0x0, (size_t)&_OVERLAY_PICO8_BSS_SIZE);
-        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, (size_t)&_OVERLAY_PICO8_SIZE);
-        app_main_pico8(load_state, start_paused, save_slot);
+        uint8_t *bss_start = (uint8_t *)&__RAM_EMU_START__ + pico8_bin_size;
+        uint8_t *bss_end   = bss_start + 256 * 1024;
+        memset(bss_start, 0x0, bss_end - bss_start);
+        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, pico8_bin_size + 256*1024);
+        ((void (*)(uint8_t, uint8_t, int8_t))((uintptr_t)__RAM_EMU_START__ | 1))(load_state, start_paused, save_slot);
       }
     }
 
@@ -1215,6 +1260,9 @@ void emulators_init()
     add_emulator("Tamagotchi", "tama", "b", RG_LOGO_PAD_TAMA, RG_LOGO_HEADER_TAMA, NO_GAME_DATA);
     add_emulator("Pokemon Mini", "mini", "min", RG_LOGO_PAD_PKMINI, RG_LOGO_HEADER_PKMINI, NO_GAME_DATA);
     add_emulator("Homebrew", "homebrew", "bin", RG_LOGO_EMPTY, RG_LOGO_HEADER_HOMEBREW, NO_GAME_DATA);
+    /* PICO-8: carts (.p8 / .p8.png) live under /roms/pico8/. The engine
+     * itself (pico8.bin) is a separately-distributed overlay loaded at
+     * runtime; see the stub in Core/Src/porting/pico8/main_pico8.c. */
     add_emulator("PICO-8", "pico8", "p8 png", RG_LOGO_EMPTY, RG_LOGO_HEADER_PICO8, GAME_DATA);
 }
 

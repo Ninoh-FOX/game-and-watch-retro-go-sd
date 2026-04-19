@@ -611,8 +611,14 @@ TAMA_OBJECTS = $(addprefix $(BUILD_DIR)/tama/,$(notdir $(TAMA_C_SOURCES:.c=.o)))
 PKMINI_OBJECTS = $(addprefix $(BUILD_DIR)/pkmini/,$(notdir $(PKMINI_C_SOURCES:.c=.o)))
 
 vpath %.c $(sort $(dir $(C_SOURCES) $(FATFS_C_SOURCES) $(NES_C_SOURCES) $(NES_FCEU_C_SOURCES) $(TGBDUAL_C_SOURCES) $(TGBDUAL_C_SOURCES) $(SMSPLUSGX_C_SOURCES) $(PCE_C_SOURCES) $(MSX_C_SOURCES) $(GW_C_SOURCES) $(WSV_C_SOURCES) $(MD_C_SOURCES) $(A2600_C_SOURCES) $(A7800_C_SOURCES) $(AMSTRAD_C_SOURCES) $(ZELDA3_C_SOURCES) $(SMW_C_SOURCES) $(VIDEOPAC_C_SOURCES) $(CELESTE_C_SOURCES) $(TAMA_C_SOURCES) $(PKMINI_C_SOURCES) $(PICO8_C_SOURCES) $(SDK_C_SOURCES)))
+# Guard empty lists: vpath with empty path resets the pattern's search path.
+# The GPL stub build has no PICO8_CXX_SOURCES, so only emit these when non-empty.
+ifneq ($(strip $(PICO8_CXX_SOURCES)),)
 vpath %.c $(sort $(dir $(PICO8_CXX_SOURCES)))
+endif
+ifneq ($(strip $(PICO8_CXX_SOURCES) $(PICO8_CXX_STUBS)),)
 vpath %.cpp $(sort $(dir $(PICO8_CXX_SOURCES) $(PICO8_CXX_STUBS)))
+endif
 
 MAPPER_SRCS := $(wildcard external/fceumm-go/src/boards/*.c)
 MAPPER_SRCS := $(filter-out external/fceumm-go/src/boards/__%.c, $(MAPPER_SRCS))
@@ -796,34 +802,14 @@ $(BUILD_DIR)/celeste/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_
 # dispatch pathology and is why LuaJIT/V8/etc all use -O2 for their dispatch
 # loops.
 # ltable.c has no dispatch loop and is safe to compile at -O3.
+# GPL stub: compiled as C++ (main_pico8.c uses extern "C"), no objcopy rename needed.
+# The full engine build (closed repo) overrides these rules with its own Makefile
+# that includes the ABI redefine step.
 PICO8_EXTRA_FLAGS = -fno-exceptions
 
-# Firmware ABI bridge: after compile, every engine .o is post-processed
-# with objcopy --redefine-syms to rewrite references to libc/libgcc
-# symbols (memcpy, __aeabi_fadd, fopen, ...) into p8_-prefixed forms
-# that resolve to the trampolines in p8_firmware_bridge.cpp. This keeps
-# engine binaries firmware-address-independent — calls go through the
-# versioned ABI table at VTOR+0x400 instead of baked-in intflash
-# addresses. See Core/Inc/retro-go/gw_firmware_abi.h (GPL repo).
-PICO8_ABI_REDEFINE = Core/Src/porting/pico8/pico8_abi_redefine_syms.txt
-
-# Hot file: table operations. -O3 inlines luaH_get etc. more aggressively;
-# this file is called from lvm.c on IC misses and benefits from inlining.
-# GCC honours the LAST -O flag, so appending -O3 overrides the -O2 in $(CXXFLAGS).
-$(BUILD_DIR)/pico8/ltable.o: external/pico8-engine/src/z8lua/ltable.c Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
-	$(V)$(ECHO) [ CXX pico8 -O3 ] $(notdir $<)
-	$(V)$(CXX) -c $(CXXFLAGS) -O3 $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.c=.lst)) $< -o $@
-	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
-
-$(BUILD_DIR)/pico8/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
+$(BUILD_DIR)/pico8/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CXX pico8 ] $(notdir $<)
 	$(V)$(CXX) -c $(CXXFLAGS) $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.c=.lst)) $< -o $@
-	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
-
-$(BUILD_DIR)/pico8/%.o: %.cpp Makefile.common Makefile $(SDK_HEADERS) $(PICO8_ABI_REDEFINE) | $(BUILD_DIR)
-	$(V)$(ECHO) [ CXX pico8 ] $(notdir $<)
-	$(V)$(CXX) -c $(CXXFLAGS) $(PICO8_EXTRA_FLAGS) $(PICO8_C_INCLUDES) -Wa,-a,-ad,-alms=$(BUILD_DIR)/pico8/$(notdir $(<:.cpp=.lst)) $< -o $@
-	$(V)$(CP) --redefine-syms=$(PICO8_ABI_REDEFINE) $@
 
 $(BUILD_DIR)/tama/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_DIR)
 	$(V)$(ECHO) [ CC tama ] $(notdir $<)
@@ -1122,9 +1108,7 @@ create_sd_data: create_sd_folders prepare_msx_bios_files $(MAPPER_BINS) $(BUILD_
 	@$(CP) -O binary --only-section=.overlay_videopac $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/videopac.bin
 	@$(CP) -O binary --only-section=.overlay_tama $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/tama.bin
 	@$(CP) -O binary --only-section=.overlay_pkmini $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pkmini.bin
-	@$(CP) -O binary --only-section=.pico8_code $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pico8.ro
 	@$(CP) -O binary --only-section=.overlay_pico8 $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pico8.bin
-	@$(CP) -O binary --only-section=._itcram_hot $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pico8_itcm.bin 2>/dev/null || true
 	@$(CP) -O binary --only-section=.overlay_celeste $(BUILD_DIR)/$(TARGET).elf $(HOMEBREWS_FOLDER)/celeste.bin
 	@$(CP) -O binary --only-section=.overlay_zelda3 $(BUILD_DIR)/$(TARGET).elf "$(HOMEBREWS_FOLDER)/Zelda 3.bin"
 	@$(CP) -O binary --only-section=.rodata_zelda3 $(BUILD_DIR)/$(TARGET).elf "$(HOMEBREWS_FOLDER)/zelda3.ro"
