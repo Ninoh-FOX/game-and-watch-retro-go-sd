@@ -802,7 +802,7 @@ $(BUILD_DIR)/celeste/%.o: %.c Makefile.common Makefile $(SDK_HEADERS) | $(BUILD_
 # dispatch pathology and is why LuaJIT/V8/etc all use -O2 for their dispatch
 # loops.
 # ltable.c has no dispatch loop and is safe to compile at -O3.
-# GPL stub: compiled as C++ (main_pico8.c uses extern "C"), no objcopy rename needed.
+# GPL stub: compiled as C++ (main_pico8_stub.c uses extern "C"), no objcopy rename needed.
 # The full engine build (closed repo) overrides these rules with its own Makefile
 # that includes the ABI redefine step.
 PICO8_EXTRA_FLAGS = -fno-exceptions
@@ -1108,7 +1108,7 @@ create_sd_data: create_sd_folders prepare_msx_bios_files $(MAPPER_BINS) $(BUILD_
 	@$(CP) -O binary --only-section=.overlay_videopac $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/videopac.bin
 	@$(CP) -O binary --only-section=.overlay_tama $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/tama.bin
 	@$(CP) -O binary --only-section=.overlay_pkmini $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pkmini.bin
-	@$(CP) -O binary --only-section=.overlay_pico8 $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pico8.bin
+	@$(CP) -O binary --only-section=.overlay_pico8 $(BUILD_DIR)/$(TARGET).elf $(CORES_DIR)/pico8_stub.bin
 	@$(CP) -O binary --only-section=.overlay_celeste $(BUILD_DIR)/$(TARGET).elf $(HOMEBREWS_FOLDER)/celeste.bin
 	@$(CP) -O binary --only-section=.overlay_zelda3 $(BUILD_DIR)/$(TARGET).elf "$(HOMEBREWS_FOLDER)/Zelda 3.bin"
 	@$(CP) -O binary --only-section=.rodata_zelda3 $(BUILD_DIR)/$(TARGET).elf "$(HOMEBREWS_FOLDER)/zelda3.ro"

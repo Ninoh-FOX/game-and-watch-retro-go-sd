@@ -800,9 +800,10 @@ Core/Src/porting/celeste/main_celeste.c
 
 # PICO-8 stub only — the engine is distributed separately as binary files
 # (pico8.bin, pico8.ro, pico8_itcm.bin) placed on the SD card under /cores/.
-# See docs/PICO8_EXTERNAL_MODULE.md for the architecture.
+# The stub is built as pico8_stub.bin; rg_emulators.c loads pico8.bin first
+# and falls back to pico8_stub.bin if the full engine is not on the SD card.
 PICO8_C_SOURCES = \
-Core/Src/porting/pico8/main_pico8.c
+Core/Src/porting/pico8/main_pico8_stub.c
 
 PICO8_CXX_STUBS =
 PICO8_CXX_SOURCES =

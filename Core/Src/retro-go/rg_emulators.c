@@ -1217,6 +1217,13 @@ void emulator_start(retro_emulator_file_t *file, bool load_state, bool start_pau
         memset(bss_start, 0x0, bss_end - bss_start);
         SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, pico8_bin_size + 256*1024);
         ((void (*)(uint8_t, uint8_t, int8_t))((uintptr_t)__RAM_EMU_START__ | 1))(load_state, start_paused, save_slot);
+      } else if ((pico8_bin_size = odroid_overlay_cache_file_in_ram("/cores/pico8_stub.bin", (uint8_t *)&__RAM_EMU_START__))) {
+        /* Last resort: GPL stub (shows "engine not installed" message) */
+        uint8_t *bss_start = (uint8_t *)&__RAM_EMU_START__ + pico8_bin_size;
+        uint8_t *bss_end   = bss_start + 256 * 1024;
+        memset(bss_start, 0x0, bss_end - bss_start);
+        SCB_CleanDCache_by_Addr((uint32_t *)&__RAM_EMU_START__, pico8_bin_size + 256*1024);
+        ((void (*)(uint8_t, uint8_t, int8_t))((uintptr_t)__RAM_EMU_START__ | 1))(load_state, start_paused, save_slot);
       }
     }
 

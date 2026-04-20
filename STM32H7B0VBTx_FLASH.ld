@@ -645,7 +645,7 @@ SECTIONS
     __ram_emu_pico8_start__ = .;
     KEEP(*(.pico8_entry))
     _PICO8_MAIN_CODE_START = .;
-    build/pico8/main_pico8.o (.text .text* .data .data* .rodata .rodata*)
+    build/pico8/main_pico8_stub.o (.text .text* .data .data* .rodata .rodata*)
     _PICO8_MAIN_CODE_END = .;
     build/pico8/*.o (.data .data* .text .text* .rodata .rodata*)
     . = ALIGN(4);

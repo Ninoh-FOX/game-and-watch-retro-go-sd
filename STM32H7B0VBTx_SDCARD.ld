@@ -612,7 +612,7 @@ INCLUDE build/fceumm_mappers.ld
   _OVERLAY_CELESTE_BSS_SIZE = SIZEOF(.overlay_celeste_bss);
 
   /* PICO-8 stub overlay → RAM.
-     The GPL build only includes the install-prompt stub (main_pico8.c).
+     The GPL build only includes the install-prompt stub (main_pico8_stub.c).
      The real engine is loaded from /cores/pico8.bin at runtime, replacing
      this stub in memory. See docs/PICO8_EXTERNAL_MODULE.md. */
   .overlay_pico8 __RAM_EMU_START__ : {
@@ -620,7 +620,7 @@ INCLUDE build/fceumm_mappers.ld
     __ram_emu_pico8_start__ = .;
     KEEP(*(.pico8_entry))
     _PICO8_MAIN_CODE_START = .;
-    build/pico8/main_pico8.o (.text .text* .data .data* .rodata .rodata*)
+    build/pico8/main_pico8_stub.o (.text .text* .data .data* .rodata .rodata*)
     _PICO8_MAIN_CODE_END = .;
     . = ALIGN(4);
     _OVERLAY_PICO8_LOAD_END = .;
