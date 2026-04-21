@@ -42,9 +42,10 @@
 #define CORE_HEADER_MAGIC_INTERNAL "CORI"
 #define CORE_HEADER_MAGIC_EXTERNAL "CORE"
 #define CORE_HEADER_MIN_SIZE 8u
-// CORE_BIN_HEADER_VERSION is defined in Makefile.common
-// and shall be incremented when the core binary format changes
-#define CORE_HEADER_VERSION ((uint16_t)(CORE_BIN_HEADER_VERSION))
+// INTERNAL_CORE_BIN_HEADER_VERSION is defined in Makefile.common
+// and shall be incremented when the internal cores binary format
+// changes
+#define INTERNAL_CORE_HEADER_VERSION ((uint16_t)(INTERNAL_CORE_BIN_HEADER_VERSION))
 
 static uint16_t read_u16_le(const uint8_t *p)
 {
@@ -94,9 +95,9 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
   }
 
   if (is_internal_core) {
-    if (header_version != CORE_HEADER_VERSION) {
+    if (header_version != INTERNAL_CORE_HEADER_VERSION) {
       printf("CORE: unsupported internal header version %u in '%s' (expected %u)\n",
-             (unsigned)header_version, file_path, (unsigned)CORE_HEADER_VERSION);
+             (unsigned)header_version, file_path, (unsigned)INTERNAL_CORE_HEADER_VERSION);
       free(header_data);
       fclose(file);
       return 0;
