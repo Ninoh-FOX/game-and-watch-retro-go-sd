@@ -2,25 +2,21 @@
 
 ## What's New
 
-### Version 1.2.0
-- Fix the G&W waking up when plugging/unplugging the USB charger
-- Genesis/Megadrive emulation improvements :
-  - SRAM support
-  - Support for games larger than 4MB (Super Street Fighter 2 mapper support)
-  - SGDK based games are now working (Xenocrisis, Demons of Asteborg, ...)
-  - Various other fixes/improvements
-- Fast scroll in games selection after 5s of scrolling (To be improved)
-- Add Date/time next to used savestate slots
-- Add SRAM file saving support for NES & GB/GBC
-- New SRAM management: starting a new game is using sram save (if it exists),
-  only one sram file per game is created, all savestates for a game are sharing
-  the same sram file. Available on NES, GB/GBC, Genesis, Pokemeon Mini, Zelda 3 and Super Mario World.
-  This is allowing to import/export SRAM files with emulators on a computer for example.
-- For Amstrad/MSX/Genesis/Nes, set maximum overclocking automatically if no overclocking is set.
-  If your device is not well supporting maximum overclocking, set overclocking to intermediate in main menu
-  to prevent maximum OC to be applied to these systems
-- Use ARM compiler v15.2.rel1
-This is a big update, some regression may occurs. Please report them.
+### Version 1.3.0
+
+!!!! This is a big update, some regression may occurs. Please report them. !!!!
+
+- Subfolders support : create some subfolders in systems roms (/roms/xxx/) to sort your roms 
+- Pico-8 (beta) support ! This update brings support for Pico-8 fantasy console.
+  It requires to manually install Pico-8 core by followinf instructions at https://github.com/Macs75/pico8_gnw_distro
+  Due to limited RAM and CPU power of the G&W, some games will not run well (or at all)
+  Pico-8 Core is still in beta stage, it can crash (in worst case you could have to wait for battery to be empty to be able to restart the console !), savestates are not handled by retro-go, ...
+  Copy your .p8 or .png in /roms/pico8
+- No more crash if using SD Card (or sd card content) from another G&W (flash cache data will be erased in this case)
+- It'll inform user if firware data on the sd cards do not fit the version of retro-go in flash
+- Firmware update : improved install speed
+- More Genesis/Megadrive emulation improvements :
+  - Use of M68K mmap for better performances
 
 ## Prerequisites
 To install this version, make sure you have:
