@@ -16,6 +16,7 @@ extern "C" {
 #include "main_gb_tgbdual.h"
 #include "heap.hpp"
 #include "odroid_overlay.h"
+#include "odroid_settings.h"
 #include "rg_storage.h"
 
 extern void __libc_init_array(void);
@@ -439,6 +440,7 @@ static bool palette_update_cb(odroid_dialog_choice_t *option, odroid_dialog_even
 
     if (event == ODROID_DIALOG_PREV || event == ODROID_DIALOG_NEXT) {
         g_gb->get_lcd()->set_palette(index_palette);
+        odroid_settings_Palette_set(index_palette);
     }
 
     sprintf(option->value, "%d/%d", index_palette+1, max+1);
@@ -611,7 +613,12 @@ void app_main_gb_tgbdual_cpp(uint8_t load_state, uint8_t start_paused, int8_t sa
         free(sram_path);
     }
 
-    index_palette = g_gb->get_lcd()->get_current_palette();
+    int max_palette = g_gb->get_lcd()->get_palette_count() - 1;
+    index_palette = odroid_settings_Palette_get();
+    if (index_palette < 0 || index_palette > max_palette) {
+        index_palette = g_gb->get_lcd()->get_current_palette();
+    }
+    g_gb->get_lcd()->set_palette(index_palette);
 
 #if CHEAT_CODES == 1
     for(int i=0; i<MAX_CHEAT_CODES && i<ACTIVE_FILE->cheat_count; i++) {
