@@ -447,7 +447,7 @@ static void GLOBAL_DATA handle_options_menu()
     char font_value[16];
     char timeout_value[16];
 #if COVERFLOW != 0
-    char theme_value[16];
+    char theme_value[32];
 #endif
     char colors_value[16];
     char lang_value[64];
