@@ -162,6 +162,9 @@ typedef struct {
     uint8_t *char_data; // Pointer to the character data
 } FontEntry;
 
+static int utf8_decode(const char *str, uint32_t *codepoint);
+static FontEntry *get_font_data(uint32_t codepoint);
+
 static FontEntry *font_cache = NULL/*[CACHE_SIZE]*/;
 static uint16_t cache_index = 0; // Index of the next cache entry
 static uint8_t *font_data_cache = NULL/*[FONT_CACHE_SIZE]*/; // Raw font data buffer
@@ -244,7 +247,7 @@ const char *get_font_file(uint32_t codepoint) {
     return font_files[curr_font];  // CP1252 latin font
 }
 
-void invalidate_overlapping_entries(uint8_t *start_ptr, uint16_t length) {
+static void invalidate_overlapping_entries(uint8_t *start_ptr, uint16_t length) {
     uint8_t *end_ptr = start_ptr + length;
 
     for (int i = 0; i < CACHE_SIZE; i++) {
@@ -268,7 +271,7 @@ void init_font_cache() {
     cache_data_index = 0;
 }
 
-FontEntry *get_font_data(uint32_t codepoint) {
+static FontEntry *get_font_data(uint32_t codepoint) {
     FILE *file;
 
     if (font_cache == NULL) {
@@ -286,7 +289,7 @@ FontEntry *get_font_data(uint32_t codepoint) {
     // Not found, load from SD and add to cache
     FontEntry *entry = &font_cache[cache_index];
     entry->codepoint = codepoint;
-    entry->valid = true;
+    entry->valid = false; // Mark valid only after glyph data is fully loaded
 
     const char *filename = get_font_file(codepoint);
     uint16_t char_offset = codepoint;
@@ -393,7 +396,7 @@ FontEntry *get_font_data(uint32_t codepoint) {
 //    }
 //    printf("\n");
     cache_data_index += data_length;
-
+    entry->valid = true;
     fclose(file);
     cache_index = (cache_index + 1) % CACHE_SIZE;
     return entry;
@@ -558,7 +561,7 @@ const lang_t *gui_lang[] = {
 lang_t *curr_lang = &lang_en_us;
 const int gui_lang_count = sizeof(gui_lang) / sizeof(*gui_lang);
 
-int utf8_decode(const char *str, uint32_t *codepoint) {
+static int utf8_decode(const char *str, uint32_t *codepoint) {
     if (!str || !codepoint) return 0;
 
     unsigned char c = str[0];
