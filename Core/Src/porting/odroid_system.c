@@ -81,10 +81,11 @@ static char *extract_system(const char *filename) {
     return directory;
 }
 
-char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
+/* Build a path into the provided buffer. If out_buf is NULL, allocates
+ * via strdup (legacy behavior). Callers that provide a buffer avoid heap. */
+static void odroid_system_get_path_buf(emu_path_type_t type, const char *_romPath, char *out, int out_size)
 {
     const char *fileName = _romPath ?: currentApp.romPath;
-    char buffer[256];
 
     if (strstr(fileName, ODROID_BASE_PATH_ROMS))
     {
@@ -103,136 +104,139 @@ char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
         case ODROID_PATH_SAVE_STATE_1:
         case ODROID_PATH_SAVE_STATE_2:
         case ODROID_PATH_SAVE_STATE_3:
-            sprintf(buffer, "%s%s-%d.sav", ODROID_BASE_PATH_SAVES, fileName, type);
+            snprintf(out, out_size, "%s%s-%d.sav", ODROID_BASE_PATH_SAVES, fileName, type);
             break;
         case ODROID_PATH_SAVE_STATE_OFF:
-            sprintf(buffer, "%s/off.sav", ODROID_BASE_PATH_SAVES);
+            snprintf(out, out_size, "%s/off.sav", ODROID_BASE_PATH_SAVES);
             break;
         case ODROID_PATH_SCREENSHOT:
         case ODROID_PATH_SCREENSHOT_1:
         case ODROID_PATH_SCREENSHOT_2:
         case ODROID_PATH_SCREENSHOT_3:
-            sprintf(buffer, "%s%s-%d.raw", ODROID_BASE_PATH_SAVES, fileName, type-ODROID_PATH_SCREENSHOT);
+            snprintf(out, out_size, "%s%s-%d.raw", ODROID_BASE_PATH_SAVES, fileName, type-ODROID_PATH_SCREENSHOT);
             break;
 
         case ODROID_PATH_USER_SCREENSHOT:
         {
-            // Get current date and time using standard C functions
             time_t now = time(NULL);
             struct tm *tm_info = localtime(&now);
-            
-            // Extract just the filename without path and extension
             char tempFileName[200];
             const char *baseName = strrchr(fileName, '/');
-            if (baseName) {
-                baseName++; // Skip the '/'
-            } else {
-                baseName = fileName;
-            }
+            if (baseName) baseName++;
+            else baseName = fileName;
             strncpy(tempFileName, baseName, sizeof(tempFileName) - 1);
+            tempFileName[sizeof(tempFileName) - 1] = '\0';
             char *dot = strrchr(tempFileName, '.');
             if (dot) *dot = '\0';
-            
-            sprintf(buffer, "%s/%04d-%02d-%02d-%02d-%02d-%02d-%s.bmp", 
-                    ODROID_BASE_PATH_SCREENSHOTS, 
+            snprintf(out, out_size, "%s/%04d-%02d-%02d-%02d-%02d-%02d-%s.bmp",
+                    ODROID_BASE_PATH_SCREENSHOTS,
                     1900 + tm_info->tm_year, tm_info->tm_mon + 1, tm_info->tm_mday,
                     tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec, tempFileName);
             break;
         }
 
         case ODROID_PATH_SAVE_BACK:
-            strcpy(buffer, ODROID_BASE_PATH_SAVES);
-            strcat(buffer, fileName);
-            strcat(buffer, ".sav.bak");
+            snprintf(out, out_size, "%s%s.sav.bak", ODROID_BASE_PATH_SAVES, fileName);
             break;
 
         case ODROID_PATH_SAVE_SRAM:
-            strcpy(buffer, ODROID_BASE_PATH_SAVES);
-            strcat(buffer, fileName);
-            strcat(buffer, ".sram");
+            snprintf(out, out_size, "%s%s.sram", ODROID_BASE_PATH_SAVES, fileName);
             break;
 
         case ODROID_PATH_TEMP_FILE:
-            sprintf(buffer, "%s/%X%X.tmp", ODROID_BASE_PATH_TEMP, get_elapsed_time(), rand());
+            snprintf(out, out_size, "%s/%X%X.tmp", ODROID_BASE_PATH_TEMP, get_elapsed_time(), rand());
             break;
 
         case ODROID_PATH_ROM_FILE:
-            strcpy(buffer, ODROID_BASE_PATH_ROMS);
-            strcat(buffer, fileName);
+            snprintf(out, out_size, "%s%s", ODROID_BASE_PATH_ROMS, fileName);
             break;
 
         case ODROID_PATH_CRC_CACHE:
-            strcpy(buffer, ODROID_BASE_PATH_CRC_CACHE);
-            strcat(buffer, fileName);
-            strcat(buffer, ".crc");
+            snprintf(out, out_size, "%s%s.crc", ODROID_BASE_PATH_CRC_CACHE, fileName);
             break;
 
         case ODROID_PATH_COVER_FILE:
         {
             char tempFileName[200];
             strncpy(tempFileName, fileName, sizeof(tempFileName) - 1);
+            tempFileName[sizeof(tempFileName) - 1] = '\0';
             char *dot = strrchr(tempFileName, '.');
-            if (dot)
-            {
-               *dot = '\0';
-            }
-            sprintf(buffer, "%s%s.img", ODROID_BASE_PATH_COVERS, tempFileName);
+            if (dot) *dot = '\0';
+            snprintf(out, out_size, "%s%s.img", ODROID_BASE_PATH_COVERS, tempFileName);
             break;
         }
 
         case ODROID_PATH_CHEAT_STATE:
-        {
-            char *shortFileName = strdup(fileName);
-            char *ext = strrchr(shortFileName, '.');
-            if (ext) *ext = '\0';
-            sprintf(buffer, "%s%s.state", ODROID_BASE_PATH_CHEATS, fileName);
-            free(shortFileName);
+            snprintf(out, out_size, "%s%s.state", ODROID_BASE_PATH_CHEATS, fileName);
             break;
-        }
 
         case ODROID_PATH_CHEAT_PCE:
         {
-            char *shortFileName = strdup(fileName);
+            char shortFileName[200];
+            strncpy(shortFileName, fileName, sizeof(shortFileName) - 1);
+            shortFileName[sizeof(shortFileName) - 1] = '\0';
             char *ext = strrchr(shortFileName, '.');
             if (ext) *ext = '\0';
-            sprintf(buffer, "%s%s.pceplus", ODROID_BASE_PATH_CHEATS, shortFileName);
-            free(shortFileName);
+            snprintf(out, out_size, "%s%s.pceplus", ODROID_BASE_PATH_CHEATS, shortFileName);
             break;
         }
 
         case ODROID_PATH_CHEAT_GAME_GENIE:
         {
-            char *shortFileName = strdup(fileName);
+            char shortFileName[200];
+            strncpy(shortFileName, fileName, sizeof(shortFileName) - 1);
+            shortFileName[sizeof(shortFileName) - 1] = '\0';
             char *ext = strrchr(shortFileName, '.');
             if (ext) *ext = '\0';
-            sprintf(buffer, "%s%s.ggcodes", ODROID_BASE_PATH_CHEATS, shortFileName);
-            free(shortFileName);
+            snprintf(out, out_size, "%s%s.ggcodes", ODROID_BASE_PATH_CHEATS, shortFileName);
             break;
         }
 
         case ODROID_PATH_CHEAT_MCF:
         {
-            char *shortFileName = strdup(fileName);
+            char shortFileName[200];
+            strncpy(shortFileName, fileName, sizeof(shortFileName) - 1);
+            shortFileName[sizeof(shortFileName) - 1] = '\0';
             char *ext = strrchr(shortFileName, '.');
             if (ext) *ext = '\0';
-            sprintf(buffer, "%s%s.mcf", ODROID_BASE_PATH_CHEATS, shortFileName);
-            free(shortFileName);
+            snprintf(out, out_size, "%s%s.mcf", ODROID_BASE_PATH_CHEATS, shortFileName);
             break;
         }
 
         case ODROID_PATH_SYSTEM_CONFIG:
         {
-            char *systemPath = extract_system(fileName);
-            sprintf(buffer, "%s%sCONFIG", ODROID_BASE_PATH_CONFIG, systemPath);
-            free(systemPath);
+            char systemPath[RG_PATH_MAX];
+            const char *last_slash = strrchr(fileName, '/');
+            if (last_slash) {
+                int len = (int)(last_slash - fileName + 1);
+                if (len >= (int)sizeof(systemPath)) len = sizeof(systemPath) - 1;
+                memcpy(systemPath, fileName, len);
+                systemPath[len] = '\0';
+            } else {
+                systemPath[0] = '\0';
+            }
+            snprintf(out, out_size, "%s%sCONFIG", ODROID_BASE_PATH_CONFIG, systemPath);
             break;
         }
 
         default:
             RG_PANIC("Unknown Type");
     }
+}
 
+/* Legacy API — allocates via strdup. Use odroid_system_get_path_to_buf
+ * with a caller-provided buffer to avoid heap allocation. */
+char* odroid_system_get_path(emu_path_type_t type, const char *_romPath)
+{
+    char buffer[256];
+    odroid_system_get_path_buf(type, _romPath, buffer, sizeof(buffer));
     return strdup(buffer);
+}
+
+/* Heap-free version — writes directly into caller's buffer. */
+void odroid_system_get_path_to_buf(emu_path_type_t type, const char *_romPath, char *buf, int buf_size)
+{
+    odroid_system_get_path_buf(type, _romPath, buf, buf_size);
 }
 
 bool odroid_system_emu_screenshot(const char *filename)
@@ -271,28 +275,33 @@ bool odroid_system_emu_screenshot(const char *filename)
     return success;
 }
 
+#define EMU_MAX_SAVE_SLOTS 4
+/* Static storage for save state info — avoids calloc heap fragmentation.
+ * Only one emu_get_states result is active at a time. */
+static uint8_t _emu_states_buf[sizeof(rg_emu_states_t) + sizeof(rg_emu_slot_t) * EMU_MAX_SAVE_SLOTS];
+
 rg_emu_states_t *odroid_system_emu_get_states(const char *romPath, size_t slots)
 {
-    rg_emu_states_t *result = (rg_emu_states_t *)calloc(1, sizeof(rg_emu_states_t) + sizeof(rg_emu_slot_t) * slots);
+    if (slots > EMU_MAX_SAVE_SLOTS) slots = EMU_MAX_SAVE_SLOTS;
+    rg_emu_states_t *result = (rg_emu_states_t *)_emu_states_buf;
+    memset(result, 0, sizeof(_emu_states_buf));
     uint8_t last_used_slot = 0xFF;
 
-    char *filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE, romPath);
-    FILE *fp = fopen(filename, "rb");
+    char pathbuf[RG_PATH_MAX];
+    odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE, romPath, pathbuf, sizeof(pathbuf));
+    FILE *fp = fopen(pathbuf, "rb");
     if (fp)
     {
         fread(&last_used_slot, 1, 1, fp);
         fclose(fp);
     }
-    free(filename);
 
     for (size_t i = 0; i < slots; i++)
     {
         rg_emu_slot_t *slot = &result->slots[i];
-        char *preview = odroid_system_get_path(ODROID_PATH_SCREENSHOT + i, romPath);
-        char *file = odroid_system_get_path(ODROID_PATH_SAVE_STATE + i, romPath);
-        rg_stat_t info = rg_storage_stat(file);
-        strcpy(slot->preview, preview);
-        strcpy(slot->file, file);
+        odroid_system_get_path_to_buf(ODROID_PATH_SCREENSHOT + i, romPath, slot->preview, sizeof(slot->preview));
+        odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE + i, romPath, slot->file, sizeof(slot->file));
+        rg_stat_t info = rg_storage_stat(slot->file);
         slot->id = i;
         slot->is_used = info.exists;
         slot->is_lastused = false;
@@ -305,8 +314,6 @@ rg_emu_states_t *odroid_system_emu_get_states(const char *romPath, size_t slots)
                 result->lastused = slot;
             result->used++;
         }
-        free(preview);
-        free(file);
     }
     if (!result->lastused && result->latest)
         result->lastused = result->latest;
@@ -328,27 +335,18 @@ bool odroid_system_emu_load_state(int slot)
         return false;
     }
 
-    char *filename;
+    char filename[RG_PATH_MAX];
     if (slot == -2) {
-        filename = NULL;
-    } else if (slot == -1) {
-        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE_OFF, currentApp.romPath);
-    } else {
-        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath);
-    }
-    bool success = false;
-
-    if (filename) {
-        printf("Loading state from '%s'.\n", filename);
-    } else {
         printf("Loading state from sram.\n");
+        return (*currentApp.handlers.loadState)(NULL);
+    } else if (slot == -1) {
+        odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE_OFF, currentApp.romPath, filename, sizeof(filename));
+    } else {
+        odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath, filename, sizeof(filename));
     }
 
-    success = (*currentApp.handlers.loadState)(filename);
-
-    free(filename);
-
-    return success;
+    printf("Loading state from '%s'.\n", filename);
+    return (*currentApp.handlers.loadState)(filename);
 };
 
 bool odroid_system_emu_save_state(int slot)
@@ -359,14 +357,12 @@ bool odroid_system_emu_save_state(int slot)
         return false;
     }
 
-    char *filename;
+    char filename[RG_PATH_MAX];
     if (slot == -1) {
-        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE_OFF, currentApp.romPath);
+        odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE_OFF, currentApp.romPath, filename, sizeof(filename));
     } else {
-        filename = odroid_system_get_path(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath);
+        odroid_system_get_path_to_buf(ODROID_PATH_SAVE_STATE + slot, currentApp.romPath, filename, sizeof(filename));
     }
-
-    bool success = false;
 
     printf("Saving state to '%s'.\n", filename);
 
@@ -375,17 +371,14 @@ bool odroid_system_emu_save_state(int slot)
         printf("Unable to create dir, save might fail...\n");
     }
 
-    success = (*currentApp.handlers.saveState)(filename);
+    bool success = (*currentApp.handlers.saveState)(filename);
 
     if ((success) && (slot >= 0))
     {
-        // Save succeeded, let's take a pretty screenshot for the launcher!
-        char *filename = odroid_system_get_path(ODROID_PATH_SCREENSHOT + slot, currentApp.romPath);
-        odroid_system_emu_screenshot(filename);
-        free(filename);
+        char screenshot_path[RG_PATH_MAX];
+        odroid_system_get_path_to_buf(ODROID_PATH_SCREENSHOT + slot, currentApp.romPath, screenshot_path, sizeof(screenshot_path));
+        odroid_system_emu_screenshot(screenshot_path);
     }
-
-    free(filename);
 
     rg_storage_commit();
 

@@ -60,8 +60,10 @@ bool rg_storage_mkdir(const char *dir)
     if (errno == EEXIST)
         return true;
 
-    // Possibly missing some parents, try creating them
-    char *temp = strdup(dir);
+    // Possibly missing some parents, try creating them (stack buffer, no heap)
+    char temp[RG_PATH_MAX];
+    strncpy(temp, dir, sizeof(temp) - 1);
+    temp[sizeof(temp) - 1] = '\0';
     for (char *p = temp + strlen(RG_STORAGE_ROOT) + 1; *p; p++)
     {
         if (*p == '/')
@@ -76,7 +78,6 @@ bool rg_storage_mkdir(const char *dir)
                 p++;
         }
     }
-    free(temp);
 
     // Finally try again
     if (mkdir(dir, 0777) == 0)
@@ -262,34 +263,27 @@ size_t rg_storage_copy_file_to_ram(char *file_path, uint8_t *ram_dest, file_prog
 bool rg_storage_get_adjacent_files(const char *path, char *prev_path, char *next_path) {
     CHECK_PATH(path);
     
-    // Get directory and extension
-    char *dir = strdup(path);
+    // Get directory and extension (stack buffer, no heap)
+    char dir[RG_PATH_MAX];
+    strncpy(dir, path, sizeof(dir) - 1);
+    dir[sizeof(dir) - 1] = '\0';
     char *last_slash = strrchr(dir, '/');
-    if (!last_slash) {
-        free(dir);
-        return false;
-    }
+    if (!last_slash) return false;
     *last_slash = '\0';
-    
+
     const char *ext = rg_extension(path);
-    if (!ext) {
-        free(dir);
-        return false;
-    }
-    
+    if (!ext) return false;
+
     const char *current_basename = rg_basename(path);
     char best_prev[RG_PATH_MAX] = {0};
     char best_next[RG_PATH_MAX] = {0};
     bool need_prev = prev_path != NULL;
     bool need_next = next_path != NULL;
-    
+
     DIR dir_obj;
     FILINFO fno;
     FRESULT res = f_opendir(&dir_obj, dir);
-    if (res != FR_OK) {
-        free(dir);
-        return false;
-    }
+    if (res != FR_OK) return false;
     
     // Single pass to find previous and next files
     while (true) {
@@ -333,6 +327,5 @@ bool rg_storage_get_adjacent_files(const char *path, char *prev_path, char *next
         strcpy(next_path, best_next[0] ? best_next : path);
     }
     
-    free(dir);
     return true;
 }

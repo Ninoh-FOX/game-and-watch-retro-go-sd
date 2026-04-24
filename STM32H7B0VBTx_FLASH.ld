@@ -56,7 +56,7 @@ ENTRY(Reset_Handler)
 _estack = _stack_top;    /* end of RAM */
 
 /* Generate a link error if heap and stack don't fit into RAM */
-_Heap_Size = 22 * 1024;     /* reduced from 32KB to fit PICO-8 p8.ram in DTCM */
+_Heap_Size = 22 * 1024;     /* reduced: emu_states moved to static BSS */
 
 _Stack_Redzone_Size = 256;  /* size of stack overflow protection */
 _Min_Stack_Size = 20 * 1024; /* required amount of stack */

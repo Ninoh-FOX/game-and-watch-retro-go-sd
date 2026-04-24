@@ -1058,7 +1058,7 @@ bool emulator_show_file_menu(retro_emulator_file_t *file)
 #endif
 
     free(sram_path);
-    free(savestates);
+    /* savestates is static — no free needed */
 
 #if CHEAT_CODES == 1
     CHOSEN_FILE = NULL;

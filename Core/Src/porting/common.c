@@ -238,23 +238,25 @@ void common_emu_input_loop(odroid_gamepad_state_t *joystick, odroid_dialog_choic
                 printf("file_path: %s\n", file_path);
                 FILE *file = fopen(file_path, "wb");
                 if (file == NULL) {
+                    free(file_path);
                     return;
                 }
-                
+
                 // Write BMP header
                 fwrite(bmp_header, 1, 66, file);
-                
+
                 // Write RGB565 pixel data directly (bottom-up for BMP)
                 odroid_audio_mute(true);
                 lcd_sleep_while_swap_pending();
                 uint8_t *data = (uint8_t*)lcd_get_inactive_buffer();
-                
+
                 for (int y = 239; y >= 0; y--) {  // BMP is bottom-up
                     uint8_t *src_line = &data[y * 320 * 2];
                     fwrite(src_line, 1, 320 * 2, file);
                 }
-                
+
                 fclose(file);
+                free(file_path);
                 set_ingame_overlay(INGAME_OVERLAY_SC);
                 odroid_audio_mute(false);
 #else

@@ -1462,7 +1462,7 @@ int odroid_savestate_menu(const char *title, const char *rom_path, bool show_pre
     else
         sel = -1;
 
-    free(savestates);
+    /* savestates is static — no free needed */
 
     return sel;
 }
