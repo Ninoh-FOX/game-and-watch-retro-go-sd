@@ -212,6 +212,9 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_Confirm_del_save = "要刪除即時存檔嗎?",
     .s_Confirm_del_sram = "要刪除SRAM存檔嗎?",
     .s_Free_space_alert = "沒有足夠的空間儲存新檔案，請刪除一些.",
+    .s_Corrupted_Title = "偵測到安裝已損毀",
+    .s_Corrupted_Install_1 = "請重新安裝",
+    .s_Corrupted_Install_2 = "Retro-Go-SD",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "金手指碼",
     .s_Cheat_Codes_Title = "金手指",

@@ -184,6 +184,9 @@ typedef struct
     const char *s_Confirm_del_save;
     const char *s_Confirm_del_sram;
     const char *s_Free_space_alert;
+    const char *s_Corrupted_Title;
+    const char *s_Corrupted_Install_1;
+    const char *s_Corrupted_Install_2;
 #if CHEAT_CODES == 1
     const char *s_Cheat_Codes;
     const char *s_Cheat_Codes_Title;

@@ -207,6 +207,9 @@ const lang_t lang_de_de LANG_DATA = {
     .s_Confirm_del_save = "Spielstand wirklich löschen?",
     .s_Confirm_del_sram = "Delete SRAM file?",
     .s_Free_space_alert = "Not enough free space for a new save, please delete some.",
+    .s_Corrupted_Title = "Beschädigte Installation erkannt",
+    .s_Corrupted_Install_1 = "bitte installiere",
+    .s_Corrupted_Install_2 = "Retro-Go-SD neu",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "Cheat Codes",
     .s_Cheat_Codes_Title = "Cheat Options",

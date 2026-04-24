@@ -209,6 +209,9 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_Confirm_del_save = "セーブを消す？",
     .s_Confirm_del_sram = "SRAM ファイルを削除しますか？",
     .s_Free_space_alert = "Nセーブ用空き容量が不足しています。一部を削除してください",
+    .s_Corrupted_Title = "破損したインストールを検出",
+    .s_Corrupted_Install_1 = "Retro-Go-SD を",
+    .s_Corrupted_Install_2 = "再インストールしてください",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "チートコード",
     .s_Cheat_Codes_Title = "チートオプション",

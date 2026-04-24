@@ -207,6 +207,9 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_Confirm_del_save = "Supprimer la sauvegarde ?",
     .s_Confirm_del_sram = "Supprimer la SRAM ?",
     .s_Free_space_alert = "Pas assez d'espace pour une nouvelle sauvegarde, merci d'en supprimer.",
+    .s_Corrupted_Title = "Installation corrompue détectée",
+    .s_Corrupted_Install_1 = "veuillez réinstaller",
+    .s_Corrupted_Install_2 = "Retro-Go-SD",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "Codes de triche",
     .s_Cheat_Codes_Title = "Options de triche",

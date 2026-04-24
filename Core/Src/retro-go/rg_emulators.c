@@ -47,9 +47,30 @@
 // changes
 #define INTERNAL_CORE_HEADER_VERSION ((uint16_t)(INTERNAL_CORE_BIN_HEADER_VERSION))
 
+static const char *get_extension(const char *filename);
+
 static uint16_t read_u16_le(const uint8_t *p)
 {
   return (uint16_t)(p[0] | ((uint16_t)p[1] << 8));
+}
+
+typedef enum {
+  CORE_ORIGIN_UNKNOWN = 0,
+  CORE_ORIGIN_INTERNAL,
+  CORE_ORIGIN_EXTERNAL,
+} core_origin_t;
+
+static void show_corrupted_installation_screen(void)
+{
+  odroid_dialog_choice_t choices[] = {
+    {0, curr_lang->s_Corrupted_Install_1, "", -1, NULL},
+    {0, curr_lang->s_Corrupted_Install_2, "", -1, NULL},
+    ODROID_DIALOG_CHOICE_SEPARATOR,
+    {1, curr_lang->s_OK, "", 1, NULL},
+    ODROID_DIALOG_CHOICE_LAST,
+  };
+
+  (void)odroid_overlay_dialog(curr_lang->s_Corrupted_Title, choices, 3, NULL, 0);
 }
 
 static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_address)
@@ -58,23 +79,30 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
   uint8_t *header_data = NULL;
   bool is_internal_core = false;
   bool is_external_core = false;
+  core_origin_t core_origin = CORE_ORIGIN_UNKNOWN;
   FILE *file = fopen(file_path, "rb");
   if (!file) {
     printf("CORE: failed to open '%s'\n", file_path);
+    show_corrupted_installation_screen();
     return 0;
   }
 
   if (fread(fixed_header, 1, sizeof(fixed_header), file) != sizeof(fixed_header)) {
     printf("CORE: short header in '%s'\n", file_path);
     fclose(file);
+    show_corrupted_installation_screen();
     return 0;
   }
 
   is_internal_core = (memcmp(fixed_header, CORE_HEADER_MAGIC_INTERNAL, 4) == 0);
   is_external_core = (memcmp(fixed_header, CORE_HEADER_MAGIC_EXTERNAL, 4) == 0);
+  core_origin = is_internal_core ? CORE_ORIGIN_INTERNAL :
+                is_external_core ? CORE_ORIGIN_EXTERNAL :
+                                   CORE_ORIGIN_UNKNOWN;
   if (!is_internal_core && !is_external_core) {
     printf("CORE: invalid magic in '%s'\n", file_path);
     fclose(file);
+    show_corrupted_installation_screen();
     return 0;
   }
 
@@ -84,12 +112,16 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
     header_data = (uint8_t *)malloc(header_length);
     if (!header_data) {
       fclose(file);
+      if (core_origin != CORE_ORIGIN_EXTERNAL)
+        show_corrupted_installation_screen();
       return 0;
     }
     if (fread(header_data, 1, header_length, file) != header_length) {
       printf("CORE: truncated extended header in '%s'\n", file_path);
       free(header_data);
       fclose(file);
+      if (core_origin != CORE_ORIGIN_EXTERNAL)
+        show_corrupted_installation_screen();
       return 0;
     }
   }
@@ -100,6 +132,7 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
              (unsigned)header_version, file_path, (unsigned)INTERNAL_CORE_HEADER_VERSION);
       free(header_data);
       fclose(file);
+      show_corrupted_installation_screen();
       return 0;
     }
 
@@ -107,6 +140,7 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
       printf("CORE: missing internal git tag in '%s'\n", file_path);
       free(header_data);
       fclose(file);
+      show_corrupted_installation_screen();
       return 0;
     }
 
@@ -118,6 +152,7 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
       printf("CORE: internal core git tag mismatch in '%s'\n", file_path);
       free(header_data);
       fclose(file);
+      show_corrupted_installation_screen();
       return 0;
     }
   } else {
@@ -129,6 +164,8 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
   if (fseek(file, 0, SEEK_END) != 0) {
     free(header_data);
     fclose(file);
+    if (core_origin != CORE_ORIGIN_EXTERNAL)
+      show_corrupted_installation_screen();
     return 0;
   }
   long file_size = ftell(file);
@@ -136,6 +173,8 @@ static size_t load_core_bin_with_header(const char *file_path, uint8_t *dest_add
     printf("CORE: invalid header length %u in '%s' (file too small)\n", (unsigned)header_length, file_path);
     free(header_data);
     fclose(file);
+    if (core_origin != CORE_ORIGIN_EXTERNAL)
+      show_corrupted_installation_screen();
     return 0;
   }
   free(header_data);

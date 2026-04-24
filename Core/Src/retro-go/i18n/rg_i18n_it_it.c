@@ -207,6 +207,9 @@ const lang_t lang_it_it LANG_DATA = {
     .s_Confirm_del_save = "Eliminare il salvataggio?",
     .s_Confirm_del_sram = "Delete SRAM file?",
     .s_Free_space_alert = "Not enough free space for a new save, please delete some.",
+    .s_Corrupted_Title = "Installazione corrotta rilevata",
+    .s_Corrupted_Install_1 = "reinstalla",
+    .s_Corrupted_Install_2 = "Retro-Go-SD",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "Codici Cheat",
     .s_Cheat_Codes_Title = "Codici Cheat",

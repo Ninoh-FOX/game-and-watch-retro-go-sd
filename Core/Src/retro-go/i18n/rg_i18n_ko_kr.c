@@ -211,6 +211,9 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_Confirm_del_save = "저장 데이터를 삭제하시겠습니까?",
     .s_Confirm_del_sram = "SRAM 파일 삭제?",
     .s_Free_space_alert = "저장 공간이 부족합니다. 일부 데이터를 삭제해 주세요.",
+    .s_Corrupted_Title = "손상된 설치가 감지됨",
+    .s_Corrupted_Install_1 = "Retro-Go-SD를",
+    .s_Corrupted_Install_2 = "다시 설치하세요",
 #if CHEAT_CODES == 1
     .s_Cheat_Codes = "치트 코드",
     .s_Cheat_Codes_Title = "치트 설정",
