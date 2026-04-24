@@ -238,6 +238,7 @@ const lang_t lang_ko_kr LANG_DATA = {
     .s_LangAuthor = "Augen(히힛마스터)",
     .s_Debug_menu = "디버그 메뉴",
     .s_Reset_settings = "모든 설정 초기화",
+    .s_Patreon_menu = "Patreon / 소식",
     //.s_Close                  = "닫기",
     .s_Retro_Go = "%s 정보= ",
     .s_Confirm_Reset_settings = "모든 설정을 재설정 하시겠습니까?",

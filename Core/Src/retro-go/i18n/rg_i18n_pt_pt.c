@@ -233,6 +233,7 @@ const lang_t lang_pt_pt LANG_DATA = {
     .s_LangAuthor = "Pollux",
     .s_Debug_menu = "Menu de depuração",
     .s_Reset_settings = "Repôr configurações",
+    .s_Patreon_menu = "Patreon / novidades",
     .s_Retro_Go = "Sobre %s",
     .s_Confirm_Reset_settings = "Repôr configurações?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

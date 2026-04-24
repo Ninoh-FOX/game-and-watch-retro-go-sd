@@ -233,6 +233,7 @@ const lang_t lang_it_it LANG_DATA = {
     .s_LangAuthor = "SantX27",
     .s_Debug_menu = "Menù di Debug",
     .s_Reset_settings = "Ripristina configurazione",
+    .s_Patreon_menu = "Patreon / novità",
     .s_Retro_Go = "Riguardo %s",
     .s_Confirm_Reset_settings = "Ripristinare configurazione?",
     .s_Flash_JEDEC_ID = "ID Flash JEDEC",

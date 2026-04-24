@@ -234,6 +234,7 @@ const lang_t lang_zh_tw LANG_DATA = {
     .s_LangAuthor = "撓漿糊的",
     .s_Debug_menu = "∞ 調試選項",
     .s_Reset_settings = "≡ 恢復預設",
+    .s_Patreon_menu = "Patreon / 動態",
     //.s_Close                  = "Close",
     .s_Retro_Go = "關於 %s",
     .s_Confirm_Reset_settings = "您確定要恢復所有設定數據？",

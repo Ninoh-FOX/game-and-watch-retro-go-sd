@@ -233,6 +233,7 @@ const lang_t lang_fr_fr LANG_DATA = {
     .s_LangAuthor = "Narkoa",
     .s_Debug_menu = "Menu Debug",
     .s_Reset_settings = "Restaurer les paramètres",
+    .s_Patreon_menu = "Patreon / actus",
     .s_Retro_Go = "A propos de %s",
     .s_Confirm_Reset_settings = "Restaurer les paramètres ?",
     .s_Flash_JEDEC_ID = "Id Flash JEDEC",

@@ -240,6 +240,7 @@ const lang_t lang_zh_cn LANG_DATA = {
     .s_LangAuthor = "挠浆糊的",
     .s_Debug_menu = "≈ 调试信息",
     .s_Reset_settings = "≡ 重置设定",
+    .s_Patreon_menu = "Patreon / 动态",
     //.s_Close                  = "Close",
     .s_Retro_Go = "关于 %s",
     .s_Confirm_Reset_settings = "您确定要重置所有设定信息？",

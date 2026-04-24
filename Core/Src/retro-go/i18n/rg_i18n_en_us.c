@@ -229,6 +229,7 @@ const lang_t lang_en_us LANG_DATA = {
     .s_LangAuthor = "Original",
     .s_Debug_menu = "Debug menu",
     .s_Reset_settings = "Reset settings",
+    .s_Patreon_menu = "Patreon / news",
     .s_Retro_Go = "About %s",
     .s_Confirm_Reset_settings = "Reset all settings?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

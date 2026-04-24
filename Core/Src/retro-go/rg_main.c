@@ -17,6 +17,9 @@
 #include "gw_sdcard.h"
 #include "rg_rtc.h"
 #include "rg_i18n.h"
+#include "odroid_overlay.h"
+#include "odroid_settings.h"
+#include "rg_welcome_prompt.h"
 #include "bitmaps.h"
 #include "error_screens.h"
 #include "gw_malloc.h"
@@ -416,6 +419,7 @@ static void GLOBAL_DATA handle_about_menu()
             ODROID_DIALOG_CHOICE_SEPARATOR,
             {-1, curr_lang->s_Lang, (char *)curr_lang->s_LangAuthor, 0, NULL},
             ODROID_DIALOG_CHOICE_SEPARATOR,
+            {3, curr_lang->s_Patreon_menu, "", 1, NULL},
             {2, curr_lang->s_Debug_menu, "", 1, NULL},
             {1, curr_lang->s_Reset_settings, "", 1, NULL},
             ODROID_DIALOG_CHOICE_SEPARATOR,
@@ -439,6 +443,10 @@ static void GLOBAL_DATA handle_about_menu()
     else if (sel == 2)
     {
         handle_debug_menu();
+    }
+    else if (sel == 3)
+    {
+        rg_welcome_prompt_show_dialog();
     }
 }
 
@@ -638,6 +646,8 @@ void retro_loop()
 
     // This will ensure that we can still catch the CPU during WFI
     update_debug_clock();
+
+    rg_welcome_prompt_maybe_auto_show_on_launcher();
 
     while (true)
     {

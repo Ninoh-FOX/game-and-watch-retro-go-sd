@@ -233,6 +233,7 @@ const lang_t lang_de_de LANG_DATA = {
     .s_LangAuthor = "LeZerb",
     .s_Debug_menu = "Debug Menü",
     .s_Reset_settings = "Einstellungen zurücksetzen",
+    .s_Patreon_menu = "Patreon / News",
     .s_Retro_Go = "Über %s",
     .s_Confirm_Reset_settings = "Alle Einstellungen zurücksetzen?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

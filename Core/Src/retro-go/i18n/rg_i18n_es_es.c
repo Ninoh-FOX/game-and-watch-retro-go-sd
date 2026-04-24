@@ -233,6 +233,7 @@ const lang_t lang_es_es LANG_DATA = {
     .s_LangAuthor = "Ninoh-FOX",
     .s_Debug_menu = "Debug_menu",
     .s_Reset_settings = "Resetear configuración",
+    .s_Patreon_menu = "Patreon / novedades",
     .s_Retro_Go = "Sobre %s",
     .s_Confirm_Reset_settings = "¿Resetear?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

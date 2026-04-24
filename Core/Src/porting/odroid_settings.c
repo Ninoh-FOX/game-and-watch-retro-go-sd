@@ -77,6 +77,9 @@ typedef struct persistent_config {
 
     bool debug_clock_always_on;
 
+    /** Welcome prompt: 0 = not anchored, 1 = message already shown, else YYYYMMDD anchor (RTC >= 2026). */
+    uint32_t welcome_prompt;
+
     app_config_t app[APPID_COUNT];
 
     uint32_t crc32;
@@ -84,7 +87,7 @@ typedef struct persistent_config {
 
 static const persistent_config_t persistent_config_default = {
     .magic = CONFIG_MAGIC,
-    .version = 7,
+    .version = 8,
 
     .backlight = ODROID_BACKLIGHT_LEVEL6,
     .start_action = ODROID_START_ACTION_RESUME,
@@ -124,6 +127,7 @@ static const persistent_config_t persistent_config_default = {
     .main_menu_cursor = 0,
     .main_menu_browse_subpath = {0},
     .debug_clock_always_on = false,
+    .welcome_prompt = 0,
     .app = {
         {0}, // Launcher
         {
@@ -748,5 +752,15 @@ bool odroid_settings_DebugMenuDebugClockAlwaysOn_get()
 void odroid_settings_DebugMenuDebugClockAlwaysOn_set(bool value)
 {
     persistent_config_ram.debug_clock_always_on = value;
+}
+
+uint32_t odroid_settings_WelcomePrompt_get(void)
+{
+    return persistent_config_ram.welcome_prompt;
+}
+
+void odroid_settings_WelcomePrompt_set(uint32_t value)
+{
+    persistent_config_ram.welcome_prompt = value;
 }
 

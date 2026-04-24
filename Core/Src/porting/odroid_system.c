@@ -9,6 +9,8 @@
 #include "gw_lcd.h"
 #include "gw_sleep.h"
 #include "odroid_settings.h"
+#include "appid.h"
+#include "rg_welcome_prompt.h"
 #if SD_CARD == 1
 #include "gw_sdcard.h"
 #include "ff.h"
@@ -549,6 +551,10 @@ static void odroid_system_sleep_post_wakeup_handler() {
 
     if (currentApp.handlers.sleep_post_wakeup) {
         (*currentApp.handlers.sleep_post_wakeup)();
+    }
+
+    if (currentApp.id == APPID_LAUNCHER) {
+        rg_welcome_prompt_maybe_auto_show_on_launcher();
     }
 }
 

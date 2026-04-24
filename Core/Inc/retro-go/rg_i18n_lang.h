@@ -210,6 +210,7 @@ typedef struct
     const char *s_LangAuthor;
     const char *s_Debug_menu;
     const char *s_Reset_settings;
+    const char *s_Patreon_menu;
     const char *s_Retro_Go;
     const char *s_Confirm_Reset_settings;
     const char *s_Flash_JEDEC_ID;

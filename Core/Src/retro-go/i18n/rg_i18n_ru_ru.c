@@ -225,6 +225,7 @@ const lang_t lang_ru_ru LANG_DATA = {
     .s_LangAuthor = "teuchezh",
     .s_Debug_menu = "Иеню отладки",
     .s_Reset_settings = "Сбросить настройки",
+    .s_Patreon_menu = "Patreon / новости",
     .s_Retro_Go = "Об %s",
     .s_Confirm_Reset_settings = "Сбросить все настройки?",
     .s_Flash_JEDEC_ID = "Flash JEDEC ID",

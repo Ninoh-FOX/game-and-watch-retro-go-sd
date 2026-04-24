@@ -236,6 +236,7 @@ const lang_t lang_ja_jp LANG_DATA = {
     .s_LangAuthor = "標準",
     .s_Debug_menu = "デバッグメニュー",
     .s_Reset_settings = "設定をリセット",
+    .s_Patreon_menu = "Patreon / お知らせ",
     //.s_Close                   = "閉じる",
     .s_Retro_Go = "%sについて",
     .s_Confirm_Reset_settings = "全ての設定をリセットしますか?",
