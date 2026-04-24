@@ -229,24 +229,6 @@ static uint8_t *Pico8CacheCodeToFlash(uint32_t *code_size_out)
   return code_addr;
 }
 
-/**
- * PatchPico8RamData - Patch sentinel addresses in RAM overlay data.
- * Scans all of .overlay_pico8 + .overlay_pico8_bss (including main_pico8 veneers).
- */
-static void PatchPico8RamData(uint8_t *code_addr, uint32_t code_size)
-{
-  int32_t offset = (uint32_t)code_addr - PICO8_CODE_BASE;
-  printf("P8: patching RAM %p..%p (main_code %p..%p, overlay size=%u, bss size=%u)\n",
-         __RAM_EMU_START__, &_OVERLAY_PICO8_BSS_END,
-         &_PICO8_MAIN_CODE_START, &_PICO8_MAIN_CODE_END,
-         (unsigned)(size_t)&_OVERLAY_PICO8_SIZE,
-         (unsigned)(size_t)&_OVERLAY_PICO8_BSS_SIZE);
-  int patched = PatchPico8Region((uint32_t *)__RAM_EMU_START__,
-                                 (uint32_t *)&_OVERLAY_PICO8_BSS_END,
-                                 offset, code_size);
-  printf("P8: patched %d refs in RAM data\n", patched);
-}
-
 const unsigned char *ROM_DATA = NULL;
 unsigned ROM_DATA_LENGTH;
 const char *ROM_EXT = NULL;
