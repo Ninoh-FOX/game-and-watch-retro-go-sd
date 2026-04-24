@@ -2,20 +2,26 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "gw_linker.h"
 
+static char *heap_end = 0;
 
 void *
 _sbrk (int incr)
 {
-    static char * heap_end;
     char *        prev_heap_end;
 
     if (heap_end == 0)
         heap_end = (char *) &_heap_start;
 
-    assert((heap_end + incr) < (char *)(&_heap_end));
+    if ((heap_end + incr) >= (char *)(&_heap_end)) {
+        printf("HEAP OOM: need=%d used=%d/%d\n",
+               incr, (int)(heap_end - (char *)&_heap_start),
+               (int)((char *)&_heap_end - (char *)&_heap_start));
+        assert(0);
+    }
 
     prev_heap_end = heap_end;
     heap_end += incr;
