@@ -139,22 +139,25 @@ const char *fault_list[] = {
 
 __attribute__((optimize("-O0"))) void BSOD(BSOD_t fault, uint32_t pc, uint32_t lr)
 {
-  char msg[256];
+  char msg[128];
+  char regs[64];
   size_t i = 0;
   char *start;
   char *end;
   char *line;
-  int y = 2*8;
+  int y = 0;
 
   __disable_irq();
 
-  snprintf(msg, sizeof(msg), "FATAL EXCEPTION: %s %s\nPC=0x%08lx LR=0x%08lx\n", fault_list[fault], GIT_TAG, pc, lr);
+  snprintf(msg, sizeof(msg), "FATAL EXCEPTION: %s %s", fault_list[fault], GIT_TAG);
+  snprintf(regs, sizeof(regs), "PC=0x%08lx LR=0x%08lx", pc, lr);
 
   lcd_sync();
   lcd_reset_active_buffer();
   odroid_display_set_backlight(ODROID_BACKLIGHT_LEVEL6);
 
-  odroid_overlay_draw_text(0, 0, GW_LCD_WIDTH, msg, C_RED, C_BLUE);
+  y += odroid_overlay_draw_text(0, y, GW_LCD_WIDTH, msg, C_RED, C_BLUE);
+  y += odroid_overlay_draw_text(0, y, GW_LCD_WIDTH, regs, C_RED, C_BLUE);
 
   // Print each line from the log in reverse
   end = &logbuf[strnlen(logbuf, sizeof(logbuf)) - 1];
