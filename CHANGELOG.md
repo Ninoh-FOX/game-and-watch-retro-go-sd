@@ -7,11 +7,14 @@
 !!!! This is a big update, some regression may occurs. Please report them. !!!!
 
 - Subfolders support : create some subfolders in systems roms (/roms/xxx/) to sort your roms 
-- Pico-8 (beta) support ! This update brings support for Pico-8 fantasy console.
-  It requires to manually install Pico-8 core by followinf instructions at https://github.com/Macs75/pico8_gnw_distro
+- CJK UTF8 fonts support (games with names in Japanese/Korean/Japanese will show correctly)
+  If some characters are shown as "�", it means they are missing from the supported characters, please report them so I can add them
+- Chinese/Japanase/Korean menus
+- Pico-8 (beta) support ! Thanks to the amazing work of Macs75, this update brings support for Pico-8 fantasy console.
+  It requires to manually install Pico-8 core by following instructions at https://github.com/Macs75/pico8_gnw_distro
   Due to limited RAM and CPU power of the G&W, some games will not run well (or at all)
-  Pico-8 Core is still in beta stage, it can crash (in worst case you could have to wait for battery to be empty to be able to restart the console !), savestates are not handled by retro-go, ...
-  Copy your .p8 or .png in /roms/pico8
+  Pico-8 Core is still in beta stage, it can crash (in worst case you could have to wait for battery to be empty to be able to restart the console !)
+  Copy your .p8 or p8.png in /roms/pico8
 - No more crash if using SD Card (or sd card content) from another G&W (flash cache data will be erased in this case)
 - It'll inform user if firware data on the sd cards do not fit the version of retro-go in flash
 - Firmware update : improved install speed
