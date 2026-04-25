@@ -185,6 +185,8 @@ To install the hardware mod, you need:
 Due to memory and power constrains of the Game & Watch hardware, it's not possible to use full size png/jpg/bmp images for cover art.
 Due to current implementation of the covers management, having covers with different sizes for a given system can cause incorrect alignement of images in "CoverLight H" view
 
+User dadagm wrote a macos/windows tool to convert covers in an easy way ! Check https://github.com/dadagm/GameWatchCoverMaker to get his application !
+
 The `tools/gencovers.py` script helps you generate cover art thumbnails for your games. It can process individual images or batch process all images in a directory.
 
 Note that you will have to run `python3 -m pip install -r requirements.txt` once to install dependencies required by the script.
