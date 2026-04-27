@@ -285,9 +285,14 @@ typedef struct {
     uint32_t                    *pico8_code_flash_size_ptr;
     uint32_t                    *ram_start_ptr;        /* &ram_start */
     void                       **impure_ptr_ptr;      /* &_impure_ptr */
-    void                        *dtcm_p8ram_start;    /* &__dtcm_p8ram_start__ */
+    void                        *dtcm_p8ram_start;    /* &__dtcm_p8ram_start__ (NULL when heap-allocated) */
 
     /* =====[ APPEND-ONLY FROM HERE — bump version on any change above ]===== */
+
+    /* v1 append: DTCM heap allocator — engine calls this to get 64KB p8ram
+     * at runtime instead of relying on a fixed linker section.
+     * Freed implicitly by heap watermark reset between emulator launches. */
+    void                       *(*dtcm_malloc)(size_t size);
 
 } gw_firmware_abi_t;
 

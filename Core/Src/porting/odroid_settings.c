@@ -45,12 +45,12 @@ typedef struct app_config {
 
 #if CHEAT_CODES == 1
 typedef struct {
-    char *game_path;
+    char game_path[RG_PATH_MAX + 1];
     uint32_t active_cheat_codes;
     bool is_cached;
 } CheatCache;
 
-static CheatCache cheat_cache = {NULL, 0, false};
+static CheatCache cheat_cache = {{0}, 0, false};
 #endif
 
 typedef struct persistent_config {
@@ -275,7 +275,7 @@ void odroid_settings_reset()
     odroid_settings_delete_cheat_state_files();
     // Reset cheat cache
     cheat_cache.is_cached = false;
-    cheat_cache.game_path = NULL;
+    cheat_cache.game_path[0] = '\0';
     cheat_cache.active_cheat_codes = 0;
 #endif
     memcpy(&persistent_config_ram, &persistent_config_default, sizeof(persistent_config_t));
@@ -670,7 +670,7 @@ void odroid_settings_DisplayOverscan_set(int32_t value)
 #if CHEAT_CODES == 1
 
 static uint32_t read_active_cheats(char *game_path) {
-    if (cheat_cache.is_cached && cheat_cache.game_path != NULL && strcmp(cheat_cache.game_path, game_path) == 0) {
+    if (cheat_cache.is_cached && cheat_cache.game_path[0] && strcmp(cheat_cache.game_path, game_path) == 0) {
         return cheat_cache.active_cheat_codes;
     }
 
@@ -689,10 +689,8 @@ static uint32_t read_active_cheats(char *game_path) {
     free(cheat_state_path);
 
     // Update cache
-    if (cheat_cache.game_path != NULL) {
-        free(cheat_cache.game_path);
-    }
-    cheat_cache.game_path = strdup(game_path);
+    strncpy(cheat_cache.game_path, game_path, RG_PATH_MAX);
+    cheat_cache.game_path[RG_PATH_MAX] = '\0';
     cheat_cache.active_cheat_codes = active_cheat_codes;
     cheat_cache.is_cached = true;
 
@@ -712,10 +710,8 @@ static void write_active_cheats(char *game_path, uint32_t active_cheat_codes) {
     free(cheat_state_path);
 
     // Update cache
-    if (cheat_cache.game_path != NULL) {
-        free(cheat_cache.game_path);
-    }
-    cheat_cache.game_path = strdup(game_path);
+    strncpy(cheat_cache.game_path, game_path, RG_PATH_MAX);
+    cheat_cache.game_path[RG_PATH_MAX] = '\0';
     cheat_cache.active_cheat_codes = active_cheat_codes;
     cheat_cache.is_cached = true;
 }

@@ -37,8 +37,7 @@
 /* These are defined in rg_emulators.c */
 extern uint8_t *pico8_code_flash_addr;
 extern uint32_t pico8_code_flash_size;
-/* DTCM p8 RAM (linker-defined) */
-extern uint32_t __dtcm_p8ram_start__;
+/* DTCM p8 RAM linker symbol removed — now heap-allocated via dtcm_malloc */
 
 /* newlib's __errno is not in a public header on all targets. */
 extern int *__errno(void);
@@ -233,5 +232,7 @@ const gw_firmware_abi_t g_firmware_abi = {
     .pico8_code_flash_size_ptr = &pico8_code_flash_size,
     .ram_start_ptr             = &ram_start,
     .impure_ptr_ptr            = (void **)&_impure_ptr,
-    .dtcm_p8ram_start          = &__dtcm_p8ram_start__,
+    .dtcm_p8ram_start          = NULL,  /* no longer a fixed section — use dtcm_malloc */
+
+    .dtcm_malloc               = malloc,
 };
